@@ -76,4 +76,43 @@ commander_1.program
     fs_1.default.writeFileSync(analyticsPath, defaultConfig);
     console.log(`✅ analytics.json ${options.reset ? "reset" : "created"} successfully!`);
 });
+// Command to list all evented grouped by dimension
+commander_1.program
+    .command("dimensions")
+    .description("List all events grouped by dimension")
+    .action(() => {
+    if (!fs_1.default.existsSync(analyticsPath)) {
+        console.error("❌ analytics.json file is missing.");
+        process.exit(1);
+    }
+    const data = JSON.parse(fs_1.default.readFileSync(analyticsPath, "utf8"));
+    if (!data.validDimensions || !data.events) {
+        console.error("❌ analytics.json is missing required fields.");
+        process.exit(1);
+    }
+    // Initialize map of dimensions to event names
+    const dimensionMap = {};
+    // Initialize all dimensions as keys
+    data.validDimensions.forEach((dim) => {
+        dimensionMap[dim] = [];
+    });
+    // Populate dimensionMap with events
+    Object.entries(data.events).forEach(([eventKey, event]) => {
+        if (event.dimensions) {
+            event.dimensions.forEach((dim) => {
+                if (!dimensionMap[dim]) {
+                    console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in validDimensions.`);
+                    return;
+                }
+                dimensionMap[dim].push(eventKey);
+            });
+        }
+    });
+    // Convert to array format
+    const dimensionList = Object.entries(dimensionMap).map(([dimension, events]) => ({
+        dimension,
+        events,
+    }));
+    console.log(JSON.stringify(dimensionList, null, 2));
+});
 commander_1.program.parse(process.argv);

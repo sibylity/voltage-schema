@@ -87,5 +87,51 @@ program
     console.log(`✅ analytics.json ${options.reset ? "reset" : "created"} successfully!`);
   });
 
+// Command to list all evented grouped by dimension
+program
+  .command("dimensions")
+  .description("List all events grouped by dimension")
+  .action(() => {
+    if (!fs.existsSync(analyticsPath)) {
+      console.error("❌ analytics.json file is missing.");
+      process.exit(1);
+    }
+
+    const data = JSON.parse(fs.readFileSync(analyticsPath, "utf8"));
+
+    if (!data.validDimensions || !data.events) {
+      console.error("❌ analytics.json is missing required fields.");
+      process.exit(1);
+    }
+
+    // Initialize map of dimensions to event names
+    const dimensionMap: Record<string, string[]> = {};
+
+    // Initialize all dimensions as keys
+    data.validDimensions.forEach((dim: string) => {
+      dimensionMap[dim] = [];
+    });
+
+    // Populate dimensionMap with events
+    Object.entries(data.events).forEach(([eventKey, event]: [string, any]) => {
+      if (event.dimensions) {
+        event.dimensions.forEach((dim: string) => {
+          if (!dimensionMap[dim]) {
+            console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in validDimensions.`);
+            return;
+          }
+          dimensionMap[dim].push(eventKey);
+        });
+      }
+    });
+
+    // Convert to array format
+    const dimensionList = Object.entries(dimensionMap).map(([dimension, events]) => ({
+      dimension,
+      events,
+    }));
+
+    console.log(JSON.stringify(dimensionList, null, 2));
+  });
 
 program.parse(process.argv);
