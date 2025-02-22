@@ -4,8 +4,9 @@
   "description": "The analytics schema that evolves with your software.",
   "main": "./dist/cli.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc && cp -r src/schemas dist/",
     "start": "ts-node src/cli.ts",
+    "init": "node dist/cli.js init",
     "validate": "node dist/cli.js validate"
   },
   "bin": {
