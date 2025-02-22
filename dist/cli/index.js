@@ -9,9 +9,10 @@ const path_1 = __importDefault(require("path"));
 const ajv_1 = __importDefault(require("ajv"));
 const ajv = new ajv_1.default();
 const schemaPath = path_1.default.resolve(__dirname, "../schemas/analytics.schema.json");
+const analyticsPath = path_1.default.resolve(process.cwd(), "analytics.json");
+const defaultAnalyticsPath = path_1.default.resolve(__dirname, "../schemas/analytics.default.json");
 const schema = JSON.parse(fs_1.default.readFileSync(schemaPath, "utf8"));
 const validate = ajv.compile(schema);
-const analyticsPath = path_1.default.resolve(process.cwd(), "analytics.json");
 // Command to validate the analytics.json file
 commander_1.program
     .command("validate")
@@ -62,32 +63,17 @@ commander_1.program
     .description("Create a default analytics.json file")
     .option("--reset", "Replace the existing analytics.json file")
     .action((options) => {
+    if (!fs_1.default.existsSync(defaultAnalyticsPath)) {
+        console.error("❌ analytics.default.json file is missing. Please create it.");
+        process.exit(1);
+    }
     if (fs_1.default.existsSync(analyticsPath) && !options.reset) {
         console.warn("⚠️ analytics.json already exists. Use --reset to overwrite it.");
         process.exit(1);
     }
-    const defaultConfig = {
-        globalProperties: [
-            {
-                name: "url",
-                description: "The URL of the page when the event was triggered.",
-                type: "string",
-            },
-            {
-                name: "userId",
-                description: "The ID of the user that triggered the event.",
-                type: "number",
-            }
-        ],
-        events: {
-            "pageView": {
-                name: "Page View",
-                description: "This events is triggered everytime the user views a page.",
-                properties: []
-            }
-        }
-    };
-    fs_1.default.writeFileSync(analyticsPath, JSON.stringify(defaultConfig, null, 2));
+    // Read default config from analytics.default.json
+    const defaultConfig = fs_1.default.readFileSync(defaultAnalyticsPath, "utf8");
+    fs_1.default.writeFileSync(analyticsPath, defaultConfig);
     console.log(`✅ analytics.json ${options.reset ? "reset" : "created"} successfully!`);
 });
 commander_1.program.parse(process.argv);

@@ -1,0 +1,30 @@
+{
+  "version": "1.0.0",
+  "validDimensions": ["deviceType", "country", "referrer"],
+  "globalProperties": [
+    {
+      "name": "url",
+      "description": "The URL of the page when the event was triggered.",
+      "type": "string"
+    },
+    {
+      "name": "userId",
+      "description": "The ID of the user that triggered the event.",
+      "type": "number"
+    }
+  ],
+  "events": {
+    "page_view": {
+      "name": "Page View",
+      "description": "Triggered when a user views a page.",
+      "dimensions": ["referrer"],
+      "properties": [
+        {
+          "name": "userId",
+          "description": "The ID of the user",
+          "type": "number"
+        }
+      ]
+    }
+  }
+}

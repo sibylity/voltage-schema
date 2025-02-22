@@ -6,9 +6,10 @@ import { type AnalyticsSchema } from '../types';
 
 const ajv = new Ajv();
 const schemaPath = path.resolve(__dirname, "../schemas/analytics.schema.json");
+const analyticsPath = path.resolve(process.cwd(), "analytics.json");
+const defaultAnalyticsPath = path.resolve(__dirname, "../schemas/analytics.default.json");
 const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
 const validate = ajv.compile(schema);
-const analyticsPath = path.resolve(process.cwd(), "analytics.json");
 
 // Command to validate the analytics.json file
 program
@@ -69,35 +70,22 @@ program
   .description("Create a default analytics.json file")
   .option("--reset", "Replace the existing analytics.json file")
   .action((options) => {
+    if (!fs.existsSync(defaultAnalyticsPath)) {
+      console.error("❌ analytics.default.json file is missing. Please create it.");
+      process.exit(1);
+    }
+
     if (fs.existsSync(analyticsPath) && !options.reset) {
       console.warn("⚠️ analytics.json already exists. Use --reset to overwrite it.");
       process.exit(1);
     }
 
-    const defaultConfig = {
-      globalProperties: [
-        {
-          name: "url",
-          description: "The URL of the page when the event was triggered.",
-          type: "string",
-        },
-        {
-          name: "userId",
-          description: "The ID of the user that triggered the event.",
-          type: "number",
-        }
-      ],
-      events: {
-        "pageView": {
-          name: "Page View",
-          description: "This events is triggered everytime the user views a page.",
-          properties: []
-        }
-      }
-    };
+    // Read default config from analytics.default.json
+    const defaultConfig = fs.readFileSync(defaultAnalyticsPath, "utf8");
 
-    fs.writeFileSync(analyticsPath, JSON.stringify(defaultConfig, null, 2));
+    fs.writeFileSync(analyticsPath, defaultConfig);
     console.log(`✅ analytics.json ${options.reset ? "reset" : "created"} successfully!`);
   });
+
 
 program.parse(process.argv);
