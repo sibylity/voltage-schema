@@ -2,82 +2,65 @@ import { program } from "commander";
 import fs from "fs";
 import path from "path";
 import Ajv from "ajv";
+import { type AnalyticsSchema } from '../types';
 
 const ajv = new Ajv();
-const schemaPath = path.resolve(__dirname, "./schemas/analytics.schema.json");
+const schemaPath = path.resolve(__dirname, "../schemas/analytics.schema.json");
 const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
 const validate = ajv.compile(schema);
 const analyticsPath = path.resolve(process.cwd(), "analytics.json");
 
-interface Property {
-  name: string;
-  description: string;
-  type: string | string[];
-}
-
-interface AnalyticsSchema {
-  version: string;
-  validDimensions: string[];
-  globalProperties: Property[];
-  events: {
-    name: string;
-    description: string;
-    version?: string;
-    dimensions?: string[];
-    properties?: Property[];
-  }[];
-}
-
-
-// Utility to read the analytics file
-function readAnalyticsFile(): any {
-  if (!fs.existsSync(analyticsPath)) {
-    console.warn("⚠️  analytics.json not found. Run `json-schema-cli init` to create one.");
-    return null;
-  }
-  return JSON.parse(fs.readFileSync(analyticsPath, "utf8"));
-}
-
 // Command to validate the analytics.json file
 program
   .command("validate")
-  .description("Validate the analytics.json file and check dimensions")
+  .description("Validate the analytics.json file and check event structure")
   .action(() => {
-    const analyticsPath = path.resolve(process.cwd(), "analytics.json");
-
     if (!fs.existsSync(analyticsPath)) {
       console.error("❌ analytics.json file is missing.");
       process.exit(1);
     }
 
-    // Explicitly type the parsed data
     const data: AnalyticsSchema = JSON.parse(fs.readFileSync(analyticsPath, "utf8"));
 
+    // ✅ Validate against the JSON Schema
     if (!validate(data)) {
       console.error("❌ Schema validation failed:", validate.errors);
       process.exit(1);
     }
 
-    // ✅ Validate event dimensions exist in validDimensions
     const validDimensions = new Set(data.validDimensions || []);
-    let hasInvalidDimensions = false;
+    let hasInvalidData = false;
 
-    data.events.forEach((event) => {
+    // ✅ Iterate over the events object instead of an array
+    Object.entries(data.events).forEach(([eventKey, event]) => {
+      console.log(`🔍 Validating event: ${eventKey}`);
+
+      // ✅ Validate event dimensions exist in validDimensions
       if (event.dimensions) {
         event.dimensions.forEach((dim) => {
           if (!validDimensions.has(dim)) {
-            console.error(`❌ Invalid dimension "${dim}" in event "${event.name}". It is not listed in validDimensions.`);
-            hasInvalidDimensions = true;
+            console.error(`❌ Invalid dimension "${dim}" in event "${eventKey}". It is not listed in validDimensions.`);
+            hasInvalidData = true;
+          }
+        });
+      }
+
+      // ✅ Validate that event properties follow schema
+      if (event.properties) {
+        event.properties.forEach((prop) => {
+          if (!prop.name || !prop.type) {
+            console.error(`❌ Property in event "${eventKey}" is missing required fields (name, type).`);
+            hasInvalidData = true;
           }
         });
       }
     });
 
-    if (hasInvalidDimensions) {
+    if (hasInvalidData) {
       process.exit(1);
     }
 
-    console.log("✅ analytics.json is valid.");
+    console.log("✅ analytics.json is valid, and all events have correct structures.");
   });
 
 // Command to generate an analytics.json file
@@ -104,13 +87,13 @@ program
           type: "number",
         }
       ],
-      events: [
-        {
+      events: {
+        "pageView": {
           name: "Page View",
           description: "This events is triggered everytime the user views a page.",
           properties: []
         }
-      ]
+      }
     };
 
     fs.writeFileSync(analyticsPath, JSON.stringify(defaultConfig, null, 2));

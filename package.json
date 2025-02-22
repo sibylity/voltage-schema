@@ -2,18 +2,21 @@
   "name": "sibyl",
   "version": "1.0.0",
   "description": "The analytics schema that evolves with your software.",
-  "main": "./dist/cli.js",
+  "main": "./dist/cli/index.js",
   "scripts": {
     "build": "tsc && cp -r src/schemas dist/",
-    "start": "ts-node src/cli.ts",
-    "init": "node dist/cli.js init",
-    "validate": "node dist/cli.js validate"
+    "start": "ts-node src/cli/index.ts",
+    "init": "node dist/cli/index.js init",
+    "validate": "node dist/cli/index.js validate"
+  },
+  "exports": {
+    "./tracker": "./dist/tracker.js"
   },
   "bin": {
-    "sibyl-cli": "./dist/cli.js"
+    "sibyl-cli": "./dist/cli/index.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Matthew Rheault",
   "license": "ISC",
   "devDependencies": {
     "@types/ajv": "^0.0.5",

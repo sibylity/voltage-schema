@@ -26,8 +26,8 @@
       "default": []
     },
     "events": {
-      "type": "array",
-      "items": {
+      "type": "object",
+      "additionalProperties": {
         "type": "object",
         "properties": {
           "name": { "type": "string" },
