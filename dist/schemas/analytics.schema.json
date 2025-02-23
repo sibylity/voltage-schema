@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "globalProperties": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "type": {
+            "oneOf": [
+              { "enum": ["number", "string", "boolean", "any"] },
+              { "type": "array", "items": { "type": ["string", "number"] } }
+            ]
+          }
+        },
+        "required": ["name", "type"]
+      }
+    },
+    "validDimensions": {
+      "type": "array",
+      "items": { "type": "string" },
+      "default": []
+    },
+    "events": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$", "default": "1.0" },
+          "dimensions": {
+            "type": "array",
+            "items": { "type": "string" },
+            "default": []
+          },
+          "properties": {
+            "type": "array",
+            "default": [],
+            "items": {
+              "type": "object",
+              "properties": {
+                "name": { "type": "string" },
+                "description": { "type": "string" },
+                "type": {
+                  "oneOf": [
+                    { "enum": ["number", "string", "boolean", "any"] },
+                    { "type": "array", "items": { "type": ["string", "number"] } }
+                  ]
+                }
+              },
+              "required": ["name", "type"]
+            }
+          }
+        },
+        "required": ["name"]
+      }
+    }
+  },
+  "required": ["events"]
+}

@@ -1,0 +1,30 @@
+{
+  "name": "sibyl",
+  "version": "1.0.0",
+  "description": "The analytics schema that evolves with your software.",
+  "main": "./dist/cli/index.js",
+  "scripts": {
+    "build": "rm -rf dist/ && tsc && cp -r src/schemas dist/schemas",
+    "start": "ts-node src/cli/index.ts",
+    "init": "node dist/cli/index.js init",
+    "validate": "node dist/cli/index.js validate"
+  },
+  "exports": {
+    "./tracker": "./dist/tracker.js"
+  },
+  "bin": {
+    "sibyl-cli": "./dist/cli/index.js"
+  },
+  "keywords": [],
+  "author": "Matthew Rheault",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/ajv": "^0.0.5",
+    "@types/commander": "^2.12.0",
+    "@types/node": "^22.13.4",
+    "ajv": "^8.17.1",
+    "commander": "^13.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.3"
+  }
+}
