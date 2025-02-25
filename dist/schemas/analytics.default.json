@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "validDimensions": ["deviceType", "country", "referrer"],
+  "validDimensions": [],
   "globalProperties": [
     {
       "name": "url",
@@ -17,7 +17,7 @@
     "page_view": {
       "name": "Page View",
       "description": "Triggered when a user views a page.",
-      "dimensions": ["referrer"],
+      "dimensions": [],
       "properties": [
         {
           "name": "userId",
