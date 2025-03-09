@@ -13,11 +13,7 @@ const analyticsPath = path_1.default.resolve(process.cwd(), "analytics.json");
 const defaultAnalyticsPath = path_1.default.resolve(__dirname, "../schemas/analytics.default.json");
 const schema = JSON.parse(fs_1.default.readFileSync(schemaPath, "utf8"));
 const validate = ajv.compile(schema);
-// Command to validate the analytics.json file
-commander_1.program
-    .command("validate")
-    .description("Validate the analytics.json file and check event structure")
-    .action(() => {
+function validateAnalyticsSchema() {
     if (!fs_1.default.existsSync(analyticsPath)) {
         console.error("❌ analytics.json file is missing.");
         process.exit(1);
@@ -42,12 +38,12 @@ commander_1.program
         if (!dimension.name) {
             console.error("❌ A dimension is missing a name.");
             hasInvalidData = true;
-            return;
+            return false;
         }
         if (!dimension.identifiers || dimension.identifiers.length === 0) {
             console.error(`❌ Dimension "${dimension.name}" has no identifiers.`);
             hasInvalidData = true;
-            return;
+            return false;
         }
         dimension.identifiers.forEach((identifier, index) => {
             if (!identifier.property) {
@@ -91,8 +87,17 @@ commander_1.program
     });
     if (hasInvalidData) {
         process.exit(1);
+        return false;
     }
     console.log("✅ analytics.json is valid, and all events have correct structures.");
+    return true;
+}
+// Command to validate the analytics.json file
+commander_1.program
+    .command("validate")
+    .description("Validate the analytics.json file and check event structure")
+    .action(() => {
+    validateAnalyticsSchema();
 });
 // Command to generate an analytics.json file
 commander_1.program
@@ -151,5 +156,74 @@ commander_1.program
         events,
     }));
     console.log(JSON.stringify(dimensionList, null, 2));
+});
+commander_1.program
+    .command("generate")
+    .description("Generate a trackingConfig object & TypeScript types from analytics.json")
+    .option("--no-descriptions", "Exclude description fields from the generated output", true)
+    .action(() => {
+    console.log("🔍 Running validation before generating...");
+    if (!validateAnalyticsSchema())
+        return;
+    const data = JSON.parse(fs_1.default.readFileSync(analyticsPath, "utf8"));
+    if (!data.generatedDir) {
+        console.error("❌ Missing `generatedDir` field in analytics.json. Specify a directory for generated output.");
+        process.exit(1);
+    }
+    const outputDir = path_1.default.resolve(process.cwd(), data.generatedDir);
+    if (!fs_1.default.existsSync(outputDir)) {
+        fs_1.default.mkdirSync(outputDir, { recursive: true });
+    }
+    console.log(`📁 Generating TypeScript files in ${outputDir}...`);
+    const noDescriptions = true; // Default is to ignore descriptions
+    // 🔹 Generate trackingConfig object
+    const trackingConfig = {
+        globalProperties: data.globals.properties.map((prop) => (Object.assign({ name: prop.name, type: prop.type }, (noDescriptions ? {} : { description: prop.description })))),
+        events: Object.fromEntries(Object.entries(data.events).map(([eventKey, event]) => {
+            var _a;
+            return [
+                eventKey,
+                {
+                    name: event.name,
+                    properties: ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.map((prop) => (Object.assign({ name: prop.name, type: prop.type }, (noDescriptions ? {} : { description: prop.description }))))) || []
+                }
+            ];
+        }))
+    };
+    // 🔹 Generate TypeScript definitions
+    const analyticsTypes = `
+export type TrackingEvent = ${Object.keys(data.events)
+        .map((eventKey) => `"${eventKey}"`)
+        .join(" | ")};
+
+export type EventProperties = {
+${Object.entries(data.events)
+        .map(([eventKey, event]) => {
+        var _a;
+        const properties = ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.map((prop) => `    "${prop.name}": ${prop.type};`).join("\n")) || "    // No properties";
+        return `  "${eventKey}": {\n${properties}\n  };`;
+    })
+        .join("\n")}
+};
+
+export type GlobalProperties = {
+${data.globals.properties
+        .map((prop) => `  "${prop.name}": ${prop.type};`)
+        .join("\n")}
+};
+
+// 🔹 Tracking config object
+export const trackingConfig = ${JSON.stringify(trackingConfig, null, 2)} as const;
+
+// 🔹 Enforce type safety on tracking
+export interface Tracker {
+  track<E extends TrackingEvent>(
+    event: E,
+    properties: EventProperties[E]
+  ): void;
+};
+`;
+    fs_1.default.writeFileSync(path_1.default.join(outputDir, "trackingConfig.ts"), analyticsTypes);
+    console.log("✅ Generated trackingConfig and TypeScript definitions successfully!");
 });
 commander_1.program.parse(process.argv);
