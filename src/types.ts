@@ -40,6 +40,7 @@ export interface AnalyticsSchemaEvent {
 
 export interface AnalyticsSchema {
   version: string;
+  generatedDir: string;
   globals: AnalyticsSchemaGlobals; // Moved validDimensions & globalProperties under "globals"
   events: Record<string, AnalyticsSchemaEvent>;
 }

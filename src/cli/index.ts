@@ -11,99 +11,105 @@ const defaultAnalyticsPath = path.resolve(__dirname, "../schemas/analytics.defau
 const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
 const validate = ajv.compile(schema);
 
+function validateAnalyticsSchema() {
+  if (!fs.existsSync(analyticsPath)) {
+    console.error("❌ analytics.json file is missing.");
+    process.exit(1);
+  }
+
+  const data: AnalyticsSchema = JSON.parse(fs.readFileSync(analyticsPath, "utf8"));
+
+  // ✅ Validate against the JSON Schema
+  if (!validate(data)) {
+    console.error("❌ Schema validation failed:", validate.errors);
+    process.exit(1);
+  }
+
+  let hasInvalidData = false;
+  const validDimensions = new Set(data.globals.dimensions.map((dim) => dim.name));
+
+  console.log("✅ Validating global properties...");
+  data.globals.properties.forEach((prop) => {
+    if (!prop.name || !prop.type) {
+      console.error(`❌ Global property "${prop.name || "[Unnamed]"}" is missing required fields (name, type).`);
+      hasInvalidData = true;
+    }
+  });
+
+  console.log("✅ Validating global dimensions...");
+  data.globals.dimensions.forEach((dimension) => {
+    if (!dimension.name) {
+      console.error("❌ A dimension is missing a name.");
+      hasInvalidData = true;
+      return false;
+    }
+
+    if (!dimension.identifiers || dimension.identifiers.length === 0) {
+      console.error(`❌ Dimension "${dimension.name}" has no identifiers.`);
+      hasInvalidData = true;
+      return false;
+    }
+
+    dimension.identifiers.forEach((identifier, index) => {
+      if (!identifier.property) {
+        console.error(`❌ Identifier #${index + 1} in dimension "${dimension.name}" is missing a "property" field.`);
+        hasInvalidData = true;
+      }
+
+      // Ensure only one evaluation field is set
+      const evaluationFields = ["contains", "equals", "not", "in", "notIn", "startsWith", "endsWith", "lt", "lte", "gt", "gte"];
+      const activeFields = evaluationFields.filter((field) => field in identifier);
+
+      if (activeFields.length === 0) {
+        console.error(`❌ Identifier for property "${identifier.property}" in dimension "${dimension.name}" is missing an evaluation field.`);
+        hasInvalidData = true;
+      } else if (activeFields.length > 1) {
+        console.error(`❌ Identifier for property "${identifier.property}" in dimension "${dimension.name}" has multiple evaluation fields (${activeFields.join(", ")}). Only one is allowed.`);
+        hasInvalidData = true;
+      }
+    });
+  });
+
+  // ✅ Validating events
+  Object.entries(data.events).forEach(([eventKey, event]) => {
+    console.log(`🔍 Validating event: ${eventKey}`);
+
+    // ✅ Validating event dimensions
+    if (event.dimensions) {
+      event.dimensions.forEach((dim) => {
+        if (!validDimensions.has(dim)) {
+          console.error(`❌ Invalid dimension "${dim}" in event "${eventKey}". It is not listed in globals.dimensions.`);
+          hasInvalidData = true;
+        }
+      });
+    }
+
+    // ✅ Validating event properties
+    if (event.properties) {
+      event.properties.forEach((prop) => {
+        if (!prop.name || !prop.type) {
+          console.error(`❌ Property in event "${eventKey}" is missing required fields (name, type).`);
+          hasInvalidData = true;
+        }
+      });
+    }
+  });
+
+  if (hasInvalidData) {
+    process.exit(1);
+    return false;
+  }
+
+  console.log("✅ analytics.json is valid, and all events have correct structures.");
+  return true;
+}
+
 // Command to validate the analytics.json file
 program
   .command("validate")
   .description("Validate the analytics.json file and check event structure")
   .action(() => {
-    if (!fs.existsSync(analyticsPath)) {
-      console.error("❌ analytics.json file is missing.");
-      process.exit(1);
-    }
-
-    const data: AnalyticsSchema = JSON.parse(fs.readFileSync(analyticsPath, "utf8"));
-
-    // ✅ Validate against the JSON Schema
-    if (!validate(data)) {
-      console.error("❌ Schema validation failed:", validate.errors);
-      process.exit(1);
-    }
-
-    let hasInvalidData = false;
-    const validDimensions = new Set(data.globals.dimensions.map((dim) => dim.name));
-  
-    console.log("✅ Validating global properties...");
-    data.globals.properties.forEach((prop) => {
-      if (!prop.name || !prop.type) {
-        console.error(`❌ Global property "${prop.name || "[Unnamed]"}" is missing required fields (name, type).`);
-        hasInvalidData = true;
-      }
-    });
-
-    console.log("✅ Validating global dimensions...");
-    data.globals.dimensions.forEach((dimension) => {
-      if (!dimension.name) {
-        console.error("❌ A dimension is missing a name.");
-        hasInvalidData = true;
-        return;
-      }
-
-      if (!dimension.identifiers || dimension.identifiers.length === 0) {
-        console.error(`❌ Dimension "${dimension.name}" has no identifiers.`);
-        hasInvalidData = true;
-        return;
-      }
-
-      dimension.identifiers.forEach((identifier, index) => {
-        if (!identifier.property) {
-          console.error(`❌ Identifier #${index + 1} in dimension "${dimension.name}" is missing a "property" field.`);
-          hasInvalidData = true;
-        }
-
-        // Ensure only one evaluation field is set
-        const evaluationFields = ["contains", "equals", "not", "in", "notIn", "startsWith", "endsWith", "lt", "lte", "gt", "gte"];
-        const activeFields = evaluationFields.filter((field) => field in identifier);
-
-        if (activeFields.length === 0) {
-          console.error(`❌ Identifier for property "${identifier.property}" in dimension "${dimension.name}" is missing an evaluation field.`);
-          hasInvalidData = true;
-        } else if (activeFields.length > 1) {
-          console.error(`❌ Identifier for property "${identifier.property}" in dimension "${dimension.name}" has multiple evaluation fields (${activeFields.join(", ")}). Only one is allowed.`);
-          hasInvalidData = true;
-        }
-      });
-    });
-
-    // ✅ Validating events
-    Object.entries(data.events).forEach(([eventKey, event]) => {
-      console.log(`🔍 Validating event: ${eventKey}`);
-
-      // ✅ Validating event dimensions
-      if (event.dimensions) {
-        event.dimensions.forEach((dim) => {
-          if (!validDimensions.has(dim)) {
-            console.error(`❌ Invalid dimension "${dim}" in event "${eventKey}". It is not listed in globals.dimensions.`);
-            hasInvalidData = true;
-          }
-        });
-      }
-
-      // ✅ Validating event properties
-      if (event.properties) {
-        event.properties.forEach((prop) => {
-          if (!prop.name || !prop.type) {
-            console.error(`❌ Property in event "${eventKey}" is missing required fields (name, type).`);
-            hasInvalidData = true;
-          }
-        });
-      }
-    });
-
-    if (hasInvalidData) {
-      process.exit(1);
-    }
-
-    console.log("✅ analytics.json is valid, and all events have correct structures.");
+    validateAnalyticsSchema();
   });
 
 // Command to generate an analytics.json file
@@ -174,6 +180,92 @@ program
     }));
 
     console.log(JSON.stringify(dimensionList, null, 2));
+  });
+
+  program
+  .command("generate")
+  .description("Generate a trackingConfig object & TypeScript types from analytics.json")
+  .option("--no-descriptions", "Exclude description fields from the generated output", true)
+  .action(() => {
+    console.log("🔍 Running validation before generating...");
+    if (!validateAnalyticsSchema()) return;
+
+    const data: AnalyticsSchema = JSON.parse(fs.readFileSync(analyticsPath, "utf8"));
+
+    if (!data.generatedDir) {
+      console.error("❌ Missing `generatedDir` field in analytics.json. Specify a directory for generated output.");
+      process.exit(1);
+    }
+
+    const outputDir = path.resolve(process.cwd(), data.generatedDir);
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+
+    console.log(`📁 Generating TypeScript files in ${outputDir}...`);
+
+    const noDescriptions = true; // Default is to ignore descriptions
+
+    // 🔹 Generate trackingConfig object
+    const trackingConfig = {
+      globalProperties: data.globals.properties.map((prop) => ({
+        name: prop.name,
+        type: prop.type,
+        ...(noDescriptions ? {} : { description: prop.description })
+      })),
+      events: Object.fromEntries(
+        Object.entries(data.events).map(([eventKey, event]) => [
+          eventKey,
+          {
+            name: event.name,
+            properties: event.properties?.map((prop) => ({
+              name: prop.name,
+              type: prop.type,
+              ...(noDescriptions ? {} : { description: prop.description })
+            })) || []
+          }
+        ])
+      )
+    };
+
+    // 🔹 Generate TypeScript definitions
+    const analyticsTypes = `
+export type TrackingEvent = ${Object.keys(data.events)
+      .map((eventKey) => `"${eventKey}"`)
+      .join(" | ")};
+
+export type EventProperties = {
+${Object.entries(data.events)
+  .map(([eventKey, event]) => {
+    const properties =
+      event.properties
+        ?.map((prop) => `    "${prop.name}": ${prop.type};`)
+        .join("\n") || "    // No properties";
+    return `  "${eventKey}": {\n${properties}\n  };`;
+  })
+  .join("\n")}
+};
+
+export type GlobalProperties = {
+${data.globals.properties
+  .map((prop) => `  "${prop.name}": ${prop.type};`)
+  .join("\n")}
+};
+
+// 🔹 Tracking config object
+export const trackingConfig = ${JSON.stringify(trackingConfig, null, 2)} as const;
+
+// 🔹 Enforce type safety on tracking
+export interface Tracker {
+  track<E extends TrackingEvent>(
+    event: E,
+    properties: EventProperties[E]
+  ): void;
+};
+`;
+
+    fs.writeFileSync(path.join(outputDir, "trackingConfig.ts"), analyticsTypes);
+    console.log("✅ Generated trackingConfig and TypeScript definitions successfully!");
   });
 
 program.parse(process.argv);
