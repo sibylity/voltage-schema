@@ -1,18 +1,51 @@
 {
   "version": "1.0.0",
-  "validDimensions": [],
-  "globalProperties": [
-    {
-      "name": "url",
-      "description": "The URL of the page when the event was triggered.",
-      "type": "string"
-    },
-    {
-      "name": "userId",
-      "description": "The ID of the user that triggered the event.",
-      "type": "number"
-    }
-  ],
+  "globals": {
+    "dimensions": [
+      {
+        "name": "Free",
+        "description": "Teams without a paid plan.",
+        "identifiers": [
+          {
+            "property": "plan",
+            "equals": "FREE"
+          }
+        ]
+      },
+      {
+        "name": "Paid",
+        "description": "Teams with a paid plan.",
+        "identifiers": [
+          {
+            "property": "plan",
+            "not": "FREE"
+          }
+        ]
+      }
+    ],
+    "properties": [
+      {
+        "name": "url",
+        "description": "The URL of the page when the event was triggered.",
+        "type": "string"
+      },
+      {
+        "name": "userId",
+        "description": "The ID of the user that triggered the event.",
+        "type": "number"
+      },
+      {
+        "name": "teamId",
+        "description": "The ID of the team that triggered the event.",
+        "type": "number"
+      },
+      {
+        "name": "plan",
+        "description": "The plan of the team that triggered the event.",
+        "type": "string"
+      }
+    ]
+  },
   "events": {
     "page_view": {
       "name": "Page View",
@@ -20,9 +53,9 @@
       "dimensions": [],
       "properties": [
         {
-          "name": "userId",
-          "description": "The ID of the user",
-          "type": "number"
+          "name": "page name",
+          "description": "The name of the page that was viewed.",
+          "type": "string"
         }
       ]
     }
