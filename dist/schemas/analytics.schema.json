@@ -3,7 +3,6 @@
   "type": "object",
   "properties": {
     "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$", "default": "1.0" },
-
     "globals": {
       "type": "object",
       "properties": {
@@ -86,9 +85,12 @@
           }
         }
       },
+      "default": {
+        "dimensions": [],
+        "properties": []
+      },
       "required": ["dimensions", "properties"]
     },
-
     "events": {
       "type": "object",
       "additionalProperties": {
@@ -121,9 +123,10 @@
             }
           }
         },
+        "default": {},
         "required": ["name"]
       }
     }
   },
-  "required": ["globals", "events"]
+  "required": ["events"]
 }

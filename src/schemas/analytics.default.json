@@ -7,7 +7,7 @@
         "description": "Teams without a paid plan.",
         "identifiers": [
           {
-            "property": "plan",
+            "property": "Plan",
             "equals": "FREE"
           }
         ]
@@ -17,7 +17,7 @@
         "description": "Teams with a paid plan.",
         "identifiers": [
           {
-            "property": "plan",
+            "property": "Plan",
             "not": "FREE"
           }
         ]
@@ -25,22 +25,22 @@
     ],
     "properties": [
       {
-        "name": "url",
+        "name": "Url",
         "description": "The URL of the page when the event was triggered.",
         "type": "string"
       },
       {
-        "name": "userId",
+        "name": "UserID",
         "description": "The ID of the user that triggered the event.",
         "type": "number"
       },
       {
-        "name": "teamId",
+        "name": "TeamID",
         "description": "The ID of the team that triggered the event.",
         "type": "number"
       },
       {
-        "name": "plan",
+        "name": "Plan",
         "description": "The plan of the team that triggered the event.",
         "type": "string"
       }
@@ -50,11 +50,23 @@
     "page_view": {
       "name": "Page View",
       "description": "Triggered when a user views a page.",
-      "dimensions": [],
+      "dimensions": ["Free", "Paid"],
       "properties": [
         {
-          "name": "page name",
+          "name": "Page Name",
           "description": "The name of the page that was viewed.",
+          "type": "string"
+        }
+      ]
+    },
+    "add_user": {
+      "name": "Add User",
+      "description": "Triggered when an admin adds a user to their team. This requires a paid plan.",
+      "dimensions": ["Paid"],
+      "properties": [
+        {
+          "name": "Role",
+          "description": "The role of the user that was added.",
           "type": "string"
         }
       ]
