@@ -48,3 +48,60 @@ export interface AnalyticsSchema {
 export interface AnalyticsTracker {
   track: (eventKey: string, properties: Record<string, any>) => void;
 }
+
+// Analytics Config Types
+export interface AnalyticsConfig {
+  version: string;
+  generates: GenerationConfig[];
+}
+
+export interface GenerationConfig {
+  events: string;
+  globals: string;
+  output: string;
+}
+
+// Analytics Globals Types
+export interface AnalyticsGlobals {
+  dimensions: Dimension[];
+  properties: Property[];
+}
+
+export interface Dimension {
+  name: string;
+  description?: string;
+  identifiers: Identifier[];
+}
+
+export interface Identifier {
+  property: string;
+  contains?: (string | number | boolean)[];
+  equals?: string | number | boolean;
+  not?: string | number | boolean;
+  in?: (string | number | boolean)[];
+  notIn?: (string | number | boolean)[];
+  startsWith?: (string | number | boolean)[];
+  endsWith?: (string | number | boolean)[];
+  lt?: number;
+  lte?: number;
+  gt?: number;
+  gte?: number;
+}
+
+export interface Property {
+  name: string;
+  description?: string;
+  type: string | string[];
+}
+
+// Analytics Events Types
+export interface AnalyticsEvents {
+  events: Record<string, Event>;
+}
+
+export interface Event {
+  name: string;
+  description?: string;
+  dimensions?: string[];
+  properties?: Property[];
+}
