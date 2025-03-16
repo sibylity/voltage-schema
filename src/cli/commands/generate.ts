@@ -16,7 +16,6 @@ interface TrackingConfigEvent {
 }
 
 interface TrackingConfig {
-  globalProperties: TrackingConfigProperty[];
   events: Record<string, TrackingConfigEvent>;
 }
 
@@ -61,24 +60,11 @@ function generateEventConfigs(trackingConfig: TrackingConfig, events: AnalyticsE
 }
 
 /**
- * Generates the event key mapping object
- */
-function generateEventKeyMapping(events: AnalyticsEvents): string {
-  return `// 🔹 Event Key Mapping (Original -> Normalized)
-export const EVENT_KEYS = {
-${Object.keys(events.events)
-    .map(key => `  "${key}": "${normalizeEventKey(key)}"`)
-    .join(',\n')}
-} as const;`;
-}
-
-/**
  * Generates the tracking config object
  */
 function generateTrackingConfig(trackingConfig: TrackingConfig): string {
   return `// 🔹 Tracking Config Object
 export const trackingConfig = {
-  globalProperties: ${JSON.stringify(trackingConfig.globalProperties, null, 2)},
   events: {
 ${Object.keys(trackingConfig.events)
     .map(key => `    "${key}": ${normalizeEventKey(key)}Event`)
@@ -114,41 +100,41 @@ ${properties || '    // No properties'}
 /**
  * Generates TypeScript interface definitions
  */
-function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlobals): string {
-  const eventUnion = Object.keys(events.events)
-    .map(key => `"${key}"`)
-    .join(' | ');
-
-  return `// 🔹 Global Types
-export type TrackingEvent = ${eventUnion};
-
-export type EventProperties = {
-${Object.keys(events.events)
-    .map(key => `  "${key}": ${normalizeEventKey(key)}EventProperties;`)
+function generateTypeDefinitions(events: AnalyticsEvents): string {
+  return `// 🔹 Generated Types
+export interface TrackerEvents {
+${Object.entries(events.events)
+    .map(([key, event]) => {
+      const normalizedKey = normalizeEventKey(key);
+      return `  "${key}": {
+    name: "${event.name}";
+    properties: ${normalizedKey}EventProperties;
+  };`;
+    })
     .join('\n')}
-};
+}
 
-export type GlobalProperties = {
-${globals.properties
-    .map((prop) => `  "${prop.name}": ${prop.type};`)
-    .join('\n')}
-};
+// Re-export base types
+export type { TrackerEvent, EventProps, AnalyticsTracker } from "@sibyl/tracker";
 
-// 🔹 Enforce type safety on tracking
-export interface Tracker {
-  track<E extends TrackingEvent>(
-    event: E,
-    properties: EventProperties[E]
-  ): void;
-};`;
+// Create your tracker instance:
+// import { createAnalyticsTracker } from "@sibyl/tracker";
+// import { trackingConfig } from "./tracking.config";
+// import type { TrackerEvents } from "./tracking.types";
+//
+// const tracker = createAnalyticsTracker<TrackerEvents>({
+//   events: trackingConfig.events,
+// }, {
+//   send: (eventData) => {
+//     // Your send implementation
+//   }
+// });`;
 }
 
 function generateJavaScriptOutput(trackingConfig: TrackingConfig, events: AnalyticsEvents, includeComments: boolean, outputPath: string) {
   const jsOutput = `
 // 🔹 Event Configurations
 ${generateEventConfigs(trackingConfig, events, includeComments)}
-
-${generateEventKeyMapping(events)}
 
 ${generateTrackingConfig(trackingConfig)}
 `;
@@ -157,16 +143,14 @@ ${generateTrackingConfig(trackingConfig)}
   console.log(`✅ Generated tracking config in ${outputPath}`);
 }
 
-function generateTypeScriptOutput(trackingConfig: TrackingConfig, events: AnalyticsEvents, globals: AnalyticsGlobals, includeComments: boolean, outputPath: string) {
+function generateTypeScriptOutput(trackingConfig: TrackingConfig, events: AnalyticsEvents, includeComments: boolean, outputPath: string) {
   const analyticsTypes = `
 // 🔹 Event Types & Configurations
 ${generateEventTypes(trackingConfig, events, includeComments)}
 
 ${generateEventConfigs(trackingConfig, events, includeComments)}
 
-${generateEventKeyMapping(events)}
-
-${generateTypeDefinitions(events, globals)}
+${generateTypeDefinitions(events)}
 
 ${generateTrackingConfig(trackingConfig)}
 `;
@@ -191,7 +175,7 @@ export function registerGenerateCommand(program: Command) {
         const outputDir = path.dirname(outputPath);
         const outputExt = path.extname(outputPath).toLowerCase();
 
-        const { globals, events } = readGenerationConfigFiles(genConfig);
+        const { events } = readGenerationConfigFiles(genConfig);
 
         if (!fs.existsSync(outputDir)) {
           fs.mkdirSync(outputDir, { recursive: true });
@@ -201,10 +185,6 @@ export function registerGenerateCommand(program: Command) {
 
         // Generate trackingConfig object without descriptions
         const trackingConfig: TrackingConfig = {
-          globalProperties: globals.properties.map((prop) => ({
-            name: prop.name,
-            type: prop.type
-          })),
           events: Object.fromEntries(
             Object.entries(events.events).map(([eventKey, event]) => [
               eventKey,
@@ -221,7 +201,7 @@ export function registerGenerateCommand(program: Command) {
 
         // Generate output based on file extension
         if (outputExt === ".ts" || outputExt === ".tsx") {
-          generateTypeScriptOutput(trackingConfig, events, globals, !genConfig.disableComments, outputPath);
+          generateTypeScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath);
         } else {
           generateJavaScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath);
         }
