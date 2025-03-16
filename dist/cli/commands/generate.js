@@ -7,7 +7,7 @@ exports.registerGenerateCommand = registerGenerateCommand;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const validation_1 = require("../validation");
-const configPath = path_1.default.resolve(process.cwd(), "analytics.config.json");
+const analyticsConfigHelper_1 = require("../utils/analyticsConfigHelper");
 /**
  * Normalizes an event key to be safe for use as a variable name.
  * Converts to CamelCase and removes unsafe characters.
@@ -157,16 +157,13 @@ function registerGenerateCommand(program) {
         console.log("🔍 Running validation before generating...");
         if (!(0, validation_1.validateAnalyticsFiles)())
             return;
-        const config = JSON.parse(fs_1.default.readFileSync(configPath, "utf8"));
+        const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
         // Process each generation config
         for (const genConfig of config.generates) {
-            const globalsPath = path_1.default.resolve(process.cwd(), genConfig.globals);
-            const eventsPath = path_1.default.resolve(process.cwd(), genConfig.events);
             const outputPath = path_1.default.resolve(process.cwd(), genConfig.output);
             const outputDir = path_1.default.dirname(outputPath);
             const outputExt = path_1.default.extname(outputPath).toLowerCase();
-            const globals = JSON.parse(fs_1.default.readFileSync(globalsPath, "utf8"));
-            const events = JSON.parse(fs_1.default.readFileSync(eventsPath, "utf8"));
+            const { globals, events } = (0, analyticsConfigHelper_1.readGenerationConfigFiles)(genConfig);
             if (!fs_1.default.existsSync(outputDir)) {
                 fs_1.default.mkdirSync(outputDir, { recursive: true });
             }

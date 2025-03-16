@@ -3,8 +3,7 @@ import path from "path";
 import { Command } from "commander";
 import { type AnalyticsConfig, type AnalyticsGlobals, type AnalyticsEvents } from "../../types";
 import { validateAnalyticsFiles } from "../validation";
-
-const configPath = path.resolve(process.cwd(), "analytics.config.json");
+import { getAnalyticsConfig, readGenerationConfigFiles } from "../utils/analyticsConfigHelper";
 
 interface TrackingConfigProperty {
   name: string;
@@ -184,18 +183,15 @@ export function registerGenerateCommand(program: Command) {
       console.log("🔍 Running validation before generating...");
       if (!validateAnalyticsFiles()) return;
 
-      const config = JSON.parse(fs.readFileSync(configPath, "utf8")) as AnalyticsConfig;
+      const config = getAnalyticsConfig();
 
       // Process each generation config
       for (const genConfig of config.generates) {
-        const globalsPath = path.resolve(process.cwd(), genConfig.globals);
-        const eventsPath = path.resolve(process.cwd(), genConfig.events);
         const outputPath = path.resolve(process.cwd(), genConfig.output);
         const outputDir = path.dirname(outputPath);
         const outputExt = path.extname(outputPath).toLowerCase();
 
-        const globals = JSON.parse(fs.readFileSync(globalsPath, "utf8")) as AnalyticsGlobals;
-        const events = JSON.parse(fs.readFileSync(eventsPath, "utf8")) as AnalyticsEvents;
+        const { globals, events } = readGenerationConfigFiles(genConfig);
 
         if (!fs.existsSync(outputDir)) {
           fs.mkdirSync(outputDir, { recursive: true });

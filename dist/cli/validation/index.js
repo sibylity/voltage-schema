@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateAnalyticsConfig = exports.getAnalyticsConfig = exports.validateEvents = exports.defaultGlobals = exports.validateGlobals = exports.validateAnalyticsFiles = void 0;
+exports.validateAnalyticsConfig = exports.validateEvents = exports.defaultGlobals = exports.validateGlobals = exports.validateAnalyticsFiles = void 0;
 var validateAnalyticsFiles_1 = require("./validateAnalyticsFiles");
 Object.defineProperty(exports, "validateAnalyticsFiles", { enumerable: true, get: function () { return validateAnalyticsFiles_1.validateAnalyticsFiles; } });
 var validateAnalyticsGlobals_1 = require("./validateAnalyticsGlobals");
@@ -9,5 +9,4 @@ Object.defineProperty(exports, "defaultGlobals", { enumerable: true, get: functi
 var validateAnalyticsEvents_1 = require("./validateAnalyticsEvents");
 Object.defineProperty(exports, "validateEvents", { enumerable: true, get: function () { return validateAnalyticsEvents_1.validateEvents; } });
 var validateAnalyticsConfig_1 = require("./validateAnalyticsConfig");
-Object.defineProperty(exports, "getAnalyticsConfig", { enumerable: true, get: function () { return validateAnalyticsConfig_1.getAnalyticsConfig; } });
 Object.defineProperty(exports, "validateAnalyticsConfig", { enumerable: true, get: function () { return validateAnalyticsConfig_1.validateAnalyticsConfig; } });

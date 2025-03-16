@@ -18,22 +18,6 @@ function validateFileExtension(filePath: string, allowedExtensions: string[]): b
   return true;
 }
 
-export function getAnalyticsConfig(): AnalyticsConfig {
-  const configPath = path.resolve(process.cwd(), "analytics.config.json");
-  
-  if (!fs.existsSync(configPath)) {
-    console.error("❌ analytics.config.json file is missing in project root.");
-    process.exit(1);
-  }
-
-  try {
-    return JSON.parse(fs.readFileSync(configPath, "utf8")) as AnalyticsConfig;
-  } catch (error) {
-    console.error("❌ Failed to parse analytics.config.json:", error);
-    process.exit(1);
-  }
-}
-
 export function validateAnalyticsConfig(config: AnalyticsConfig): boolean {
   if (!validateConfigSchema(config)) {
     console.error("❌ Config schema validation failed:", validateConfigSchema.errors);

@@ -1,50 +1,51 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerDimensionsCommand = registerDimensionsCommand;
-const fs_1 = __importDefault(require("fs"));
-const path_1 = __importDefault(require("path"));
-const configPath = path_1.default.resolve(process.cwd(), "analytics.config.json");
+const validation_1 = require("../validation");
+const analyticsConfigHelper_1 = require("../utils/analyticsConfigHelper");
 function registerDimensionsCommand(program) {
     program
         .command("dimensions")
         .description("List all events grouped by dimension")
         .action(() => {
-        if (!fs_1.default.existsSync(configPath)) {
-            console.error("❌ analytics.config.json file is missing.");
+        console.log("🔍 Running validation before listing dimensions...");
+        if (!(0, validation_1.validateAnalyticsFiles)()) {
             process.exit(1);
         }
-        const config = JSON.parse(fs_1.default.readFileSync(configPath, "utf8"));
-        // Process first generation config for dimensions command
-        const genConfig = config.generates[0];
-        const globalsPath = path_1.default.resolve(process.cwd(), genConfig.globals);
-        const eventsPath = path_1.default.resolve(process.cwd(), genConfig.events);
-        if (!fs_1.default.existsSync(globalsPath) || !fs_1.default.existsSync(eventsPath)) {
-            console.error("❌ Required analytics files are missing.");
-            process.exit(1);
-        }
-        const globals = JSON.parse(fs_1.default.readFileSync(globalsPath, "utf8"));
-        const events = JSON.parse(fs_1.default.readFileSync(eventsPath, "utf8"));
+        const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
         // Initialize map of dimensions to event names
         const dimensionMap = {};
-        // Initialize all dimensions as keys
-        globals.dimensions.forEach((dim) => {
-            dimensionMap[dim.name] = [];
-        });
-        // Populate dimensionMap with events
-        Object.entries(events.events).forEach(([eventKey, event]) => {
-            if (event.dimensions) {
-                event.dimensions.forEach((dim) => {
-                    if (!dimensionMap[dim]) {
-                        console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in globals.dimensions.`);
-                        return;
-                    }
-                    dimensionMap[dim].push(eventKey);
-                });
-            }
-        });
+        // Track event counts per dimension
+        const dimensionEventCounts = {};
+        // Process all generation configs
+        for (const genConfig of config.generates) {
+            const { globals, events } = (0, analyticsConfigHelper_1.readGenerationConfigFiles)(genConfig);
+            // Initialize any new dimensions from this config
+            globals.dimensions.forEach((dim) => {
+                if (!dimensionMap[dim.name]) {
+                    dimensionMap[dim.name] = [];
+                    dimensionEventCounts[dim.name] = {};
+                }
+            });
+            // Populate dimensionMap with events
+            Object.entries(events.events).forEach(([eventKey, event]) => {
+                if (event.dimensions) {
+                    event.dimensions.forEach((dim) => {
+                        if (!dimensionMap[dim]) {
+                            console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in any globals.dimensions.`);
+                            return;
+                        }
+                        // Handle duplicate events by tracking counts per dimension
+                        dimensionEventCounts[dim][eventKey] = (dimensionEventCounts[dim][eventKey] || 0) + 1;
+                        const count = dimensionEventCounts[dim][eventKey];
+                        const displayName = count > 1
+                            ? `${eventKey} (${count})`
+                            : eventKey;
+                        dimensionMap[dim].push(displayName);
+                    });
+                }
+            });
+        }
         // Convert to array format
         const dimensionList = Object.entries(dimensionMap).map(([dimension, events]) => ({
             dimension,

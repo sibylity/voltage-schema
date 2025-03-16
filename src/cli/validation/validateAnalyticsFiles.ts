@@ -1,9 +1,10 @@
 import fs from "fs";
 import path from "path";
 import { type AnalyticsConfig } from "../../types";
-import { getAnalyticsConfig, validateAnalyticsConfig } from "./validateAnalyticsConfig";
+import { getAnalyticsConfig } from "../utils/analyticsConfigHelper";
 import { validateGlobals } from "./validateAnalyticsGlobals";
 import { validateEvents } from "./validateAnalyticsEvents";
+import { validateAnalyticsConfig } from "./validateAnalyticsConfig";
 
 function validateGenerationConfigs(config: AnalyticsConfig): boolean {
   let isValid = true;
