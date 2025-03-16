@@ -10,7 +10,8 @@
         "properties": {
           "events": { "type": "string" },
           "globals": { "type": "string" },
-          "output": { "type": "string" }
+          "output": { "type": "string" },
+          "disableComments": { "type": "boolean", "default": false }
         },
         "required": ["events", "globals", "output"]
       }
