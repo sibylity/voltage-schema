@@ -4,9 +4,9 @@ import { Command } from "commander";
 
 // Default paths
 const configPath = path.resolve(process.cwd(), "analytics.config.json");
-const defaultConfigPath = path.resolve(__dirname, "../../schemas/analytics.default.config.json");
-const defaultGlobalsPath = path.resolve(__dirname, "../../schemas/analytics.default.globals.json");
-const defaultEventsPath = path.resolve(__dirname, "../../schemas/analytics.default.events.json");
+const defaultConfigPath = path.resolve(__dirname, "../../schemas/analytics.config.default.json");
+const defaultGlobalsPath = path.resolve(__dirname, "../../schemas/analytics.globals.default.json");
+const defaultEventsPath = path.resolve(__dirname, "../../schemas/analytics.events.default.json");
 
 export function registerInitCommand(program: Command) {
   program
