@@ -2,13 +2,9 @@ import fs from "fs";
 import path from "path";
 import Ajv from "ajv";
 import { type AnalyticsGlobals } from "../../types";
+import { type ValidationResult, createValidator, parseJsonFile, logValidationStart, logValidationSuccess, logValidationErrors } from "./utils";
 
-const ajv = new Ajv();
-
-// Load globals schema
-const globalsSchemaPath = path.resolve(__dirname, "../../schemas/analytics.globals.schema.json");
-const globalsSchema = JSON.parse(fs.readFileSync(globalsSchemaPath, "utf8"));
-const validateGlobalsSchema = ajv.compile(globalsSchema);
+const validateGlobalsSchema = createValidator(path.resolve(__dirname, "../../schemas/analytics.globals.schema.json"));
 
 // Default empty globals when file is not provided
 export const defaultGlobals: AnalyticsGlobals = {
@@ -16,26 +12,23 @@ export const defaultGlobals: AnalyticsGlobals = {
   properties: []
 };
 
-function validateGlobalDimensions(dimensions: AnalyticsGlobals["dimensions"]): boolean {
-  let isValid = true;
+function validateGlobalDimensions(dimensions: AnalyticsGlobals["dimensions"]): ValidationResult<void> {
+  const errors: string[] = [];
 
   dimensions.forEach((dimension) => {
     if (!dimension.name) {
-      console.error("❌ A dimension is missing a name.");
-      isValid = false;
+      errors.push("A dimension is missing a name.");
       return;
     }
 
     if (!dimension.identifiers || dimension.identifiers.length === 0) {
-      console.error(`❌ Dimension "${dimension.name}" has no identifiers.`);
-      isValid = false;
+      errors.push(`Dimension "${dimension.name}" has no identifiers.`);
       return;
     }
 
     dimension.identifiers.forEach((identifier, index) => {
       if (!identifier.property) {
-        console.error(`❌ Identifier #${index + 1} in dimension "${dimension.name}" is missing a "property" field.`);
-        isValid = false;
+        errors.push(`Identifier #${index + 1} in dimension "${dimension.name}" is missing a "property" field.`);
       }
 
       // Ensure only one evaluation field is set
@@ -43,58 +36,77 @@ function validateGlobalDimensions(dimensions: AnalyticsGlobals["dimensions"]): b
       const activeFields = evaluationFields.filter((field) => field in identifier);
 
       if (activeFields.length === 0) {
-        console.error(`❌ Identifier for property "${identifier.property}" in dimension "${dimension.name}" is missing an evaluation field.`);
-        isValid = false;
+        errors.push(`Identifier for property "${identifier.property}" in dimension "${dimension.name}" is missing an evaluation field.`);
       } else if (activeFields.length > 1) {
-        console.error(`❌ Identifier for property "${identifier.property}" in dimension "${dimension.name}" has multiple evaluation fields (${activeFields.join(", ")}). Only one is allowed.`);
-        isValid = false;
+        errors.push(`Identifier for property "${identifier.property}" in dimension "${dimension.name}" has multiple evaluation fields (${activeFields.join(", ")}). Only one is allowed.`);
       }
     });
   });
 
-  return isValid;
+  return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
 }
 
-function validateGlobalProperties(properties: AnalyticsGlobals["properties"]): boolean {
-  let isValid = true;
+function validateGlobalProperties(properties: AnalyticsGlobals["properties"]): ValidationResult<void> {
+  const errors: string[] = [];
 
   properties.forEach((prop) => {
     if (!prop.name || !prop.type) {
-      console.error(`❌ Global property "${prop.name || "[Unnamed]"}" is missing required fields (name, type).`);
-      isValid = false;
+      errors.push(`Global property "${prop.name || "[Unnamed]"}" is missing required fields (name, type).`);
     }
   });
 
-  return isValid;
+  return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
 }
 
-export function validateGlobals(globalsPath: string): { isValid: boolean; globals: AnalyticsGlobals } {
-  let globals: AnalyticsGlobals;
+export function validateGlobals(globalsPath: string): ValidationResult<AnalyticsGlobals> {
+  const context = { filePath: globalsPath };
+  logValidationStart(context);
   
   // If globals file doesn't exist, use defaults
   if (!fs.existsSync(globalsPath)) {
     console.log(`ℹ️ No globals file found at ${globalsPath}, using default empty values.`);
-    return { isValid: true, globals: defaultGlobals };
+    return { isValid: true, data: defaultGlobals };
   }
 
-  try {
-    globals = JSON.parse(fs.readFileSync(globalsPath, "utf8")) as AnalyticsGlobals;
-  } catch (error) {
-    console.error(`❌ Failed to parse globals file at ${globalsPath}:`, error);
-    return { isValid: false, globals: defaultGlobals };
+  // Parse globals file
+  const parseResult = parseJsonFile<AnalyticsGlobals>(globalsPath);
+  if (!parseResult.isValid || !parseResult.data) {
+    if (parseResult.errors) {
+      logValidationErrors(parseResult.errors);
+    }
+    return { isValid: false, data: defaultGlobals };
   }
+
+  const globals = parseResult.data;
 
   // Validate globals schema
   if (!validateGlobalsSchema(globals)) {
-    console.error(`❌ Globals schema validation failed for ${globalsPath}:`, validateGlobalsSchema.errors);
-    return { isValid: false, globals };
+    const errors = validateGlobalsSchema.errors?.map(error => 
+      `Globals schema validation failed: ${error.message} at ${error.instancePath}`
+    ) || ["Unknown schema validation error"];
+    logValidationErrors(errors);
+    return { isValid: false, data: globals, errors };
   }
 
   console.log(`✅ Validating global properties for ${globalsPath}...`);
-  const propertiesValid = validateGlobalProperties(globals.properties);
+  const propertiesResult = validateGlobalProperties(globals.properties);
 
   console.log(`✅ Validating global dimensions for ${globalsPath}...`);
-  const dimensionsValid = validateGlobalDimensions(globals.dimensions);
+  const dimensionsResult = validateGlobalDimensions(globals.dimensions);
 
-  return { isValid: propertiesValid && dimensionsValid, globals };
+  const errors: string[] = [];
+  if (!propertiesResult.isValid && propertiesResult.errors) {
+    errors.push(...propertiesResult.errors);
+  }
+  if (!dimensionsResult.isValid && dimensionsResult.errors) {
+    errors.push(...dimensionsResult.errors);
+  }
+
+  if (errors.length > 0) {
+    logValidationErrors(errors);
+    return { isValid: false, data: globals, errors };
+  }
+
+  logValidationSuccess(context);
+  return { isValid: true, data: globals };
 } 

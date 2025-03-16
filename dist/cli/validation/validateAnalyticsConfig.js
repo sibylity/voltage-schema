@@ -4,58 +4,59 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateAnalyticsConfig = validateAnalyticsConfig;
-const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
-const ajv_1 = __importDefault(require("ajv"));
-const ajv = new ajv_1.default();
-// Load config schema
-const configSchemaPath = path_1.default.resolve(__dirname, "../../schemas/analytics.config.schema.json");
-const configSchema = JSON.parse(fs_1.default.readFileSync(configSchemaPath, "utf8"));
-const validateConfigSchema = ajv.compile(configSchema);
-function validateFileExtension(filePath, allowedExtensions) {
-    const ext = path_1.default.extname(filePath).toLowerCase();
-    if (!allowedExtensions.includes(ext)) {
-        return false;
-    }
-    return true;
-}
+const utils_1 = require("./utils");
+const validateConfigSchema = (0, utils_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.config.schema.json"));
 function validateAnalyticsConfig(config) {
+    var _a;
+    const context = { filePath: "analytics.config.json" };
+    (0, utils_1.logValidationStart)(context);
     if (!validateConfigSchema(config)) {
-        console.error("❌ Config schema validation failed:", validateConfigSchema.errors);
-        return false;
+        const errors = ((_a = validateConfigSchema.errors) === null || _a === void 0 ? void 0 : _a.map(error => `Config schema validation failed: ${error.message} at ${error.instancePath}`)) || ["Unknown schema validation error"];
+        (0, utils_1.logValidationErrors)(errors);
+        return { isValid: false, errors };
     }
-    let isValid = true;
+    const errors = [];
     // Validate each generation config
     config.generates.forEach((genConfig, index) => {
-        console.log(`\n🔍 Validating generation config #${index + 1}:`);
+        const configContext = {
+            filePath: genConfig.events,
+            configIndex: index
+        };
         // Validate events file
         if (!genConfig.events) {
-            console.error(`❌ Missing required "events" field in generation config #${index + 1}`);
-            isValid = false;
+            errors.push(`Missing required "events" field in generation config #${index + 1}`);
         }
-        else if (!validateFileExtension(genConfig.events, [".json"])) {
-            console.error(`❌ Invalid file extension for events file "${genConfig.events}". Expected: .json`);
-            isValid = false;
+        else {
+            const eventFileResult = (0, utils_1.validateFileExtension)(genConfig.events, [".json"], configContext);
+            if (!eventFileResult.isValid && eventFileResult.errors) {
+                errors.push(...eventFileResult.errors);
+            }
         }
         // Validate globals file if provided
         if (genConfig.globals) {
-            if (!validateFileExtension(genConfig.globals, [".json"])) {
-                console.error(`❌ Invalid file extension for globals file "${genConfig.globals}". Expected: .json`);
-                isValid = false;
+            configContext.filePath = genConfig.globals;
+            const globalsFileResult = (0, utils_1.validateFileExtension)(genConfig.globals, [".json"], configContext);
+            if (!globalsFileResult.isValid && globalsFileResult.errors) {
+                errors.push(...globalsFileResult.errors);
             }
         }
         // Validate output file
         if (!genConfig.output) {
-            console.error(`❌ Missing required "output" field in generation config #${index + 1}`);
-            isValid = false;
+            errors.push(`Missing required "output" field in generation config #${index + 1}`);
         }
-        else if (!validateFileExtension(genConfig.output, [".js", ".ts", ".tsx"])) {
-            console.error(`❌ Invalid file extension for output file "${genConfig.output}". Expected one of: .js, .ts, .tsx`);
-            isValid = false;
+        else {
+            configContext.filePath = genConfig.output;
+            const outputFileResult = (0, utils_1.validateFileExtension)(genConfig.output, [".js", ".ts", ".tsx"], configContext);
+            if (!outputFileResult.isValid && outputFileResult.errors) {
+                errors.push(...outputFileResult.errors);
+            }
         }
     });
-    if (isValid) {
-        console.log("\n✅ All generation configs are valid");
+    if (errors.length > 0) {
+        (0, utils_1.logValidationErrors)(errors);
+        return { isValid: false, errors };
     }
-    return isValid;
+    (0, utils_1.logValidationSuccess)(context);
+    return { isValid: true };
 }
