@@ -1,0 +1,46 @@
+{
+  "dimensions": [
+    {
+      "name": "Free",
+      "description": "Teams without a paid plan.",
+      "identifiers": [
+        {
+          "property": "Plan",
+          "equals": "FREE"
+        }
+      ]
+    },
+    {
+      "name": "Paid",
+      "description": "Teams with a paid plan.",
+      "identifiers": [
+        {
+          "property": "Plan",
+          "not": "FREE"
+        }
+      ]
+    }
+  ],
+  "properties": [
+    {
+      "name": "Url",
+      "description": "The URL of the page when the event was triggered.",
+      "type": "string"
+    },
+    {
+      "name": "UserID",
+      "description": "The ID of the user that triggered the event.",
+      "type": "number"
+    },
+    {
+      "name": "TeamID",
+      "description": "The ID of the team that triggered the event.",
+      "type": "number"
+    },
+    {
+      "name": "Plan",
+      "description": "The plan of the team that triggered the event.",
+      "type": "string"
+    }
+  ]
+} 

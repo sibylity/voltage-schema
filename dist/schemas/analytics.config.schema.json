@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$", "default": "1.0" },
+    "generates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "events": { "type": "string" },
+          "globals": { "type": "string" },
+          "output": { "type": "string" }
+        },
+        "required": ["events", "globals", "output"]
+      }
+    }
+  },
+  "required": ["generates", "version"]
+} 

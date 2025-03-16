@@ -1,0 +1,10 @@
+{
+  "version": "1.0.0",
+  "generates": [
+    {
+      "events": "./analytics.events.json",
+      "globals": "./analytics.globals.json",
+      "output": "./__analytics_generated__/analytics.ts"
+    }
+  ]
+} 
