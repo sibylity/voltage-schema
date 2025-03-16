@@ -59,6 +59,7 @@ export interface GenerationConfig {
   events: string;
   globals: string;
   output: string;
+  disableComments?: boolean;  // Optional, defaults to false
 }
 
 // Analytics Globals Types
