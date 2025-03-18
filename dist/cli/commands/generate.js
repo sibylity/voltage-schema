@@ -41,7 +41,7 @@ function generateEventConfigs(trackingConfig, events, includeComments) {
         const comment = includeComments && originalEvent.description
             ? `\n/** ${originalEvent.description} */\n`
             : '\n';
-        return `${comment}export const ${normalizedKey}Event = ${JSON.stringify(event, null, 2)} as const;`;
+        return `${comment}export const ${normalizedKey}Event = ${JSON.stringify(event, null, 2)};`;
     })
         .join('\n\n');
 }
@@ -56,7 +56,56 @@ ${Object.keys(trackingConfig.events)
         .map(key => `    "${key}": ${normalizeEventKey(key)}Event`)
         .join(',\n')}
   }
-} as const;`;
+};`;
+}
+/**
+ * Generates TypeScript interface definitions
+ */
+function generateTypeDefinitions(events) {
+    // Generate the TrackerEvents interface content
+    const eventEntries = Object.entries(events.events)
+        .map(([key, event]) => {
+        const normalizedKey = normalizeEventKey(key);
+        return [
+            `  "${key}": {`,
+            `    name: "${event.name}";`,
+            `    properties: ${normalizedKey}EventProperties;`,
+            '  };'
+        ].join('\n');
+    })
+        .join('\n');
+    // Define the base types
+    const baseTypes = [
+        '// 🔹 Generated Types',
+        'export interface TrackerEventBase {',
+        '  name: string;',
+        '  properties?: Array<{',
+        '    name: string;',
+        '    type: string | string[];',
+        '  }>;',
+        '}',
+        '',
+        'export interface TrackerEvents {',
+        '  [K: string]: {',
+        '    name: string;',
+        '    properties: Record<string, any>;',
+        '  };',
+        eventEntries,
+        '}',
+        '',
+        '// Base types for type safety',
+        'export type TrackerEvent<T extends TrackerEvents> = keyof T & string;',
+        '',
+        'export type EventProps<T extends TrackerEvents, E extends TrackerEvent<T>> = T[E]["properties"];',
+        '',
+        'export interface AnalyticsTracker<T extends TrackerEvents> {',
+        '  track<E extends TrackerEvent<T>>(',
+        '    event: E,',
+        '    properties: EventProps<T, E>',
+        '  ): void;',
+        '}'
+    ].join('\n');
+    return baseTypes;
 }
 /**
  * Generates TypeScript type definitions for events
@@ -65,52 +114,19 @@ function generateEventTypes(trackingConfig, events, includeComments) {
     return Object.entries(trackingConfig.events)
         .map(([key, event]) => {
         const normalizedKey = normalizeEventKey(key);
-        const properties = event.properties
-            .map(prop => `    "${prop.name}": ${prop.type};`)
-            .join('\n');
         const originalEvent = events.events[key];
         const comment = includeComments && originalEvent.description
             ? `/** ${originalEvent.description} */\n`
             : '';
+        const properties = event.properties
+            .map(prop => `    "${prop.name}": ${prop.type};`)
+            .join('\n');
         return `
 ${comment}export type ${normalizedKey}EventProperties = {
 ${properties || '    // No properties'}
 };`;
     })
         .join('\n\n');
-}
-/**
- * Generates TypeScript interface definitions
- */
-function generateTypeDefinitions(events) {
-    return `// 🔹 Generated Types
-export interface TrackerEvents {
-${Object.entries(events.events)
-        .map(([key, event]) => {
-        const normalizedKey = normalizeEventKey(key);
-        return `  "${key}": {
-    name: "${event.name}";
-    properties: ${normalizedKey}EventProperties;
-  };`;
-    })
-        .join('\n')}
-}
-
-// Re-export base types
-export type { TrackerEvent, EventProps, AnalyticsTracker } from "@sibyl/tracker";
-
-// Create your tracker instance:
-// import { createAnalyticsTracker } from "@sibyl/tracker";
-// import { trackingConfig } from "./tracking.config";
-// import type { TrackerEvents } from "./tracking.types";
-//
-// const tracker = createAnalyticsTracker<TrackerEvents>({
-//   events: trackingConfig.events,
-// }, {
-//   send: (eventData) => {
-//     // Your send implementation
-//   }
-// });`;
 }
 function generateJavaScriptOutput(trackingConfig, events, includeComments, outputPath) {
     const jsOutput = `

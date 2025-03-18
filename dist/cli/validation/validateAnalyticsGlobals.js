@@ -7,8 +7,10 @@ exports.defaultGlobals = void 0;
 exports.validateGlobals = validateGlobals;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
-const utils_1 = require("./utils");
-const validateGlobalsSchema = (0, utils_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.globals.schema.json"));
+const schemaValidation_1 = require("./schemaValidation");
+const fileValidation_1 = require("./fileValidation");
+const logging_1 = require("./logging");
+const validateGlobalsSchema = (0, schemaValidation_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.globals.schema.json"));
 // Default empty globals when file is not provided
 exports.defaultGlobals = {
     dimensions: [],
@@ -54,25 +56,25 @@ function validateGlobalProperties(properties) {
 function validateGlobals(globalsPath) {
     var _a;
     const context = { filePath: globalsPath };
-    (0, utils_1.logValidationStart)(context);
+    (0, logging_1.logValidationStart)(context);
     // If globals file doesn't exist, use defaults
     if (!fs_1.default.existsSync(globalsPath)) {
         console.log(`ℹ️ No globals file found at ${globalsPath}, using default empty values.`);
         return { isValid: true, data: exports.defaultGlobals };
     }
     // Parse globals file
-    const parseResult = (0, utils_1.parseJsonFile)(globalsPath);
+    const parseResult = (0, fileValidation_1.parseJsonFile)(globalsPath);
     if (!parseResult.isValid || !parseResult.data) {
         if (parseResult.errors) {
-            (0, utils_1.logValidationErrors)(parseResult.errors);
+            (0, logging_1.logValidationErrors)(parseResult.errors);
         }
         return { isValid: false, data: exports.defaultGlobals };
     }
     const globals = parseResult.data;
     // Validate globals schema
     if (!validateGlobalsSchema(globals)) {
-        const errors = ((_a = validateGlobalsSchema.errors) === null || _a === void 0 ? void 0 : _a.map(error => `Globals schema validation failed: ${error.message} at ${error.instancePath}`)) || ["Unknown schema validation error"];
-        (0, utils_1.logValidationErrors)(errors);
+        const errors = ((_a = validateGlobalsSchema.errors) === null || _a === void 0 ? void 0 : _a.map((error) => `Globals schema validation failed: ${error.message || "Unknown error"} at ${error.instancePath}`)) || ["Unknown schema validation error"];
+        (0, logging_1.logValidationErrors)(errors);
         return { isValid: false, data: globals, errors };
     }
     console.log(`✅ Validating global properties for ${globalsPath}...`);
@@ -87,9 +89,9 @@ function validateGlobals(globalsPath) {
         errors.push(...dimensionsResult.errors);
     }
     if (errors.length > 0) {
-        (0, utils_1.logValidationErrors)(errors);
+        (0, logging_1.logValidationErrors)(errors);
         return { isValid: false, data: globals, errors };
     }
-    (0, utils_1.logValidationSuccess)(context);
+    (0, logging_1.logValidationSuccess)(context);
     return { isValid: true, data: globals };
 }

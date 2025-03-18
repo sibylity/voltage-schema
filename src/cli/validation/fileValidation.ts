@@ -1,23 +1,6 @@
 import fs from "fs";
 import path from "path";
-import Ajv from "ajv";
-
-export interface ValidationResult<T> {
-  isValid: boolean;
-  data?: T;
-  errors?: string[];
-}
-
-export interface ValidationContext {
-  filePath: string;
-  configIndex?: number;
-}
-
-export function createValidator(schemaPath: string) {
-  const ajv = new Ajv();
-  const schema = JSON.parse(fs.readFileSync(schemaPath, "utf8"));
-  return ajv.compile(schema);
-}
+import { type ValidationResult, type ValidationContext } from "./types";
 
 export function validateFileExists(filePath: string, isOptional: boolean = false): ValidationResult<void> {
   if (!fs.existsSync(filePath)) {
@@ -58,21 +41,4 @@ export function parseJsonFile<T>(filePath: string): ValidationResult<T> {
       errors: [`Failed to parse ${path.basename(filePath)}: ${error instanceof Error ? error.message : String(error)}`]
     };
   }
-}
-
-export function formatValidationErrors(errors: string[]): string {
-  return errors.map(error => `❌ ${error}`).join("\n");
-}
-
-export function logValidationStart(context: ValidationContext): void {
-  const configMsg = context.configIndex !== undefined ? ` for generation config #${context.configIndex + 1}` : "";
-  console.log(`🔍 Validating ${path.basename(context.filePath)}${configMsg}...`);
-}
-
-export function logValidationSuccess(context: ValidationContext): void {
-  console.log(`✅ ${path.basename(context.filePath)} is valid.`);
-}
-
-export function logValidationErrors(errors: string[]): void {
-  console.error(formatValidationErrors(errors));
 } 
