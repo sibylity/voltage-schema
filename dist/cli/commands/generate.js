@@ -119,7 +119,11 @@ function generateEventTypes(trackingConfig, events, includeComments) {
             ? `/** ${originalEvent.description} */\n`
             : '';
         const properties = event.properties
-            .map(prop => `    "${prop.name}": ${prop.type};`)
+            .map(prop => {
+            const type = getPropertyType(prop.type);
+            const optional = prop.optional ? " | undefined | null" : "";
+            return `  "${prop.name}": ${type}${optional};`;
+        })
             .join('\n');
         return `
 ${comment}export type ${normalizedKey}EventProperties = {
@@ -128,7 +132,45 @@ ${properties || '    // No properties'}
     })
         .join('\n\n');
 }
+function getPropertyType(type) {
+    if (Array.isArray(type)) {
+        return type.map(t => t).join(" | ");
+    }
+    return type;
+}
+function generateEventType(eventKey, event) {
+    if (!event.properties) {
+        return `export interface ${eventKey}Event {}`;
+    }
+    const properties = event.properties
+        .map((prop) => {
+        const type = getPropertyType(prop.type);
+        const optional = prop.optional ? " | null | undefined" : "";
+        return `  ${prop.name}: ${type}${optional};`;
+    })
+        .join("\n");
+    return `export interface ${eventKey}Event {
+${properties}
+}`;
+}
 function generateJavaScriptOutput(trackingConfig, events, includeComments, outputPath) {
+    const eventTypes = Object.entries(events.events)
+        .map(([eventKey, event]) => generateEventType(eventKey, event))
+        .join("\n\n");
+    const trackingConfigEvents = Object.entries(events.events).map(([eventKey, event]) => {
+        var _a;
+        return ({
+            name: eventKey,
+            properties: ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.map((prop) => ({
+                name: prop.name,
+                type: prop.type,
+                optional: prop.optional
+            }))) || []
+        });
+    });
+    const config = {
+        events: trackingConfigEvents
+    };
     const jsOutput = `
 // 🔹 Event Configurations
 ${generateEventConfigs(trackingConfig, events, includeComments)}
@@ -181,7 +223,8 @@ function registerGenerateCommand(program) {
                             name: event.name,
                             properties: ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.map((prop) => ({
                                 name: prop.name,
-                                type: prop.type
+                                type: prop.type,
+                                optional: prop.optional
                             }))) || []
                         }
                     ];

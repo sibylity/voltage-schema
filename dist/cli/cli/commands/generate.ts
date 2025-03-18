@@ -1,13 +1,18 @@
 import fs from "fs";
 import path from "path";
 import { Command } from "commander";
-import { type AnalyticsConfig, type AnalyticsGlobals, type AnalyticsEvents } from "../../types";
+import { type AnalyticsConfig, type AnalyticsGlobals, type AnalyticsEvents, type Event, type Property } from "../../types";
 import { validateAnalyticsFiles } from "../validation";
 import { getAnalyticsConfig, readGenerationConfigFiles } from "../utils/analyticsConfigHelper";
+import { type ValidationResult } from "../validation/types";
+import { validateAnalyticsConfig } from "../validation/validateAnalyticsConfig";
+import { validateGlobals } from "../validation/validateAnalyticsGlobals";
+import { validateEvents } from "../validation/validateAnalyticsEvents";
 
 interface TrackingConfigProperty {
   name: string;
   type: string | string[];
+  optional?: boolean;
 }
 
 interface TrackingConfigEvent {
@@ -16,7 +21,10 @@ interface TrackingConfigEvent {
 }
 
 interface TrackingConfig {
-  events: Record<string, TrackingConfigEvent>;
+  events: Record<string, {
+    name: string;
+    properties: TrackingConfigProperty[];
+  }>;
 }
 
 /**
@@ -138,7 +146,11 @@ function generateEventTypes(trackingConfig: TrackingConfig, events: AnalyticsEve
         : '';
       
       const properties = event.properties
-        .map(prop => `    "${prop.name}": ${prop.type};`)
+        .map(prop => {
+          const type = getPropertyType(prop.type);
+          const optional = prop.optional ? " | undefined | null" : "";
+          return `  "${prop.name}": ${type}${optional};`;
+        })
         .join('\n');
       
       return `
@@ -149,7 +161,49 @@ ${properties || '    // No properties'}
     .join('\n\n');
 }
 
+function getPropertyType(type: string | string[]): string {
+  if (Array.isArray(type)) {
+    return type.map(t => t).join(" | ");
+  }
+  return type;
+}
+
+function generateEventType(eventKey: string, event: Event): string {
+  if (!event.properties) {
+    return `export interface ${eventKey}Event {}`;
+  }
+
+  const properties = event.properties
+    .map((prop: Property) => {
+      const type = getPropertyType(prop.type);
+      const optional = prop.optional ? " | null | undefined" : "";
+      return `  ${prop.name}: ${type}${optional};`;
+    })
+    .join("\n");
+
+  return `export interface ${eventKey}Event {
+${properties}
+}`;
+}
+
 function generateJavaScriptOutput(trackingConfig: TrackingConfig, events: AnalyticsEvents, includeComments: boolean, outputPath: string) {
+  const eventTypes = Object.entries(events.events)
+    .map(([eventKey, event]) => generateEventType(eventKey, event))
+    .join("\n\n");
+
+  const trackingConfigEvents = Object.entries(events.events).map(([eventKey, event]) => ({
+    name: eventKey,
+    properties: event.properties?.map((prop: Property) => ({
+      name: prop.name,
+      type: prop.type,
+      optional: prop.optional
+    })) || []
+  }));
+
+  const config = {
+    events: trackingConfigEvents
+  };
+
   const jsOutput = `
 // 🔹 Event Configurations
 ${generateEventConfigs(trackingConfig, events, includeComments)}
@@ -210,7 +264,8 @@ export function registerGenerateCommand(program: Command) {
                 name: event.name,
                 properties: event.properties?.map((prop) => ({
                   name: prop.name,
-                  type: prop.type
+                  type: prop.type,
+                  optional: prop.optional
                 })) || []
               }
             ])

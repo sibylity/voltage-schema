@@ -28,6 +28,10 @@
                     { "enum": ["number", "string", "boolean", "any"] },
                     { "type": "array", "items": { "type": ["string", "number"] } }
                   ]
+                },
+                "optional": {
+                  "type": "boolean",
+                  "default": false
                 }
               },
               "required": ["name", "type"]
