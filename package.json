@@ -4,7 +4,7 @@
   "description": "The analytics schema that evolves with your software.",
   "main": "./dist/cli/index.js",
   "scripts": {
-    "build": "rm -rf dist/ && tsc && cp -r src/schemas dist/schemas",
+    "build": "rm -rf dist/ && tsc && cp -r src/schemas dist/schemas && cp src/tracker.ts dist/tracker.ts && cp -r src/cli dist/cli",
     "start": "ts-node src/cli/index.ts",
     "init": "node dist/cli/index.js init",
     "dimensions": "node dist/cli/index.js dimensions",

@@ -1,3 +1,4 @@
+// Schema Types (used by CLI)
 export interface AnalyticsSchemaProperty {
   name: string;
   description: string;
@@ -41,12 +42,8 @@ export interface AnalyticsSchemaEvent {
 export interface AnalyticsSchema {
   version: string;
   generatedDir: string;
-  globals: AnalyticsSchemaGlobals; // Moved validDimensions & globalProperties under "globals"
+  globals: AnalyticsSchemaGlobals;
   events: Record<string, AnalyticsSchemaEvent>;
-}
-
-export interface AnalyticsTracker {
-  track: (eventKey: string, properties: Record<string, any>) => void;
 }
 
 // Analytics Config Types
@@ -59,7 +56,7 @@ export interface GenerationConfig {
   events: string;
   globals: string;
   output: string;
-  disableComments?: boolean;  // Optional, defaults to false
+  disableComments?: boolean;
 }
 
 // Analytics Globals Types
@@ -70,19 +67,19 @@ export interface AnalyticsGlobals {
 
 export interface Dimension {
   name: string;
-  description?: string;
-  identifiers: Identifier[];
+  description: string;
+  identifiers: DimensionIdentifier[];
 }
 
-export interface Identifier {
+export interface DimensionIdentifier {
   property: string;
   contains?: (string | number | boolean)[];
   equals?: string | number | boolean;
   not?: string | number | boolean;
   in?: (string | number | boolean)[];
   notIn?: (string | number | boolean)[];
-  startsWith?: (string | number | boolean)[];
-  endsWith?: (string | number | boolean)[];
+  startsWith?: string;
+  endsWith?: string;
   lt?: number;
   lte?: number;
   gt?: number;
@@ -91,7 +88,7 @@ export interface Identifier {
 
 export interface Property {
   name: string;
-  description?: string;
+  description: string;
   type: string | string[];
 }
 
@@ -102,7 +99,37 @@ export interface AnalyticsEvents {
 
 export interface Event {
   name: string;
-  description?: string;
+  description: string;
+  version?: string;
   dimensions?: string[];
   properties?: Property[];
+}
+
+// Tracker Types
+export interface EventData {
+  eventKey: string;
+  eventName: string;
+  eventProperties: Record<string, any>;
+}
+
+// These types will be used by consuming applications
+export interface TrackerEvents {
+  [K: string]: {
+    name: string;
+    properties: Record<string, any>;
+  };
+}
+
+export type TrackerEvent<T extends TrackerEvents> = keyof T & string;
+
+export type EventProps<
+  T extends TrackerEvents,
+  E extends TrackerEvent<T>
+> = T[E]['properties'];
+
+export interface AnalyticsTracker<T extends TrackerEvents> {
+  track<E extends TrackerEvent<T>>(
+    event: E,
+    properties: EventProps<T, E>
+  ): void;
 }
