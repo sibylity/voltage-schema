@@ -3,6 +3,7 @@ export interface AnalyticsSchemaProperty {
   name: string;
   description: string;
   type: string | string[];
+  optional?: boolean;
 }
 
 export interface AnalyticsSchemaDimensionIdentifier {
@@ -90,6 +91,7 @@ export interface Property {
   name: string;
   description: string;
   type: string | string[];
+  optional?: boolean;
 }
 
 // Analytics Events Types
