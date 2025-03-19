@@ -70,36 +70,25 @@ Create `analytics.events.json` to define your events:
 ### 3. Using the Tracker
 
 ```typescript
+import { AnalyticsTracker, TrackerEvents, trackingConfig } from './__analytics_generated__/analytics';
 import { createAnalyticsTracker } from 'sibyl';
 
 // Create a tracker instance
-const tracker = createAnalyticsTracker({
-  // Optional global properties that will be included in all events
-  globalProperties: {
-    app_version: "1.0.0",
-    environment: "production"
-  },
+const tracker: AnalyticsTracker<TrackerEvents> = createAnalyticsTracker<TrackerEvents>(trackingConfig, {
   // Required callback to send events
   send: async (eventData) => {
     // Send the event to your analytics service
-    await fetch('https://your-analytics-service.com/events', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(eventData)
-    });
   }
 });
 
 // Track a page view event
-await tracker.track('page_view', {
+tracker.track('page_view', {
   page_title: 'Home Page',
   page_url: 'https://example.com'
 });
 
 // Track a button click event
-await tracker.track('button_click', {
+tracker.track('button_click', {
   button_id: 'signup_button',
   button_text: 'Sign Up'
 });

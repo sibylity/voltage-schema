@@ -74,6 +74,10 @@ function generateTypeDefinitions(events) {
         ].join('\n');
     })
         .join('\n');
+    // Generate literal union of event names
+    const eventNames = Object.keys(events.events)
+        .map(key => `"${key}"`)
+        .join(' | ');
     // Define the base types
     const baseTypes = [
         '// 🔹 Generated Types',
@@ -94,7 +98,7 @@ function generateTypeDefinitions(events) {
         '}',
         '',
         '// Base types for type safety',
-        'export type TrackerEvent<T extends TrackerEvents> = keyof T & string;',
+        `export type TrackerEvent<T extends TrackerEvents> = ${eventNames};`,
         '',
         'export type EventProps<T extends TrackerEvents, E extends TrackerEvent<T>> = T[E]["properties"];',
         '',
