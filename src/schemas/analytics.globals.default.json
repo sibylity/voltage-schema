@@ -23,9 +23,21 @@
   ],
   "groups": [
     {
+      "name": "EveryEvent",
+      "description": "Properties to track with every event.",
+      "identifiedBy": "UserID",
+      "properties": [
+        {
+          "name": "Url",
+          "description": "The URL of the page when the event was triggered.",
+          "type": "string"
+        }
+      ]
+    },
+    {
       "name": "User",
       "description": "The user that triggered the event.",
-      "passthrough": true,
+      "identifiedBy": "UserID",
       "properties": [
         {
           "name": "UserID",
@@ -37,11 +49,17 @@
     {
       "name": "Team",
       "description": "The team of the user that triggered the event.",
+      "identifiedBy": "TeamID",
       "properties": [
         {
           "name": "TeamID",
           "description": "The ID of the team of the user that triggered the event.",
           "type": "number"
+        },
+        {
+          "name": "Plan",
+          "description": "The plan of the team of the user that triggered the event.",
+          "type": "string"
         }
       ]
     }
