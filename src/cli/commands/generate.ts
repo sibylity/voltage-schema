@@ -270,7 +270,7 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
     '    properties: EventProperties<T, E>',
     '  ): void;',
     '  group<G extends TrackerGroup<T>>(',
-    '    groupKey: G,',
+    '    groupName: G,',
     '    groupIdentifier: string | number,',
     '    properties: GroupProperties<T, G>',
     '  ): void;',
@@ -281,12 +281,13 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
     '',
     'export interface TrackerOptions<T extends TrackerEvents> {',
     '  trackEvent: (',
-    '    eventName: TrackerEvent<T>,',
+    '    eventName: T["events"][TrackerEvent<T>]["name"],',
     '    eventProperties: EventProperties<T, TrackerEvent<T>>,',
-    '    globalProperties: GlobalProperties<T>',
+    '    globalProperties: GlobalProperties<T>,',
+    '    groupProperties: Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>',
     '  ) => Promise<void>;',
-    '  group: (',
-    '    groupKey: TrackerGroup<T>,',
+    '  groupIdentify: (',
+    '    groupName: T["groups"][TrackerGroup<T>]["name"],',
     '    groupIdentifier: string | number,',
     '    properties: GroupProperties<T, TrackerGroup<T>>',
     '  ) => Promise<void>;',
@@ -438,8 +439,8 @@ export function registerGenerateCommand(program: Command) {
             ])
           ),
           groups: Object.fromEntries(
-            Object.entries(globals.groups || {}).map(([groupKey, group]) => [
-              groupKey,
+            Object.entries(globals.groups || {}).map(([groupName, group]) => [
+              groupName,
               {
                 name: group.name,
                 properties: group.properties?.map((prop) => ({

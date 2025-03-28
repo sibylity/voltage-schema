@@ -116,9 +116,18 @@ export interface Event {
   passthrough?: boolean;
 }
 
-export interface TrackerOptions {
-  trackEvent: (eventName: string, eventProperties: Record<string, any>, globalProperties: Record<string, any>) => Promise<void>;
-  group: (groupKey: string, groupIdentifier: string | number, properties: Record<string, any>) => Promise<void>;
+export interface TrackerOptions<T extends TrackerEvents> {
+  trackEvent: (
+    eventName: TrackerEvent<T>,
+    eventProperties: EventProperties<T, TrackerEvent<T>>,
+    globalProperties: GlobalProperties<T>,
+    groupProperties: Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>
+  ) => Promise<void>;
+  groupIdentify: (
+    groupName: TrackerGroup<T>,
+    groupIdentifier: string | number,
+    properties: GroupProperties<T, TrackerGroup<T>>
+  ) => Promise<void>;
   onError?: (error: Error) => void;
 }
 
@@ -199,7 +208,7 @@ export interface AnalyticsTracker<T extends TrackerEvents> {
     properties: EventProperties<T, E>
   ): void;
   group<G extends TrackerGroup<T>>(
-    groupKey: G,
+    groupName: G,
     groupIdentifier: string | number,
     properties: GroupProperties<T, G>
   ): void;

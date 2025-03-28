@@ -37,15 +37,16 @@ export interface TrackerContext<T extends TrackerEvents> {
 
 export function createAnalyticsTracker<T extends TrackerEvents>(
   context: TrackerContext<T>,
-  options: TrackerOptions
+  options: TrackerOptions<T>
 ): AnalyticsTracker<T> {
   const {
     trackEvent,
-    group: groupCallback,
+    groupIdentify,
     onError = console.error
   } = options;
 
   let globalProperties: Partial<GlobalProperties<T>> = {};
+  let groupProperties: Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>> = {} as Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;
 
   return {
     track: <E extends TrackerEvent<T>>(
@@ -63,7 +64,7 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
 
         // Send the event
         try {
-          trackEvent(event.name, eventProperties, globalProperties as Record<string, any>);
+          trackEvent(event.name, eventProperties, globalProperties as GlobalProperties<T>, groupProperties);
         } catch (error) {
           onError(new Error(`Failed to send event: ${error instanceof Error ? error.message : String(error)}`));
         }
@@ -73,22 +74,25 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
     },
 
     group: <G extends TrackerGroup<T>>(
-      groupKey: G,
+      groupName: G,
       groupIdentifier: string | number,
       properties: GroupProperties<T, G>
     ) => {
       try {
-        const group = context.groups[groupKey];
+        const group = context.groups[groupName];
         if (!group) {
-          throw new ValidationError(`Group "${String(groupKey)}" not found`);
+          throw new ValidationError(`Group "${String(groupName)}" not found`);
         }
 
         // Validate properties
         validateGroupProperties(group, properties);
 
+        // Update group properties
+        groupProperties[groupName] = properties;
+
         // Send the group data
         try {
-          groupCallback(String(groupKey), groupIdentifier, properties as Record<string, any>);
+          groupIdentify(group.name, groupIdentifier, properties as Record<string, any>);
         } catch (error) {
           onError(new Error(`Failed to group: ${error instanceof Error ? error.message : String(error)}`));
         }
@@ -98,13 +102,13 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
     },
 
     setProperties: (properties: Partial<{
-      [K in keyof GlobalProperties<T>]: GlobalProperties<T>[K];
+      [K in keyof GlobalProperties<T>]: GlobalProperties<T>[K] | (() => GlobalProperties<T>[K]);
     }>) => {
       try {
         // Update the global properties
         globalProperties = Object.entries(properties).reduce((acc, [key, getter]) => {
           try {
-            acc[key as keyof GlobalProperties<T>] = getter();
+            acc[key as keyof GlobalProperties<T>] = typeof getter === 'function' ? getter() : getter;
           } catch (error) {
             onError(new Error(`Failed to get property "${key}": ${error instanceof Error ? error.message : String(error)}`));
           }
