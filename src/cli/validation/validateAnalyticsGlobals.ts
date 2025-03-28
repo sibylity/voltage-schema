@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import type { ErrorObject } from "ajv";
-import { type AnalyticsGlobals, type Dimension, type DimensionIdentifier } from "../../types";
+import { type AnalyticsGlobals, type Dimension, type DimensionIdentifier, type Group, type Property } from "../../types";
 import { type ValidationResult, type ValidationContext } from "./types";
 import { createValidator } from "./schemaValidation";
 import { parseJsonFile } from "./fileValidation";
@@ -15,8 +15,25 @@ export const defaultGlobals: AnalyticsGlobals = {
   dimensions: []
 };
 
-function validateGlobalDimensions(dimensions: Dimension[]): ValidationResult<void> {
+function validateGlobalDimensions(dimensions: Dimension[], groups: Group[], events: Record<string, any>): ValidationResult<void> {
   const errors: string[] = [];
+
+  // Create sets of all valid property names from groups and events
+  const groupPropertyNames = new Set<string>();
+  groups.forEach(group => {
+    group.properties.forEach((prop: Property) => {
+      groupPropertyNames.add(prop.name);
+    });
+  });
+
+  const eventPropertyNames = new Set<string>();
+  Object.values(events).forEach(event => {
+    if (event.properties) {
+      event.properties.forEach((prop: Property) => {
+        eventPropertyNames.add(prop.name);
+      });
+    }
+  });
 
   dimensions.forEach((dimension: Dimension) => {
     if (!dimension.name) {
@@ -37,6 +54,14 @@ function validateGlobalDimensions(dimensions: Dimension[]): ValidationResult<voi
     dimension.identifiers.forEach((identifier: DimensionIdentifier, index: number) => {
       if (!identifier.property) {
         errors.push(`Dimension "${dimension.name}" identifier at index ${index} must have a property`);
+        return;
+      }
+
+      // Check if the property exists in either groups or events
+      if (!groupPropertyNames.has(identifier.property) && !eventPropertyNames.has(identifier.property)) {
+        errors.push(
+          `Dimension "${dimension.name}" identifier at index ${index} references property "${identifier.property}" which does not exist in any group or event`
+        );
         return;
       }
 
@@ -85,7 +110,7 @@ function validateGroupIdentifiedBy(group: { name: string; properties: Array<{ na
   return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
 }
 
-export function validateGlobals(globalsPath: string): ValidationResult<AnalyticsGlobals> {
+export function validateGlobals(globalsPath: string, eventsPath: string): ValidationResult<AnalyticsGlobals> {
   const context = { filePath: globalsPath };
   logValidationStart(context);
   
@@ -106,6 +131,15 @@ export function validateGlobals(globalsPath: string): ValidationResult<Analytics
 
   const globals = parseResult.data;
 
+  // Parse events file
+  let events = {};
+  if (fs.existsSync(eventsPath)) {
+    const eventsParseResult = parseJsonFile<Record<string, any>>(eventsPath);
+    if (eventsParseResult.isValid && eventsParseResult.data) {
+      events = eventsParseResult.data;
+    }
+  }
+
   // Validate globals schema
   if (!validateGlobalsSchema(globals)) {
     const errors = validateGlobalsSchema.errors?.map((error: ErrorObject) => 
@@ -116,7 +150,7 @@ export function validateGlobals(globalsPath: string): ValidationResult<Analytics
   }
 
   console.log(`✅ Validating global dimensions for ${globalsPath}...`);
-  const dimensionsResult = validateGlobalDimensions(globals.dimensions);
+  const dimensionsResult = validateGlobalDimensions(globals.dimensions, globals.groups, events);
 
   const errors: string[] = [];
   if (!dimensionsResult.isValid && dimensionsResult.errors) {

@@ -16,8 +16,23 @@ exports.defaultGlobals = {
     groups: [],
     dimensions: []
 };
-function validateGlobalDimensions(dimensions) {
+function validateGlobalDimensions(dimensions, groups, events) {
     const errors = [];
+    // Create sets of all valid property names from groups and events
+    const groupPropertyNames = new Set();
+    groups.forEach(group => {
+        group.properties.forEach((prop) => {
+            groupPropertyNames.add(prop.name);
+        });
+    });
+    const eventPropertyNames = new Set();
+    Object.values(events).forEach(event => {
+        if (event.properties) {
+            event.properties.forEach((prop) => {
+                eventPropertyNames.add(prop.name);
+            });
+        }
+    });
     dimensions.forEach((dimension) => {
         if (!dimension.name) {
             errors.push("Dimension name is required");
@@ -34,6 +49,11 @@ function validateGlobalDimensions(dimensions) {
         dimension.identifiers.forEach((identifier, index) => {
             if (!identifier.property) {
                 errors.push(`Dimension "${dimension.name}" identifier at index ${index} must have a property`);
+                return;
+            }
+            // Check if the property exists in either groups or events
+            if (!groupPropertyNames.has(identifier.property) && !eventPropertyNames.has(identifier.property)) {
+                errors.push(`Dimension "${dimension.name}" identifier at index ${index} references property "${identifier.property}" which does not exist in any group or event`);
                 return;
             }
             // Validate that only one identifier type is used
@@ -74,7 +94,7 @@ function validateGroupIdentifiedBy(group) {
     }
     return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
 }
-function validateGlobals(globalsPath) {
+function validateGlobals(globalsPath, eventsPath) {
     var _a;
     const context = { filePath: globalsPath };
     (0, logging_1.logValidationStart)(context);
@@ -92,6 +112,14 @@ function validateGlobals(globalsPath) {
         return { isValid: false, data: exports.defaultGlobals };
     }
     const globals = parseResult.data;
+    // Parse events file
+    let events = {};
+    if (fs_1.default.existsSync(eventsPath)) {
+        const eventsParseResult = (0, fileValidation_1.parseJsonFile)(eventsPath);
+        if (eventsParseResult.isValid && eventsParseResult.data) {
+            events = eventsParseResult.data;
+        }
+    }
     // Validate globals schema
     if (!validateGlobalsSchema(globals)) {
         const errors = ((_a = validateGlobalsSchema.errors) === null || _a === void 0 ? void 0 : _a.map((error) => `Globals schema validation failed: ${error.message || "Unknown error"} at ${error.instancePath}`)) || ["Unknown schema validation error"];
@@ -99,7 +127,7 @@ function validateGlobals(globalsPath) {
         return { isValid: false, data: globals, errors };
     }
     console.log(`✅ Validating global dimensions for ${globalsPath}...`);
-    const dimensionsResult = validateGlobalDimensions(globals.dimensions);
+    const dimensionsResult = validateGlobalDimensions(globals.dimensions, globals.groups, events);
     const errors = [];
     if (!dimensionsResult.isValid && dimensionsResult.errors) {
         errors.push(...dimensionsResult.errors);
