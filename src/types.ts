@@ -62,8 +62,23 @@ export interface GenerationConfig {
 
 // Analytics Globals Types
 export interface AnalyticsGlobals {
-  dimensions: Dimension[];
+  groups: Group[];
   properties: Property[];
+  dimensions: Dimension[];
+}
+
+export interface Group {
+  name: string;
+  description: string;
+  properties: Property[];
+  passthrough?: boolean;
+}
+
+export interface Property {
+  name: string;
+  description: string;
+  type: string | string[] | 'boolean' | 'number' | 'string' | 'string[]' | 'number[]' | 'boolean[]';
+  optional?: boolean;
 }
 
 export interface Dimension {
@@ -87,13 +102,6 @@ export interface DimensionIdentifier {
   gte?: number;
 }
 
-export interface Property {
-  name: string;
-  description: string;
-  type: string | string[];
-  optional?: boolean;
-}
-
 // Analytics Events Types
 export interface AnalyticsEvents {
   events: Record<string, Event>;
@@ -105,33 +113,97 @@ export interface Event {
   version?: string;
   dimensions?: string[];
   properties?: Property[];
+  passthrough?: boolean;
 }
 
-// Tracker Types
-export interface EventData {
-  eventKey: string;
-  eventName: string;
-  eventProperties: Record<string, any>;
+export interface TrackerOptions {
+  trackEvent: (eventName: string, eventProperties: Record<string, any>, globalProperties: Record<string, any>) => Promise<void>;
+  group: (groupKey: string, groupIdentifier: string | number, properties: Record<string, any>) => Promise<void>;
+  onError?: (error: Error) => void;
 }
 
 // These types will be used by consuming applications
 export interface TrackerEvents {
-  [K: string]: {
-    name: string;
-    properties: Record<string, any>;
+  events: {
+    [K: string]: {
+      name: string;
+      properties: Record<string, any>;
+      passthrough?: boolean;
+    };
+  };
+  groups: {
+    [K: string]: {
+      name: string;
+      properties: Record<string, any>;
+      passthrough?: boolean;
+    };
+  };
+  globals: {
+    properties: {
+      [K: string]: {
+        name: string;
+        type: string | string[] | 'boolean' | 'number' | 'string' | 'string[]' | 'number[]' | 'boolean[]';
+        optional?: boolean;
+      };
+    };
+    dimensions: {
+      [K: string]: {
+        name: string;
+        description: string;
+        identifiers: Array<{
+          property: string;
+          contains?: (string | number | boolean)[];
+          equals?: string | number | boolean;
+          not?: string | number | boolean;
+          in?: (string | number | boolean)[];
+          notIn?: (string | number | boolean)[];
+          startsWith?: string;
+          endsWith?: string;
+          lt?: number;
+          lte?: number;
+          gt?: number;
+          gte?: number;
+        }>;
+      };
+    };
   };
 }
 
-export type TrackerEvent<T extends TrackerEvents> = keyof T & string;
+export type TrackerEvent<T extends TrackerEvents> = keyof T['events'] & string;
 
-export type EventProps<
+export type TrackerGroup<T extends TrackerEvents> = keyof T['groups'] & string;
+
+export type EventProperties<
   T extends TrackerEvents,
   E extends TrackerEvent<T>
-> = T[E]['properties'];
+> = T['events'][E]['properties'];
+
+export type GroupProperties<
+  T extends TrackerEvents,
+  G extends TrackerGroup<T>
+> = T['groups'][G]['properties'];
+
+export type GlobalProperties<T extends TrackerEvents> = {
+  [K in keyof T['globals']['properties']]: T['globals']['properties'][K]['type'] extends 'boolean' ? boolean :
+    T['globals']['properties'][K]['type'] extends 'number' ? number :
+    T['globals']['properties'][K]['type'] extends 'string' ? string :
+    T['globals']['properties'][K]['type'] extends 'string[]' ? string[] :
+    T['globals']['properties'][K]['type'] extends 'number[]' ? number[] :
+    T['globals']['properties'][K]['type'] extends 'boolean[]' ? boolean[] :
+    any;
+};
 
 export interface AnalyticsTracker<T extends TrackerEvents> {
   track<E extends TrackerEvent<T>>(
     event: E,
-    properties: EventProps<T, E>
+    properties: EventProperties<T, E>
   ): void;
+  group<G extends TrackerGroup<T>>(
+    groupKey: G,
+    groupIdentifier: string | number,
+    properties: GroupProperties<T, G>
+  ): void;
+  setProperties(properties: Partial<{
+    [K in keyof GlobalProperties<T>]: GlobalProperties<T>[K];
+  }>): void;
 }

@@ -13,32 +13,46 @@ const logging_1 = require("./logging");
 const validateGlobalsSchema = (0, schemaValidation_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.globals.schema.json"));
 // Default empty globals when file is not provided
 exports.defaultGlobals = {
-    dimensions: [],
-    properties: []
+    groups: [],
+    properties: [],
+    dimensions: []
 };
 function validateGlobalDimensions(dimensions) {
     const errors = [];
     dimensions.forEach((dimension) => {
         if (!dimension.name) {
-            errors.push("A dimension is missing a name.");
+            errors.push("Dimension name is required");
             return;
         }
-        if (!dimension.identifiers || dimension.identifiers.length === 0) {
-            errors.push(`Dimension "${dimension.name}" has no identifiers.`);
+        if (!dimension.description) {
+            errors.push(`Dimension "${dimension.name}" description is required`);
+            return;
+        }
+        if (!dimension.identifiers || !Array.isArray(dimension.identifiers)) {
+            errors.push(`Dimension "${dimension.name}" identifiers must be an array`);
             return;
         }
         dimension.identifiers.forEach((identifier, index) => {
             if (!identifier.property) {
-                errors.push(`Identifier #${index + 1} in dimension "${dimension.name}" is missing a "property" field.`);
+                errors.push(`Dimension "${dimension.name}" identifier at index ${index} must have a property`);
+                return;
             }
-            // Ensure only one evaluation field is set
-            const evaluationFields = ["contains", "equals", "not", "in", "notIn", "startsWith", "endsWith", "lt", "lte", "gt", "gte"];
-            const activeFields = evaluationFields.filter((field) => field in identifier);
-            if (activeFields.length === 0) {
-                errors.push(`Identifier for property "${identifier.property}" in dimension "${dimension.name}" is missing an evaluation field.`);
-            }
-            else if (activeFields.length > 1) {
-                errors.push(`Identifier for property "${identifier.property}" in dimension "${dimension.name}" has multiple evaluation fields (${activeFields.join(", ")}). Only one is allowed.`);
+            // Validate that only one identifier type is used
+            const identifierTypes = [
+                identifier.contains,
+                identifier.equals,
+                identifier.not,
+                identifier.in,
+                identifier.notIn,
+                identifier.startsWith,
+                identifier.endsWith,
+                identifier.lt,
+                identifier.lte,
+                identifier.gt,
+                identifier.gte
+            ].filter(Boolean);
+            if (identifierTypes.length > 1) {
+                errors.push(`Dimension "${dimension.name}" identifier at index ${index} can only have one type of identifier`);
             }
         });
     });
@@ -47,8 +61,24 @@ function validateGlobalDimensions(dimensions) {
 function validateGlobalProperties(properties) {
     const errors = [];
     properties.forEach((prop) => {
-        if (!prop.name || !prop.type) {
-            errors.push(`Global property "${prop.name || "[Unnamed]"}" is missing required fields (name, type).`);
+        if (!prop.name) {
+            errors.push("Property name is required");
+            return;
+        }
+        if (!prop.description) {
+            errors.push(`Property "${prop.name}" description is required`);
+            return;
+        }
+        if (!prop.type) {
+            errors.push(`Property "${prop.name}" type is required`);
+            return;
+        }
+        // Validate property type
+        const validTypes = ["string", "number", "boolean", "string[]", "number[]", "boolean[]"];
+        const type = Array.isArray(prop.type) ? prop.type : [prop.type];
+        const invalidTypes = type.filter((t) => !validTypes.includes(t));
+        if (invalidTypes.length > 0) {
+            errors.push(`Property "${prop.name}" has invalid type(s): ${invalidTypes.join(", ")}. Valid types are: ${validTypes.join(", ")}`);
         }
     });
     return errors.length > 0 ? { isValid: false, errors } : { isValid: true };

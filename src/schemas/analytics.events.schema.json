@@ -25,8 +25,8 @@
                 "description": { "type": "string" },
                 "type": {
                   "oneOf": [
-                    { "enum": ["number", "string", "boolean", "any"] },
-                    { "type": "array", "items": { "type": ["string", "number"] } }
+                    { "enum": ["string", "number", "boolean", "string[]", "number[]", "boolean[]"] },
+                    { "type": "array", "items": { "type": ["string", "number", "boolean"] } }
                   ]
                 },
                 "optional": {
@@ -34,11 +34,15 @@
                   "default": false
                 }
               },
-              "required": ["name", "type"]
+              "required": ["name", "description", "type"]
             }
+          },
+          "passthrough": {
+            "type": "boolean",
+            "default": false
           }
         },
-        "required": ["name"]
+        "required": ["name", "description"]
       }
     }
   },

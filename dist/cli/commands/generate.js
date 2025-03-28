@@ -48,12 +48,31 @@ function generateEventConfigs(trackingConfig, events, includeComments) {
 /**
  * Generates the tracking config object
  */
-function generateTrackingConfig(trackingConfig) {
+function generateTrackingConfig(trackingConfig, globals) {
     return `// 🔹 Tracking Config Object
 export const trackingConfig = {
   events: {
 ${Object.keys(trackingConfig.events)
         .map(key => `    "${key}": ${normalizeEventKey(key)}Event`)
+        .join(',\n')}
+  },
+  groups: {
+${Object.entries(trackingConfig.groups || {})
+        .map(([key, group]) => `    "${key}": {
+      name: "${group.name}",
+      properties: ${JSON.stringify(group.properties)}
+    }`)
+        .join(',\n')}
+  },
+  properties: {
+${Object.entries(trackingConfig.properties || {})
+        .map(([key, prop]) => `    "${key}": () => {
+      return {
+        name: "${prop.name}",
+        type: ${JSON.stringify(prop.type)},
+        optional: ${!!prop.optional}
+      };
+    }`)
         .join(',\n')}
   }
 };`;
@@ -61,23 +80,102 @@ ${Object.keys(trackingConfig.events)
 /**
  * Generates TypeScript interface definitions
  */
-function generateTypeDefinitions(events) {
+function generateTypeDefinitions(events, globals) {
     // Generate the TrackerEvents interface content
     const eventEntries = Object.entries(events.events)
         .map(([key, event]) => {
+        var _a;
         const normalizedKey = normalizeEventKey(key);
+        const propertyTypes = ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.map(prop => {
+            const type = Array.isArray(prop.type) ? prop.type : [prop.type];
+            const tsType = type.map(t => {
+                switch (t) {
+                    case 'string': return 'string';
+                    case 'number': return 'number';
+                    case 'boolean': return 'boolean';
+                    case 'string[]': return 'string[]';
+                    case 'number[]': return 'number[]';
+                    case 'boolean[]': return 'boolean[]';
+                    default: return 'any';
+                }
+            }).join(' | ');
+            const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
+            return `  "${prop.name}": ${valueType} | (() => ${valueType});`;
+        }).join('\n')) || '';
         return [
             `  "${key}": {`,
             `    name: "${event.name}";`,
-            `    properties: ${normalizedKey}EventProperties;`,
+            event.passthrough
+                ? `    properties: {${propertyTypes}\n} & Record<string, any>;`
+                : `    properties: {${propertyTypes}\n};`,
+            event.passthrough ? `    passthrough: true;` : '',
+            '  };'
+        ].join('\n');
+    })
+        .join('\n');
+    // Generate the Groups interface content
+    const groupEntries = Object.entries(globals.groups || {})
+        .map(([key, group]) => {
+        var _a;
+        const normalizedKey = normalizeEventKey(key);
+        const propertyTypes = ((_a = group.properties) === null || _a === void 0 ? void 0 : _a.map(prop => {
+            const type = Array.isArray(prop.type) ? prop.type : [prop.type];
+            const tsType = type.map(t => {
+                switch (t) {
+                    case 'string': return 'string';
+                    case 'number': return 'number';
+                    case 'boolean': return 'boolean';
+                    case 'string[]': return 'string[]';
+                    case 'number[]': return 'number[]';
+                    case 'boolean[]': return 'boolean[]';
+                    default: return 'any';
+                }
+            }).join(' | ');
+            const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
+            return `  "${prop.name}": ${valueType} | (() => ${valueType});`;
+        }).join('\n')) || '';
+        return [
+            `  "${key}": {`,
+            `    name: "${group.name}";`,
+            group.passthrough
+                ? `    properties: {${propertyTypes}\n} & Record<string, any>;`
+                : `    properties: {${propertyTypes}\n};`,
+            group.passthrough ? `    passthrough: true;` : '',
             '  };'
         ].join('\n');
     })
         .join('\n');
     // Generate literal union of event names
-    const eventNames = Object.keys(events.events)
-        .map(key => `"${key}"`)
-        .join(' | ');
+    const eventNames = Object.keys(events.events).length > 0
+        ? Object.keys(events.events)
+            .map(key => `"${key}"`)
+            .join(' | ')
+        : 'never';
+    // Generate literal union of group names
+    const groupNames = Object.keys(globals.groups || {}).length > 0
+        ? Object.keys(globals.groups || {})
+            .map(key => `"${key}"`)
+            .join(' | ')
+        : 'never';
+    // Generate global properties type
+    const globalPropertiesType = (globals.properties || [])
+        .map(prop => {
+        const type = Array.isArray(prop.type) ? prop.type : [prop.type];
+        const tsType = type.map(t => {
+            switch (t) {
+                case 'string': return 'string';
+                case 'number': return 'number';
+                case 'boolean': return 'boolean';
+                case 'string[]': return 'string[]';
+                case 'number[]': return 'number[]';
+                case 'boolean[]': return 'boolean[]';
+                default: return 'any';
+            }
+        }).join(' | ');
+        const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
+        return `  "${prop.name}": ${valueType};`;
+    })
+        .join('\n');
     // Define the base types
     const baseTypes = [
         '// 🔹 Generated Types',
@@ -86,27 +184,85 @@ function generateTypeDefinitions(events) {
         '  properties?: Array<{',
         '    name: string;',
         '    type: string | string[];',
+        '    optional?: boolean;',
         '  }>;',
+        '  passthrough?: boolean;',
         '}',
         '',
         'export interface TrackerEvents {',
-        '  [K: string]: {',
-        '    name: string;',
-        '    properties: Record<string, any>;',
-        '  };',
+        '  events: {',
         eventEntries,
+        '  };',
+        '  groups: {',
+        groupEntries,
+        '  };',
+        '  globals: {',
+        '    properties: {',
+        '      [K: string]: {',
+        '        name: string;',
+        '        type: string | string[] | "boolean" | "number" | "string" | "string[]" | "number[]" | "boolean[]";',
+        '        optional?: boolean;',
+        '      };',
+        '    };',
+        '    dimensions: {',
+        '      [K: string]: {',
+        '        name: string;',
+        '        description: string;',
+        '        identifiers: Array<{',
+        '          property: string;',
+        '          contains?: (string | number | boolean)[];',
+        '          equals?: string | number | boolean;',
+        '          not?: string | number | boolean;',
+        '          in?: (string | number | boolean)[];',
+        '          notIn?: (string | number | boolean)[];',
+        '          startsWith?: string;',
+        '          endsWith?: string;',
+        '          lt?: number;',
+        '          lte?: number;',
+        '          gt?: number;',
+        '          gte?: number;',
+        '        }>;',
+        '      };',
+        '    };',
+        '  };',
         '}',
         '',
         '// Base types for type safety',
         `export type TrackerEvent<T extends TrackerEvents> = ${eventNames};`,
+        `export type TrackerGroup<T extends TrackerEvents> = ${groupNames};`,
         '',
-        'export type EventProps<T extends TrackerEvents, E extends TrackerEvent<T>> = T[E]["properties"];',
+        'export type EventProperties<T extends TrackerEvents, E extends TrackerEvent<T>> = T["events"][E]["properties"];',
+        'export type GroupProperties<T extends TrackerEvents, G extends TrackerGroup<T>> = T["groups"][G]["properties"];',
+        '',
+        `export type GlobalProperties<T extends TrackerEvents> = ${globalPropertiesType ? `{${globalPropertiesType ? `\n${globalPropertiesType}` : ''}\n}` : 'never'};`,
         '',
         'export interface AnalyticsTracker<T extends TrackerEvents> {',
         '  track<E extends TrackerEvent<T>>(',
         '    event: E,',
-        '    properties: EventProps<T, E>',
+        '    properties: EventProperties<T, E>',
         '  ): void;',
+        '  group<G extends TrackerGroup<T>>(',
+        '    groupKey: G,',
+        '    groupIdentifier: string | number,',
+        '    properties: GroupProperties<T, G>',
+        '  ): void;',
+        '  setProperties(properties: Partial<{',
+        '    [K in keyof GlobalProperties<T>]: GlobalProperties<T>[K] | (() => GlobalProperties<T>[K]);',
+        '  }>): void;',
+        '}',
+        '',
+        'export interface TrackerOptions<T extends TrackerEvents> {',
+        '  trackEvent: (',
+        '    eventName: TrackerEvent<T>,',
+        '    eventProperties: EventProperties<T, TrackerEvent<T>>,',
+        '    globalProperties: GlobalProperties<T>',
+        '  ) => Promise<void>;',
+        '  group: (',
+        '    groupKey: TrackerGroup<T>,',
+        '    groupIdentifier: string | number,',
+        '    properties: GroupProperties<T, TrackerGroup<T>>',
+        '  ) => Promise<void>;',
+        '  onError?: (error: Error) => void;',
         '}'
     ].join('\n');
     return baseTypes;
@@ -179,21 +335,25 @@ function generateJavaScriptOutput(trackingConfig, events, includeComments, outpu
 // 🔹 Event Configurations
 ${generateEventConfigs(trackingConfig, events, includeComments)}
 
-${generateTrackingConfig(trackingConfig)}
+${generateTrackingConfig(trackingConfig, { groups: [], properties: [], dimensions: [] })}
 `;
     fs_1.default.writeFileSync(outputPath, jsOutput);
     console.log(`✅ Generated tracking config in ${outputPath}`);
 }
-function generateTypeScriptOutput(trackingConfig, events, includeComments, outputPath) {
+function generateTypeScriptOutput(trackingConfig, events, includeComments, outputPath, genConfig) {
+    const { globals } = (0, analyticsConfigHelper_1.readGenerationConfigFiles)(genConfig);
+    if (!globals) {
+        throw new Error('Failed to read globals configuration');
+    }
     const analyticsTypes = `
 // 🔹 Event Types & Configurations
 ${generateEventTypes(trackingConfig, events, includeComments)}
 
 ${generateEventConfigs(trackingConfig, events, includeComments)}
 
-${generateTypeDefinitions(events)}
+${generateTypeDefinitions(events, globals)}
 
-${generateTrackingConfig(trackingConfig)}
+${generateTrackingConfig(trackingConfig, globals)}
 `;
     fs_1.default.writeFileSync(outputPath, analyticsTypes);
     console.log(`✅ Generated tracking config and TypeScript definitions in ${outputPath}`);
@@ -212,7 +372,7 @@ function registerGenerateCommand(program) {
             const outputPath = path_1.default.resolve(process.cwd(), genConfig.output);
             const outputDir = path_1.default.dirname(outputPath);
             const outputExt = path_1.default.extname(outputPath).toLowerCase();
-            const { events } = (0, analyticsConfigHelper_1.readGenerationConfigFiles)(genConfig);
+            const { events, globals } = (0, analyticsConfigHelper_1.readGenerationConfigFiles)(genConfig);
             if (!fs_1.default.existsSync(outputDir)) {
                 fs_1.default.mkdirSync(outputDir, { recursive: true });
             }
@@ -232,11 +392,33 @@ function registerGenerateCommand(program) {
                             }))) || []
                         }
                     ];
-                }))
+                })),
+                groups: Object.fromEntries(Object.entries(globals.groups || {}).map(([groupKey, group]) => {
+                    var _a;
+                    return [
+                        groupKey,
+                        {
+                            name: group.name,
+                            properties: ((_a = group.properties) === null || _a === void 0 ? void 0 : _a.map((prop) => ({
+                                name: prop.name,
+                                type: prop.type,
+                                optional: prop.optional
+                            }))) || []
+                        }
+                    ];
+                })),
+                properties: Object.fromEntries((globals.properties || []).map((prop) => [
+                    prop.name,
+                    {
+                        name: prop.name,
+                        type: prop.type,
+                        optional: prop.optional
+                    }
+                ]))
             };
             // Generate output based on file extension
             if (outputExt === ".ts" || outputExt === ".tsx") {
-                generateTypeScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath);
+                generateTypeScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath, genConfig);
             }
             else {
                 generateJavaScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath);

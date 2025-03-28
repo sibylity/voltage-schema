@@ -1,10 +1,12 @@
 import type {
   AnalyticsTracker,
-  Event,
-  EventData,
   TrackerEvents,
   TrackerEvent,
-  EventProps
+  EventProperties,
+  TrackerOptions,
+  TrackerGroup,
+  GroupProperties,
+  GlobalProperties
 } from './types';
 
 export interface RuntimeEvent {
@@ -12,64 +14,25 @@ export interface RuntimeEvent {
   properties?: Array<{
     name: string;
     type: string | string[];
+    optional?: boolean;
   }>;
+  passthrough?: boolean;
 }
 
-export interface TrackerOptions {
-  /** Function to send event data */
-  send: (eventData: EventData) => void | Promise<void>;
-  /** Optional function to handle errors */
-  onError?: (error: Error) => void;
+export interface RuntimeGroup {
+  name: string;
+  properties: Array<{
+    name: string;
+    type: string | string[];
+    optional?: boolean;
+  }>;
+  passthrough?: boolean;
 }
 
 export interface TrackerContext<T extends TrackerEvents> {
-  events: {
-    [K in keyof T]: RuntimeEvent;
-  };
-}
-
-class ValidationError extends Error {
-  constructor(message: string) {
-    super(message);
-    this.name = 'ValidationError';
-  }
-}
-
-function validateEventProperties(
-  event: RuntimeEvent | undefined,
-  properties: Record<string, any>
-): void {
-  if (!event) {
-    throw new ValidationError(`Event not found`);
-  }
-
-  // Get all required properties
-  const expectedProperties = new Set(
-    (event.properties || []).map(p => p.name)
-  );
-
-  // Check for unexpected properties
-  for (const key in properties) {
-    if (!expectedProperties.has(key)) {
-      throw new ValidationError(
-        `Unexpected property "${key}". Allowed properties: ${[...expectedProperties].join(", ")}`
-      );
-    }
-  }
-
-  // Check property types if defined in event
-  event.properties?.forEach(prop => {
-    const value = properties[prop.name];
-    if (value !== undefined) {
-      const type = Array.isArray(prop.type) ? prop.type : [prop.type];
-      const valueType = Array.isArray(value) ? 'array' : typeof value;
-      if (!type.includes(valueType)) {
-        throw new ValidationError(
-          `Invalid type for property "${prop.name}". Expected ${type.join(' | ')}, got ${valueType}`
-        );
-      }
-    }
-  });
+  events: Record<string, RuntimeEvent>;
+  groups: Record<string, RuntimeGroup>;
+  properties: Record<string, () => any>;
 }
 
 export function createAnalyticsTracker<T extends TrackerEvents>(
@@ -77,14 +40,17 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
   options: TrackerOptions
 ): AnalyticsTracker<T> {
   const {
-    send,
+    trackEvent,
+    group: groupCallback,
     onError = console.error
   } = options;
+
+  let globalProperties: Partial<GlobalProperties<T>> = {};
 
   return {
     track: <E extends TrackerEvent<T>>(
       eventKey: E,
-      eventProperties: EventProps<T, E>
+      eventProperties: EventProperties<T, E>
     ) => {
       try {
         const event = context.events[eventKey];
@@ -95,22 +61,110 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
         // Validate properties
         validateEventProperties(event, eventProperties);
 
-        // Prepare event data
-        const eventData: EventData = {
-          eventKey,
-          eventName: event.name,
-          eventProperties,
-        };
-
         // Send the event
         try {
-          send(eventData);
+          trackEvent(event.name, eventProperties, globalProperties as Record<string, any>);
         } catch (error) {
           onError(new Error(`Failed to send event: ${error instanceof Error ? error.message : String(error)}`));
         }
       } catch (error) {
         onError(error instanceof Error ? error : new Error(String(error)));
       }
+    },
+
+    group: <G extends TrackerGroup<T>>(
+      groupKey: G,
+      groupIdentifier: string | number,
+      properties: GroupProperties<T, G>
+    ) => {
+      try {
+        const group = context.groups[groupKey];
+        if (!group) {
+          throw new ValidationError(`Group "${String(groupKey)}" not found`);
+        }
+
+        // Validate properties
+        validateGroupProperties(group, properties);
+
+        // Send the group data
+        try {
+          groupCallback(String(groupKey), groupIdentifier, properties as Record<string, any>);
+        } catch (error) {
+          onError(new Error(`Failed to group: ${error instanceof Error ? error.message : String(error)}`));
+        }
+      } catch (error) {
+        onError(error instanceof Error ? error : new Error(String(error)));
+      }
+    },
+
+    setProperties: (properties: Partial<{
+      [K in keyof GlobalProperties<T>]: GlobalProperties<T>[K];
+    }>) => {
+      try {
+        // Update the global properties
+        globalProperties = Object.entries(properties).reduce((acc, [key, getter]) => {
+          try {
+            acc[key as keyof GlobalProperties<T>] = getter();
+          } catch (error) {
+            onError(new Error(`Failed to get property "${key}": ${error instanceof Error ? error.message : String(error)}`));
+          }
+          return acc;
+        }, {} as Partial<GlobalProperties<T>>);
+      } catch (error) {
+        onError(error instanceof Error ? error : new Error(String(error)));
+      }
     }
   };
+}
+
+// Helper functions for validation
+function validateEventProperties(event: RuntimeEvent, properties: Record<string, any>) {
+  if (!event.properties) return;
+
+  // Skip unexpected property validation if passthrough is enabled
+  if (!event.passthrough) {
+    // Check for unexpected properties
+    const expectedProperties = new Set(event.properties.map(p => p.name));
+    for (const key in properties) {
+      if (!expectedProperties.has(key)) {
+        throw new ValidationError(`Unexpected property "${key}". Allowed properties: ${[...expectedProperties].join(", ")}`);
+      }
+    }
+  }
+
+  // Check required properties
+  for (const prop of event.properties) {
+    if (!prop.optional && !(prop.name in properties)) {
+      throw new ValidationError(`Required property "${prop.name}" is missing`);
+    }
+  }
+}
+
+function validateGroupProperties(group: RuntimeGroup, properties: Record<string, any>) {
+  if (!group.properties) return;
+
+  // Skip unexpected property validation if passthrough is enabled
+  if (!group.passthrough) {
+    // Check for unexpected properties
+    const expectedProperties = new Set(group.properties.map(p => p.name));
+    for (const key in properties) {
+      if (!expectedProperties.has(key)) {
+        throw new ValidationError(`Unexpected property "${key}". Allowed properties: ${[...expectedProperties].join(", ")}`);
+      }
+    }
+  }
+
+  // Check required properties
+  for (const prop of group.properties) {
+    if (!prop.optional && !(prop.name in properties)) {
+      throw new ValidationError(`Required property "${prop.name}" is missing`);
+    }
+  }
+}
+
+class ValidationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ValidationError';
+  }
 }
