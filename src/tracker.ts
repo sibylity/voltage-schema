@@ -33,6 +33,23 @@ export interface TrackerContext<T extends TrackerEvents> {
   groups: Record<TrackerGroup<T>, RuntimeGroup>;
 }
 
+type PropertyValue = string | number | boolean | (() => string | number | boolean);
+
+function resolvePropertyValue(value: PropertyValue): string | number | boolean {
+  if (typeof value === 'function') {
+    return value();
+  }
+  return value;
+}
+
+function resolveProperties<T extends Record<string, PropertyValue>>(properties: T): Record<keyof T, string | number | boolean> {
+  const resolved: Record<keyof T, string | number | boolean> = {} as Record<keyof T, string | number | boolean>;
+  for (const [key, value] of Object.entries(properties)) {
+    resolved[key as keyof T] = resolvePropertyValue(value);
+  }
+  return resolved;
+}
+
 export function createAnalyticsTracker<T extends TrackerEvents>(
   context: TrackerContext<T>,
   options: TrackerOptions<T>
@@ -62,7 +79,14 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
         // Send the event
         try {
           const eventName = event.name as T["events"][E]["name"];
-          onEventTracked(eventName, eventProperties, groupProperties);
+          const resolvedEventProperties = resolveProperties(eventProperties);
+          const resolvedGroupProperties = Object.fromEntries(
+            Object.entries(groupProperties).map(([key, props]) => [
+              key,
+              resolveProperties(props as Record<string, PropertyValue>)
+            ])
+          ) as Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;
+          onEventTracked(eventName, resolvedEventProperties, resolvedGroupProperties);
         } catch (error) {
           onError(new Error(`Failed to send event: ${error instanceof Error ? error.message : String(error)}`));
         }
@@ -93,7 +117,8 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
         // Send the group data
         try {
           const groupNameStr = group.name as T["groups"][G]["name"];
-          onGroupUpdate(groupNameStr, properties);
+          const resolvedProperties = resolveProperties(properties as Record<string, PropertyValue>);
+          onGroupUpdate(groupNameStr, resolvedProperties);
         } catch (error) {
           onError(new Error(`Failed to update group: ${error instanceof Error ? error.message : String(error)}`));
         }

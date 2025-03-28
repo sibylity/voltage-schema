@@ -1,6 +1,19 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createAnalyticsTracker = createAnalyticsTracker;
+function resolvePropertyValue(value) {
+    if (typeof value === 'function') {
+        return value();
+    }
+    return value;
+}
+function resolveProperties(properties) {
+    const resolved = {};
+    for (const [key, value] of Object.entries(properties)) {
+        resolved[key] = resolvePropertyValue(value);
+    }
+    return resolved;
+}
 function createAnalyticsTracker(context, options) {
     const { onEventTracked, onGroupUpdate, onError = console.error } = options;
     const groupProperties = {};
@@ -16,7 +29,12 @@ function createAnalyticsTracker(context, options) {
                 // Send the event
                 try {
                     const eventName = event.name;
-                    onEventTracked(eventName, eventProperties, groupProperties);
+                    const resolvedEventProperties = resolveProperties(eventProperties);
+                    const resolvedGroupProperties = Object.fromEntries(Object.entries(groupProperties).map(([key, props]) => [
+                        key,
+                        resolveProperties(props)
+                    ]));
+                    onEventTracked(eventName, resolvedEventProperties, resolvedGroupProperties);
                 }
                 catch (error) {
                     onError(new Error(`Failed to send event: ${error instanceof Error ? error.message : String(error)}`));
@@ -39,7 +57,8 @@ function createAnalyticsTracker(context, options) {
                 // Send the group data
                 try {
                     const groupNameStr = group.name;
-                    onGroupUpdate(groupNameStr, properties);
+                    const resolvedProperties = resolveProperties(properties);
+                    onGroupUpdate(groupNameStr, resolvedProperties);
                 }
                 catch (error) {
                     onError(new Error(`Failed to update group: ${error instanceof Error ? error.message : String(error)}`));

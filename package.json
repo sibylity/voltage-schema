@@ -9,6 +9,7 @@
     "init": "node dist/cli/index.js init",
     "dimensions": "node dist/cli/index.js dimensions",
     "properties": "node dist/cli/index.js properties",
+    "events": "node dist/cli/index.js events",
     "generate": "node dist/cli/index.js generate",
     "validate": "node dist/cli/index.js validate"
   },
