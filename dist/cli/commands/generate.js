@@ -113,11 +113,14 @@ function generateTypeDefinitions(events, globals) {
         ].join('\n');
     })
         .join('\n');
+    // Generate literal union of group names
+    const groupNames = Object.entries(globals.groups || {})
+        .map(([_, group]) => `"${group.name}"`)
+        .join(' | ');
     // Generate the Groups interface content
     const groupEntries = Object.entries(globals.groups || {})
         .map(([key, group]) => {
         var _a;
-        const normalizedKey = normalizeEventKey(key);
         const propertyTypes = ((_a = group.properties) === null || _a === void 0 ? void 0 : _a.map(prop => {
             const type = Array.isArray(prop.type) ? prop.type : [prop.type];
             const tsType = type.map(t => {
@@ -135,7 +138,7 @@ function generateTypeDefinitions(events, globals) {
             return `  "${prop.name}": ${valueType} | (() => ${valueType});`;
         }).join('\n')) || '';
         return [
-            `  "${key}": {`,
+            `  "${group.name}": {`,
             `    name: "${group.name}";`,
             group.passthrough
                 ? `    properties: {${propertyTypes}\n} & Record<string, any>;`
@@ -148,12 +151,6 @@ function generateTypeDefinitions(events, globals) {
     // Generate literal union of event names
     const eventNames = Object.keys(events.events).length > 0
         ? Object.keys(events.events)
-            .map(key => `"${key}"`)
-            .join(' | ')
-        : 'never';
-    // Generate literal union of group names
-    const groupNames = Object.keys(globals.groups || {}).length > 0
-        ? Object.keys(globals.groups || {})
             .map(key => `"${key}"`)
             .join(' | ')
         : 'never';
