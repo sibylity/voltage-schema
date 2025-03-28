@@ -2,20 +2,21 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createAnalyticsTracker = createAnalyticsTracker;
 function createAnalyticsTracker(context, options) {
-    const { trackEvent, updateGroup, onError = console.error } = options;
-    let groupProperties = {};
+    const { onEventTracked, onGroupUpdate, onError = console.error } = options;
+    const groupProperties = {};
     return {
         track: (eventKey, eventProperties) => {
             try {
                 const event = context.events[eventKey];
                 if (!event) {
-                    throw new ValidationError(`Event "${eventKey}" not found`);
+                    throw new ValidationError(`Event "${String(eventKey)}" not found`);
                 }
                 // Validate properties
                 validateEventProperties(event, eventProperties);
                 // Send the event
                 try {
-                    trackEvent(event.name, eventProperties, groupProperties);
+                    const eventName = event.name;
+                    onEventTracked(eventName, eventProperties, groupProperties);
                 }
                 catch (error) {
                     onError(new Error(`Failed to send event: ${error instanceof Error ? error.message : String(error)}`));
@@ -25,7 +26,7 @@ function createAnalyticsTracker(context, options) {
                 onError(error instanceof Error ? error : new Error(String(error)));
             }
         },
-        updateGroup: (groupName, properties) => {
+        setProperties: (groupName, properties) => {
             try {
                 const group = context.groups[groupName];
                 if (!group) {
@@ -37,7 +38,8 @@ function createAnalyticsTracker(context, options) {
                 groupProperties[groupName] = Object.assign(Object.assign({}, groupProperties[groupName]), properties);
                 // Send the group data
                 try {
-                    updateGroup(group.name, properties);
+                    const groupNameStr = group.name;
+                    onGroupUpdate(groupNameStr, properties);
                 }
                 catch (error) {
                     onError(new Error(`Failed to update group: ${error instanceof Error ? error.message : String(error)}`));
@@ -47,9 +49,7 @@ function createAnalyticsTracker(context, options) {
                 onError(error instanceof Error ? error : new Error(String(error)));
             }
         },
-        getGroups: () => {
-            return groupProperties;
-        }
+        getProperties: () => groupProperties
     };
 }
 // Helper functions for validation

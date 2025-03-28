@@ -29,8 +29,8 @@ export interface RuntimeGroup {
 }
 
 export interface TrackerContext<T extends TrackerEvents> {
-  events: Record<string, RuntimeEvent>;
-  groups: Record<string, RuntimeGroup>;
+  events: Record<TrackerEvent<T>, RuntimeEvent>;
+  groups: Record<TrackerGroup<T>, RuntimeGroup>;
 }
 
 export function createAnalyticsTracker<T extends TrackerEvents>(
@@ -38,12 +38,12 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
   options: TrackerOptions<T>
 ): AnalyticsTracker<T> {
   const {
-    trackEvent,
-    updateGroup,
+    onEventTracked,
+    onGroupUpdate,
     onError = console.error
   } = options;
 
-  let groupProperties: Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>> = {} as Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;
+  const groupProperties = {} as Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;
 
   return {
     track: <E extends TrackerEvent<T>>(
@@ -53,7 +53,7 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
       try {
         const event = context.events[eventKey];
         if (!event) {
-          throw new ValidationError(`Event "${eventKey}" not found`);
+          throw new ValidationError(`Event "${String(eventKey)}" not found`);
         }
 
         // Validate properties
@@ -61,7 +61,8 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
 
         // Send the event
         try {
-          trackEvent(event.name, eventProperties, groupProperties);
+          const eventName = event.name as T["events"][E]["name"];
+          onEventTracked(eventName, eventProperties, groupProperties);
         } catch (error) {
           onError(new Error(`Failed to send event: ${error instanceof Error ? error.message : String(error)}`));
         }
@@ -70,7 +71,7 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
       }
     },
 
-    updateGroup: <G extends TrackerGroup<T>>(
+    setProperties: <G extends TrackerGroup<T>>(
       groupName: G,
       properties: Partial<GroupProperties<T, G>>
     ) => {
@@ -91,7 +92,8 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
 
         // Send the group data
         try {
-          updateGroup(group.name, properties as Record<string, any>);
+          const groupNameStr = group.name as T["groups"][G]["name"];
+          onGroupUpdate(groupNameStr, properties);
         } catch (error) {
           onError(new Error(`Failed to update group: ${error instanceof Error ? error.message : String(error)}`));
         }
@@ -100,9 +102,7 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
       }
     },
 
-    getGroups: () => {
-      return groupProperties;
-    }
+    getProperties: () => groupProperties
   };
 }
 

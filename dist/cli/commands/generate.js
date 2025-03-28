@@ -218,27 +218,47 @@ function generateTypeDefinitions(events, globals) {
         'export type GroupProperties<T extends TrackerEvents, G extends TrackerGroup<T>> = T["groups"][G]["properties"];',
         '',
         'export interface AnalyticsTracker<T extends TrackerEvents> {',
-        '  track<E extends TrackerEvent<T>>(',
-        '    event: E,',
-        '    properties: EventProperties<T, E>',
-        '  ): void;',
-        '  updateGroup<G extends TrackerGroup<T>>(',
-        '    groupName: G,',
+        '  track: <E extends TrackerEvent<T>>(',
+        '    eventKey: E,',
+        '    eventProperties: EventProperties<T, E>',
+        '  ) => void;',
+        '  setProperties: <G extends TrackerGroup<T>>(',
+        `    groupName: ${groupNames},`,
         '    properties: Partial<GroupProperties<T, G>>',
-        '  ): void;',
-        '  getGroups(): Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;',
+        '  ) => void;',
         '}',
         '',
         'export interface TrackerOptions<T extends TrackerEvents> {',
-        '  trackEvent: <E extends TrackerEvent<T>>(',
-        `    eventName: ${eventNames},`,
+        '  onEventTracked: <E extends TrackerEvent<T>>(',
+        `    eventName: ${Object.values(events.events).map(event => `"${event.name}"`).join(' | ')},`,
         `    eventProperties: ${eventPropertyTypes},`,
-        '    groupProperties: Record<TrackerGroup<T>, T["groups"][TrackerGroup<T>]["properties"]>',
-        '  ) => Promise<void>;',
-        '  updateGroup: <G extends TrackerGroup<T>>(',
+        '    groupProperties: Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>',
+        '  ) => void;',
+        '  onGroupUpdate: <G extends TrackerGroup<T>>(',
         `    groupName: ${groupNames},`,
-        '    properties: Partial<Record<TrackerGroup<T>, T["groups"][TrackerGroup<T>]["properties"]>[G]>',
-        '  ) => Promise<void>;',
+        `    properties: Partial<${Object.entries(globals.groups || {})
+            .map(([_, group]) => {
+            var _a;
+            const propertyTypes = ((_a = group.properties) === null || _a === void 0 ? void 0 : _a.map(prop => {
+                const type = Array.isArray(prop.type) ? prop.type : [prop.type];
+                const tsType = type.map(t => {
+                    switch (t) {
+                        case 'string': return 'string';
+                        case 'number': return 'number';
+                        case 'boolean': return 'boolean';
+                        case 'string[]': return 'string[]';
+                        case 'number[]': return 'number[]';
+                        case 'boolean[]': return 'boolean[]';
+                        default: return 'any';
+                    }
+                }).join(' | ');
+                const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
+                return `  "${prop.name}": ${valueType} | (() => ${valueType});`;
+            }).join('\n')) || '';
+            return `{${propertyTypes}\n}`;
+        })
+            .join(' | ')}>`,
+        '  ) => void;',
         '  onError?: (error: Error) => void;',
         '}'
     ].join('\n');

@@ -20,5 +20,30 @@
         }
       ]
     }
+  ],
+  "groups": [
+    {
+      "name": "User",
+      "description": "The user that triggered the event.",
+      "passthrough": true,
+      "properties": [
+        {
+          "name": "UserID",
+          "description": "The ID of the user that triggered the event.",
+          "type": "number"
+        }
+      ]
+    },
+    {
+      "name": "Team",
+      "description": "The team of the user that triggered the event.",
+      "properties": [
+        {
+          "name": "TeamID",
+          "description": "The ID of the team of the user that triggered the event.",
+          "type": "number"
+        }
+      ]
+    }
   ]
-} 
+}
