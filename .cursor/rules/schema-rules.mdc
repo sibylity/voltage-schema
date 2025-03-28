@@ -38,7 +38,6 @@ Rules:
 - A globals schema file is optional and can live anywhere. It just has to be a JSON file with the expected formatting.
 - "dimensions" is an optional field. Example dimensions include "Free Users" and "Paid Users". The idea is that events that can only be triggered by paid users can be tagged with the "Paid Users" dimension to provide context as to who/what the event is relevant to.
 - "dimensions" are not included in the output of the "generate" cli command.
-- "properties" is an optional field. Properties support all of the same fields as event properties, and as group properties. These properties are considered "global properties", or "every event properties". The idea is that  these properties can be set on the tracker once, and then will be passed along with each tracked event.
 - "groups" is an optional field. Groups are arbitrary groups that users can belong to, such as a "Team", or a "Workspace". Groups can have arbitrary sets of properties associated with them. When "tracker.group()" gets called for a specific group, that groups properties become a required arg type.
 - The types for properties are the same between events, groups, and global properties. Property descriptions are optional, and properties are considered required unless an "optional: true" field is set. When "optional: true" is set, "undefined" and "null" are appended to the generated type as valid types.
 - The supported types for properties includes:

@@ -70,6 +70,7 @@ export interface Group {
   description: string;
   properties: Property[];
   passthrough?: boolean;
+  identifiedBy?: string;
 }
 
 export interface Property {
@@ -128,6 +129,7 @@ export interface TrackerEvents {
       name: string;
       properties: Record<string, any>;
       passthrough?: boolean;
+      identifiedBy?: string;
     };
   };
   globals: {
@@ -160,6 +162,15 @@ export type TrackerGroup<T extends TrackerEvents> = keyof T["groups"];
 export type EventProperties<T extends TrackerEvents, E extends TrackerEvent<T>> = T["events"][E]["properties"];
 export type GroupProperties<T extends TrackerEvents, G extends TrackerGroup<T>> = T["groups"][G]["properties"];
 
+// Helper type to make all properties optional except identifiedBy
+type RequiredProperty<T extends TrackerEvents, G extends TrackerGroup<T>> = T["groups"][G]["identifiedBy"] extends string
+  ? { [K in T["groups"][G]["identifiedBy"]]: T["groups"][G]["properties"][K] }
+  : {};
+
+type OptionalProperties<T extends TrackerEvents, G extends TrackerGroup<T>> = T["groups"][G]["identifiedBy"] extends string
+  ? Omit<T["groups"][G]["properties"], T["groups"][G]["identifiedBy"]>
+  : T["groups"][G]["properties"];
+
 export interface AnalyticsTracker<T extends TrackerEvents> {
   track: <E extends TrackerEvent<T>>(
     eventKey: E,
@@ -167,7 +178,9 @@ export interface AnalyticsTracker<T extends TrackerEvents> {
   ) => void;
   setProperties: <G extends TrackerGroup<T>>(
     groupName: G,
-    properties: Partial<GroupProperties<T, G>>
+    properties: T["groups"][G]["identifiedBy"] extends string
+      ? RequiredProperty<T, G> & Partial<OptionalProperties<T, G>>
+      : Partial<T["groups"][G]["properties"]>
   ) => void;
   getProperties: () => Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;
 }

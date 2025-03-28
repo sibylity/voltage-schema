@@ -83,10 +83,11 @@ ${Object.keys(trackingConfig.events)
     .join(',\n')}
   },
   groups: {
-${Object.entries(trackingConfig.groups || {})
+${Object.entries(globals.groups || {})
     .map(([_, group]) => `    "${group.name}": {
       name: "${group.name}",
-      properties: ${JSON.stringify(group.properties)}
+      properties: ${JSON.stringify(group.properties)}${group.identifiedBy ? `,
+      identifiedBy: "${group.identifiedBy}"` : ''}
     }`)
     .join(',\n')}
   }
@@ -160,6 +161,7 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
           ? `    properties: {${propertyTypes}\n} & Record<string, any>;`
           : `    properties: {${propertyTypes}\n};`,
         group.passthrough ? `    passthrough: true;` : '',
+        group.identifiedBy ? `    identifiedBy: "${group.identifiedBy}";` : '',
         '  };'
       ].join('\n');
     })
@@ -194,6 +196,61 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
       return `{${propertyTypes}\n}`;
     })
     .join(' | ');
+
+  // Generate the AnalyticsTracker interface
+  const analyticsTrackerInterface = [
+    'export interface AnalyticsTracker<T extends TrackerEvents> {',
+    '  track: <E extends TrackerEvent<T>>(',
+    '    eventKey: E,',
+    '    eventProperties: EventProperties<T, E>',
+    '  ) => void;',
+    '  setProperties: <G extends TrackerGroup<T>>(',
+    '    groupName: G,',
+    '    properties: T["groups"][G] extends { identifiedBy: infer ID }',
+    '      ? ID extends keyof T["groups"][G]["properties"]',
+    '        ? { [K in ID]: T["groups"][G]["properties"][K] } & Partial<Omit<T["groups"][G]["properties"], ID>>',
+    '        : Partial<T["groups"][G]["properties"]>',
+    '      : Partial<T["groups"][G]["properties"]>',
+    '  ) => void;',
+    '  getProperties: () => Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;',
+    '}',
+  ].join('\n');
+
+  // Generate the TrackerOptions interface
+  const trackerOptionsInterface = [
+    'export interface TrackerOptions<T extends TrackerEvents> {',
+    '  onEventTracked: <E extends TrackerEvent<T>>(',
+    `    eventName: ${Object.values(events.events).map(event => `"${event.name}"`).join(' | ')},`,
+    `    eventProperties: ${eventPropertyTypes},`,
+    '    groupProperties: Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>',
+    '  ) => void;',
+    '  onGroupUpdate: <G extends TrackerGroup<T>>(',
+    `    groupName: ${groupNames},`,
+    `    properties: Partial<${Object.entries(globals.groups || {})
+      .map(([_, group]) => {
+        const propertyTypes = group.properties?.map(prop => {
+          const type = Array.isArray(prop.type) ? prop.type : [prop.type];
+          const tsType = type.map(t => {
+            switch (t) {
+              case 'string': return 'string';
+              case 'number': return 'number';
+              case 'boolean': return 'boolean';
+              case 'string[]': return 'string[]';
+              case 'number[]': return 'number[]';
+              case 'boolean[]': return 'boolean[]';
+              default: return 'any';
+            }
+          }).join(' | ');
+          const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
+          return `  "${prop.name}": ${valueType} | (() => ${valueType});`;
+        }).join('\n') || '';
+        return `{${propertyTypes}\n}`;
+      })
+      .join(' | ')}>`,
+    '  ) => void;',
+    '  onError?: (error: Error) => void;',
+    '}',
+  ].join('\n');
 
   // Define the base types
   const baseTypes = [
@@ -246,49 +303,9 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
     'export type EventProperties<T extends TrackerEvents, E extends TrackerEvent<T>> = T["events"][E]["properties"];',
     'export type GroupProperties<T extends TrackerEvents, G extends TrackerGroup<T>> = T["groups"][G]["properties"];',
     '',
-    'export interface AnalyticsTracker<T extends TrackerEvents> {',
-    '  track: <E extends TrackerEvent<T>>(',
-    '    eventKey: E,',
-    '    eventProperties: EventProperties<T, E>',
-    '  ) => void;',
-    '  setProperties: <G extends TrackerGroup<T>>(',
-    `    groupName: ${groupNames},`,
-    '    properties: Partial<GroupProperties<T, G>>',
-    '  ) => void;',
-    '}',
+    analyticsTrackerInterface,
     '',
-    'export interface TrackerOptions<T extends TrackerEvents> {',
-    '  onEventTracked: <E extends TrackerEvent<T>>(',
-    `    eventName: ${Object.values(events.events).map(event => `"${event.name}"`).join(' | ')},`,
-    `    eventProperties: ${eventPropertyTypes},`,
-    '    groupProperties: Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>',
-    '  ) => void;',
-    '  onGroupUpdate: <G extends TrackerGroup<T>>(',
-    `    groupName: ${groupNames},`,
-    `    properties: Partial<${Object.entries(globals.groups || {})
-      .map(([_, group]) => {
-        const propertyTypes = group.properties?.map(prop => {
-          const type = Array.isArray(prop.type) ? prop.type : [prop.type];
-          const tsType = type.map(t => {
-            switch (t) {
-              case 'string': return 'string';
-              case 'number': return 'number';
-              case 'boolean': return 'boolean';
-              case 'string[]': return 'string[]';
-              case 'number[]': return 'number[]';
-              case 'boolean[]': return 'boolean[]';
-              default: return 'any';
-            }
-          }).join(' | ');
-          const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
-          return `  "${prop.name}": ${valueType} | (() => ${valueType});`;
-        }).join('\n') || '';
-        return `{${propertyTypes}\n}`;
-      })
-      .join(' | ')}>`,
-    '  ) => void;',
-    '  onError?: (error: Error) => void;',
-    '}'
+    trackerOptionsInterface,
   ].join('\n');
 
   return baseTypes;
