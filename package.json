@@ -8,6 +8,7 @@
     "start": "ts-node src/cli/index.ts",
     "init": "node dist/cli/index.js init",
     "dimensions": "node dist/cli/index.js dimensions",
+    "properties": "node dist/cli/index.js properties",
     "generate": "node dist/cli/index.js generate",
     "validate": "node dist/cli/index.js validate"
   },

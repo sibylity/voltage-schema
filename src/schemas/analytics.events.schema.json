@@ -34,7 +34,7 @@
                   "default": false
                 }
               },
-              "required": ["name", "description", "type"]
+              "required": ["name", "type"]
             }
           },
           "passthrough": {
@@ -42,7 +42,7 @@
             "default": false
           }
         },
-        "required": ["name", "description"]
+        "required": ["name"]
       }
     }
   },
