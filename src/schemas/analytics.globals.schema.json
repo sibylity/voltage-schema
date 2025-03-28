@@ -34,6 +34,9 @@
           "passthrough": {
             "type": "boolean",
             "default": false
+          },
+          "identifiedBy": {
+            "type": "string"
           }
         },
         "required": ["name", "description", "properties"]

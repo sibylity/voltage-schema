@@ -57,6 +57,16 @@ function validateGlobalDimensions(dimensions) {
     });
     return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
 }
+function validateGroupIdentifiedBy(group) {
+    const errors = [];
+    if (group.identifiedBy) {
+        const propertyExists = group.properties.some(prop => prop.name === group.identifiedBy);
+        if (!propertyExists) {
+            errors.push(`Group "${group.name}" has identifiedBy "${group.identifiedBy}" but this property does not exist in the group's properties`);
+        }
+    }
+    return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
+}
 function validateGlobals(globalsPath) {
     var _a;
     const context = { filePath: globalsPath };
@@ -87,6 +97,14 @@ function validateGlobals(globalsPath) {
     if (!dimensionsResult.isValid && dimensionsResult.errors) {
         errors.push(...dimensionsResult.errors);
     }
+    // Validate each group's identifiedBy field
+    globals.groups.forEach(group => {
+        console.log(`🔍 Validating group: ${group.name}`);
+        const identifiedByResult = validateGroupIdentifiedBy(group);
+        if (!identifiedByResult.isValid && identifiedByResult.errors) {
+            errors.push(...identifiedByResult.errors);
+        }
+    });
     if (errors.length > 0) {
         (0, logging_1.logValidationErrors)(errors);
         return { isValid: false, data: globals, errors };

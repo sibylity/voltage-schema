@@ -66,6 +66,19 @@ function validateGlobalDimensions(dimensions: Dimension[]): ValidationResult<voi
   return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
 }
 
+function validateGroupIdentifiedBy(group: { name: string; properties: Array<{ name: string }>; identifiedBy?: string }): ValidationResult<void> {
+  const errors: string[] = [];
+
+  if (group.identifiedBy) {
+    const propertyExists = group.properties.some(prop => prop.name === group.identifiedBy);
+    if (!propertyExists) {
+      errors.push(`Group "${group.name}" has identifiedBy "${group.identifiedBy}" but this property does not exist in the group's properties`);
+    }
+  }
+
+  return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
+}
+
 export function validateGlobals(globalsPath: string): ValidationResult<AnalyticsGlobals> {
   const context = { filePath: globalsPath };
   logValidationStart(context);
@@ -103,6 +116,15 @@ export function validateGlobals(globalsPath: string): ValidationResult<Analytics
   if (!dimensionsResult.isValid && dimensionsResult.errors) {
     errors.push(...dimensionsResult.errors);
   }
+
+  // Validate each group's identifiedBy field
+  globals.groups.forEach(group => {
+    console.log(`🔍 Validating group: ${group.name}`);
+    const identifiedByResult = validateGroupIdentifiedBy(group);
+    if (!identifiedByResult.isValid && identifiedByResult.errors) {
+      errors.push(...identifiedByResult.errors);
+    }
+  });
 
   if (errors.length > 0) {
     logValidationErrors(errors);
