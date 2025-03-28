@@ -13,47 +13,88 @@ const logging_1 = require("./logging");
 const validateGlobalsSchema = (0, schemaValidation_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.globals.schema.json"));
 // Default empty globals when file is not provided
 exports.defaultGlobals = {
-    dimensions: [],
-    properties: []
+    groups: [],
+    dimensions: []
 };
-function validateGlobalDimensions(dimensions) {
+function validateGlobalDimensions(dimensions, groups, events) {
     const errors = [];
+    // Create sets of all valid property names from groups and events
+    const groupPropertyNames = new Set();
+    groups.forEach(group => {
+        group.properties.forEach((prop) => {
+            groupPropertyNames.add(prop.name);
+        });
+    });
+    const eventPropertyNames = new Set();
+    Object.values(events).forEach(event => {
+        if (event.properties) {
+            event.properties.forEach((prop) => {
+                eventPropertyNames.add(prop.name);
+            });
+        }
+    });
     dimensions.forEach((dimension) => {
         if (!dimension.name) {
-            errors.push("A dimension is missing a name.");
+            errors.push("Dimension name is required");
             return;
         }
-        if (!dimension.identifiers || dimension.identifiers.length === 0) {
-            errors.push(`Dimension "${dimension.name}" has no identifiers.`);
+        if (!dimension.description) {
+            errors.push(`Dimension "${dimension.name}" description is required`);
+            return;
+        }
+        if (!dimension.identifiers || !Array.isArray(dimension.identifiers)) {
+            errors.push(`Dimension "${dimension.name}" identifiers must be an array`);
             return;
         }
         dimension.identifiers.forEach((identifier, index) => {
             if (!identifier.property) {
-                errors.push(`Identifier #${index + 1} in dimension "${dimension.name}" is missing a "property" field.`);
+                errors.push(`Dimension "${dimension.name}" identifier at index ${index} must have a property`);
+                return;
             }
-            // Ensure only one evaluation field is set
-            const evaluationFields = ["contains", "equals", "not", "in", "notIn", "startsWith", "endsWith", "lt", "lte", "gt", "gte"];
-            const activeFields = evaluationFields.filter((field) => field in identifier);
-            if (activeFields.length === 0) {
-                errors.push(`Identifier for property "${identifier.property}" in dimension "${dimension.name}" is missing an evaluation field.`);
+            // Check if the property exists in either groups or events
+            if (!groupPropertyNames.has(identifier.property) && !eventPropertyNames.has(identifier.property)) {
+                errors.push(`Dimension "${dimension.name}" identifier at index ${index} references property "${identifier.property}" which does not exist in any group or event`);
+                return;
             }
-            else if (activeFields.length > 1) {
-                errors.push(`Identifier for property "${identifier.property}" in dimension "${dimension.name}" has multiple evaluation fields (${activeFields.join(", ")}). Only one is allowed.`);
+            // Validate that only one identifier type is used
+            const identifierTypes = [
+                identifier.contains,
+                identifier.equals,
+                identifier.not,
+                identifier.in,
+                identifier.notIn,
+                identifier.startsWith,
+                identifier.endsWith,
+                identifier.lt,
+                identifier.lte,
+                identifier.gt,
+                identifier.gte
+            ].filter(Boolean);
+            if (identifierTypes.length > 1) {
+                errors.push(`Dimension "${dimension.name}" identifier at index ${index} can only have one type of identifier`);
             }
         });
     });
     return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
 }
-function validateGlobalProperties(properties) {
+function validateGroupIdentifiedBy(group) {
     const errors = [];
-    properties.forEach((prop) => {
-        if (!prop.name || !prop.type) {
-            errors.push(`Global property "${prop.name || "[Unnamed]"}" is missing required fields (name, type).`);
+    if (group.identifiedBy) {
+        const propertyExists = group.properties.some(prop => prop.name === group.identifiedBy);
+        if (!propertyExists) {
+            errors.push(`Group "${group.name}" has identifiedBy "${group.identifiedBy}" but this property does not exist in the group's properties`);
         }
-    });
+        else {
+            // Check if the identifiedBy property is marked as optional
+            const identifiedByProperty = group.properties.find(prop => prop.name === group.identifiedBy);
+            if (identifiedByProperty === null || identifiedByProperty === void 0 ? void 0 : identifiedByProperty.optional) {
+                errors.push(`Group "${group.name}" has identifiedBy "${group.identifiedBy}" but this property is marked as optional. The identifiedBy property is always required.`);
+            }
+        }
+    }
     return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
 }
-function validateGlobals(globalsPath) {
+function validateGlobals(globalsPath, eventsPath) {
     var _a;
     const context = { filePath: globalsPath };
     (0, logging_1.logValidationStart)(context);
@@ -71,23 +112,34 @@ function validateGlobals(globalsPath) {
         return { isValid: false, data: exports.defaultGlobals };
     }
     const globals = parseResult.data;
+    // Parse events file
+    let events = {};
+    if (fs_1.default.existsSync(eventsPath)) {
+        const eventsParseResult = (0, fileValidation_1.parseJsonFile)(eventsPath);
+        if (eventsParseResult.isValid && eventsParseResult.data) {
+            events = eventsParseResult.data;
+        }
+    }
     // Validate globals schema
     if (!validateGlobalsSchema(globals)) {
         const errors = ((_a = validateGlobalsSchema.errors) === null || _a === void 0 ? void 0 : _a.map((error) => `Globals schema validation failed: ${error.message || "Unknown error"} at ${error.instancePath}`)) || ["Unknown schema validation error"];
         (0, logging_1.logValidationErrors)(errors);
         return { isValid: false, data: globals, errors };
     }
-    console.log(`✅ Validating global properties for ${globalsPath}...`);
-    const propertiesResult = validateGlobalProperties(globals.properties);
     console.log(`✅ Validating global dimensions for ${globalsPath}...`);
-    const dimensionsResult = validateGlobalDimensions(globals.dimensions);
+    const dimensionsResult = validateGlobalDimensions(globals.dimensions, globals.groups, events);
     const errors = [];
-    if (!propertiesResult.isValid && propertiesResult.errors) {
-        errors.push(...propertiesResult.errors);
-    }
     if (!dimensionsResult.isValid && dimensionsResult.errors) {
         errors.push(...dimensionsResult.errors);
     }
+    // Validate each group's identifiedBy field
+    globals.groups.forEach(group => {
+        console.log(`🔍 Validating group: ${group.name}`);
+        const identifiedByResult = validateGroupIdentifiedBy(group);
+        if (!identifiedByResult.isValid && identifiedByResult.errors) {
+            errors.push(...identifiedByResult.errors);
+        }
+    });
     if (errors.length > 0) {
         (0, logging_1.logValidationErrors)(errors);
         return { isValid: false, data: globals, errors };

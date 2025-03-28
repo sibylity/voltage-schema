@@ -16,7 +16,9 @@ export function validateAnalyticsFiles(): boolean {
   }
 
   const globalsPath = path.resolve(process.cwd(), config.generates[0].globals || "");
-  const globalsResult = validateGlobals(globalsPath);
+  const eventsPath = path.resolve(process.cwd(), config.generates[0].events);
+
+  const globalsResult = validateGlobals(globalsPath, eventsPath);
   if (!globalsResult.isValid) {
     return false;
   }
@@ -24,7 +26,6 @@ export function validateAnalyticsFiles(): boolean {
   const validDimensions = new Set<string>(
     globalsResult.data?.dimensions.map((dim: { name: string }) => dim.name) || []
   );
-  const eventsPath = path.resolve(process.cwd(), config.generates[0].events);
   const eventsResult = validateEvents(eventsPath, validDimensions, globalsResult.data !== undefined);
   if (!eventsResult.isValid) {
     return false;

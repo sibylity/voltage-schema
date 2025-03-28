@@ -18,12 +18,12 @@ function validateAnalyticsFiles() {
         return false;
     }
     const globalsPath = path_1.default.resolve(process.cwd(), config.generates[0].globals || "");
-    const globalsResult = (0, validateAnalyticsGlobals_1.validateGlobals)(globalsPath);
+    const eventsPath = path_1.default.resolve(process.cwd(), config.generates[0].events);
+    const globalsResult = (0, validateAnalyticsGlobals_1.validateGlobals)(globalsPath, eventsPath);
     if (!globalsResult.isValid) {
         return false;
     }
     const validDimensions = new Set(((_a = globalsResult.data) === null || _a === void 0 ? void 0 : _a.dimensions.map((dim) => dim.name)) || []);
-    const eventsPath = path_1.default.resolve(process.cwd(), config.generates[0].events);
     const eventsResult = (0, validateAnalyticsEvents_1.validateEvents)(eventsPath, validDimensions, globalsResult.data !== undefined);
     if (!eventsResult.isValid) {
         return false;
