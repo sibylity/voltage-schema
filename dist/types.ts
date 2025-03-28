@@ -178,9 +178,7 @@ export interface AnalyticsTracker<T extends TrackerEvents> {
   ) => void;
   setProperties: <G extends TrackerGroup<T>>(
     groupName: G,
-    properties: T["groups"][G]["identifiedBy"] extends string
-      ? RequiredProperty<T, G> & Partial<OptionalProperties<T, G>>
-      : Partial<T["groups"][G]["properties"]>
+    properties: T["groups"][G]["properties"]
   ) => void;
   getProperties: () => Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;
 }
@@ -193,7 +191,7 @@ export interface TrackerOptions<T extends TrackerEvents> {
   ) => void;
   onGroupUpdate: (
     groupName: T["groups"][TrackerGroup<T>]["name"],
-    properties: Partial<T["groups"][TrackerGroup<T>]["properties"]>
+    properties: T["groups"][TrackerGroup<T>]["properties"]
   ) => void;
   onError?: (error: Error) => void;
 }

@@ -66,13 +66,19 @@ function validateGlobalDimensions(dimensions: Dimension[]): ValidationResult<voi
   return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
 }
 
-function validateGroupIdentifiedBy(group: { name: string; properties: Array<{ name: string }>; identifiedBy?: string }): ValidationResult<void> {
+function validateGroupIdentifiedBy(group: { name: string; properties: Array<{ name: string; optional?: boolean }>; identifiedBy?: string }): ValidationResult<void> {
   const errors: string[] = [];
 
   if (group.identifiedBy) {
     const propertyExists = group.properties.some(prop => prop.name === group.identifiedBy);
     if (!propertyExists) {
       errors.push(`Group "${group.name}" has identifiedBy "${group.identifiedBy}" but this property does not exist in the group's properties`);
+    } else {
+      // Check if the identifiedBy property is marked as optional
+      const identifiedByProperty = group.properties.find(prop => prop.name === group.identifiedBy);
+      if (identifiedByProperty?.optional) {
+        errors.push(`Group "${group.name}" has identifiedBy "${group.identifiedBy}" but this property is marked as optional. The identifiedBy property is always required.`);
+      }
     }
   }
 

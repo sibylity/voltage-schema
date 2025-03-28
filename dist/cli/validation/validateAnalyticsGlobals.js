@@ -64,6 +64,13 @@ function validateGroupIdentifiedBy(group) {
         if (!propertyExists) {
             errors.push(`Group "${group.name}" has identifiedBy "${group.identifiedBy}" but this property does not exist in the group's properties`);
         }
+        else {
+            // Check if the identifiedBy property is marked as optional
+            const identifiedByProperty = group.properties.find(prop => prop.name === group.identifiedBy);
+            if (identifiedByProperty === null || identifiedByProperty === void 0 ? void 0 : identifiedByProperty.optional) {
+                errors.push(`Group "${group.name}" has identifiedBy "${group.identifiedBy}" but this property is marked as optional. The identifiedBy property is always required.`);
+            }
+        }
     }
     return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
 }

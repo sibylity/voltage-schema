@@ -116,7 +116,7 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
           }
         }).join(' | ');
         const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
-        return `  "${prop.name}": ${valueType} | (() => ${valueType});`;
+        return `  "${prop.name}"${prop.optional ? '?' : ''}: ${valueType} | (() => ${valueType});`;
       }).join('\n') || '';
       return [
         `  "${key}": {`,
@@ -152,7 +152,7 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
           }
         }).join(' | ');
         const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
-        return `  "${prop.name}": ${valueType} | (() => ${valueType});`;
+        return `  "${prop.name}"${prop.optional ? '?' : ''}: ${valueType} | (() => ${valueType});`;
       }).join('\n') || '';
       return [
         `  "${group.name}": {`,
@@ -191,7 +191,7 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
           }
         }).join(' | ');
         const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
-        return `  "${prop.name}": ${valueType} | (() => ${valueType});`;
+        return `  "${prop.name}"${prop.optional ? '?' : ''}: ${valueType} | (() => ${valueType});`;
       }).join('\n') || '';
       return `{${propertyTypes}\n}`;
     })
@@ -206,50 +206,26 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
     '  ) => void;',
     '  setProperties: <G extends TrackerGroup<T>>(',
     '    groupName: G,',
-    '    properties: T["groups"][G] extends { identifiedBy: infer ID }',
-    '      ? ID extends keyof T["groups"][G]["properties"]',
-    '        ? { [K in ID]: T["groups"][G]["properties"][K] } & Partial<Omit<T["groups"][G]["properties"], ID>>',
-    '        : Partial<T["groups"][G]["properties"]>',
-    '      : Partial<T["groups"][G]["properties"]>',
+    '    properties: T["groups"][G]["properties"]',
     '  ) => void;',
     '  getProperties: () => Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;',
-    '}',
+    '}'
   ].join('\n');
 
   // Generate the TrackerOptions interface
   const trackerOptionsInterface = [
     'export interface TrackerOptions<T extends TrackerEvents> {',
     '  onEventTracked: <E extends TrackerEvent<T>>(',
-    `    eventName: ${Object.values(events.events).map(event => `"${event.name}"`).join(' | ')},`,
-    `    eventProperties: ${eventPropertyTypes},`,
+    '    eventName: T["events"][E]["name"],',
+    '    eventProperties: T["events"][E]["properties"],',
     '    groupProperties: Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>',
     '  ) => void;',
     '  onGroupUpdate: <G extends TrackerGroup<T>>(',
-    `    groupName: ${groupNames},`,
-    `    properties: Partial<${Object.entries(globals.groups || {})
-      .map(([_, group]) => {
-        const propertyTypes = group.properties?.map(prop => {
-          const type = Array.isArray(prop.type) ? prop.type : [prop.type];
-          const tsType = type.map(t => {
-            switch (t) {
-              case 'string': return 'string';
-              case 'number': return 'number';
-              case 'boolean': return 'boolean';
-              case 'string[]': return 'string[]';
-              case 'number[]': return 'number[]';
-              case 'boolean[]': return 'boolean[]';
-              default: return 'any';
-            }
-          }).join(' | ');
-          const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
-          return `  "${prop.name}": ${valueType} | (() => ${valueType});`;
-        }).join('\n') || '';
-        return `{${propertyTypes}\n}`;
-      })
-      .join(' | ')}>`,
+    '    groupName: T["groups"][G]["name"],',
+    '    properties: T["groups"][G]["properties"]',
     '  ) => void;',
     '  onError?: (error: Error) => void;',
-    '}',
+    '}'
   ].join('\n');
 
   // Define the base types
