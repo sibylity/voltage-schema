@@ -9,7 +9,7 @@ function processEvent(eventKey, event, includeGroups, includeDimensions, groups,
     const eventProperties = (event.properties || []).map(prop => (Object.assign(Object.assign({}, prop), { source: "event" })));
     let allProperties = [...eventProperties];
     if (includeGroups && groups) {
-        const groupProperties = groups.flatMap(group => (group.properties || []).map(prop => (Object.assign(Object.assign({}, prop), { source: "group" }))));
+        const groupProperties = groups.flatMap(group => (group.properties || []).map(prop => (Object.assign(Object.assign({}, prop), { source: "group", groupName: group.name }))));
         // Merge properties, keeping event properties if there's a name conflict
         const propertyMap = new Map();
         groupProperties.forEach(prop => {

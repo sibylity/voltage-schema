@@ -3,6 +3,7 @@ import { getAnalyticsConfig, readGenerationConfigFiles } from "./analyticsConfig
 
 export interface EventProperty extends AnalyticsSchemaProperty {
   source: "event" | "group";
+  groupName?: string;
 }
 
 export interface EventDimension {
@@ -63,7 +64,8 @@ function processEvent(
     const groupProperties = groups.flatMap(group => 
       (group.properties || []).map(prop => ({
         ...prop,
-        source: "group" as const
+        source: "group" as const,
+        groupName: group.name
       }))
     ) as EventProperty[];
 
