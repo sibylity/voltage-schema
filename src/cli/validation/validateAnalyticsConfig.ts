@@ -1,10 +1,11 @@
+import fs from "fs";
 import path from "path";
+import type { ErrorObject } from "ajv";
 import { type AnalyticsConfig } from "../../types";
 import { type ValidationResult, type ValidationContext } from "./types";
 import { createValidator } from "./schemaValidation";
 import { parseJsonFile } from "./fileValidation";
 import { logValidationStart, logValidationSuccess, logValidationErrors } from "./logging";
-import type { ErrorObject } from "ajv";
 
 const validateConfigSchema = createValidator(path.resolve(__dirname, "../../schemas/analytics.config.schema.json"));
 

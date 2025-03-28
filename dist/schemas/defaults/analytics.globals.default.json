@@ -25,7 +25,6 @@
     {
       "name": "EveryEvent",
       "description": "Properties to track with every event.",
-      "identifiedBy": "UserID",
       "properties": [
         {
           "name": "Url",

@@ -1,3 +1,4 @@
+import fs from "fs";
 import path from "path";
 import type { ErrorObject } from "ajv";
 import { type AnalyticsEvents, type Event } from "../../types";
