@@ -1,5 +1,5 @@
 {
-  "name": "sibyl",
+  "name": "voltage-schema",
   "version": "1.0.0",
   "description": "The analytics schema that evolves with your software.",
   "main": "./dist/cli/index.js",
@@ -17,7 +17,7 @@
     "./tracker": "./dist/tracker.js"
   },
   "bin": {
-    "sibyl-cli": "./dist/cli/index.js"
+    "voltage": "./dist/cli/index.js"
   },
   "keywords": [],
   "author": "Matthew Rheault",

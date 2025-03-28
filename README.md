@@ -1,18 +1,18 @@
-# Sibyl
+# Voltage Schema
 
-A type-safe analytics configuration and tracking library.
+A type-safe analytics schema and tracking library.
 
 ## Features
 
-- Type-safe analytics configuration
-- Schema validation for analytics configs
-- Automatic type generation for events and properties
-- Agnostic of destination so it can be used with any analytics vendor
+- Robust analytics schema configuration
+- Auto-doc of all analytics data
+- Type-safe tracking generated from schemas
+- Agnostic of destination (works with any analytics vendor)
 
 ## Installation
 
 ```bash
-npm install sibyl
+npm install voltage-schema
 ```
 
 ## Usage
@@ -25,8 +25,9 @@ Create an `analytics.config.json` file in your project root:
 {
   "generates": [
     {
-      "globals": "analytics.globals.json",
-      "events": "analytics.events.json"
+      "globals": "./analytics.globals.json",
+      "events": "./analytics.events.json",
+      "output": "/__analytics_generated__/analytics.ts"
     }
   ]
 }
@@ -70,16 +71,19 @@ Create `analytics.events.json` to define your events:
 ### 3. Using the Tracker
 
 ```typescript
-import { AnalyticsTracker, TrackerEvents, trackingConfig } from './__analytics_generated__/analytics';
-import { createAnalyticsTracker } from 'sibyl';
+import { AnalyticsTracker, TrackerEvents, TrackerOptions, trackingConfig } from './__analytics_generated__/analytics';
+import { createAnalyticsTracker } from 'voltage-schema';
 
 // Create a tracker instance
 const tracker: AnalyticsTracker<TrackerEvents> = createAnalyticsTracker<TrackerEvents>(trackingConfig, {
   // Required callback to send events
-  send: async (eventData) => {
+  onEventTracked: (eventName, eventProperties, groupProperties) => {
     // Send the event to your analytics service
-  }
-});
+  },
+  onGroupUpdate: (groupName, properties) => {
+    // Send the group traits to your analytics service
+  },
+} as TrackerOptions<GeneratedTrackerEvents>);
 
 // Track a page view event
 tracker.track('page_view', {
@@ -97,14 +101,23 @@ tracker.track('button_click', {
 ### 4. CLI Commands
 
 ```bash
-# Validate your analytics configuration
-npx sibyl validate
+# Initialize a new analytics schema
+npm voltage init
 
-# Generate TypeScript types for your events
-npx sibyl generate
+# Validate your analytics configuration
+npm voltage validate
+
+# Generate TypeScript types for your events and properties
+npm voltage generate
 
 # List all dimensions and their events
-npx sibyl dimensions
+npm voltage dimensions
+
+# List all properties and their events
+npm voltage properties
+
+# List all events and their properties
+npm voltage events
 ```
 
 ## License
