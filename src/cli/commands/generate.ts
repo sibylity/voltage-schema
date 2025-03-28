@@ -277,6 +277,8 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
     '  setProperties(properties: Partial<{',
     '    [K in keyof GlobalProperties<T>]: GlobalProperties<T>[K] | (() => GlobalProperties<T>[K]);',
     '  }>): void;',
+    '  getProperties(): GlobalProperties<T>;',
+    '  getGroups(): Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;',
     '}',
     '',
     'export interface TrackerOptions<T extends TrackerEvents> {',

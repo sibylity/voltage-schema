@@ -64,6 +64,12 @@ function createAnalyticsTracker(context, options) {
             catch (error) {
                 onError(error instanceof Error ? error : new Error(String(error)));
             }
+        },
+        getProperties: () => {
+            return globalProperties;
+        },
+        getGroups: () => {
+            return groupProperties;
         }
     };
 }

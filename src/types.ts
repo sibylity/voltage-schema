@@ -213,6 +213,8 @@ export interface AnalyticsTracker<T extends TrackerEvents> {
     properties: GroupProperties<T, G>
   ): void;
   setProperties(properties: Partial<{
-    [K in keyof GlobalProperties<T>]: GlobalProperties<T>[K];
+    [K in keyof GlobalProperties<T>]: GlobalProperties<T>[K] | (() => GlobalProperties<T>[K]);
   }>): void;
+  getProperties(): GlobalProperties<T>;
+  getGroups(): Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;
 }

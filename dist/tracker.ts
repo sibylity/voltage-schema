@@ -117,6 +117,14 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
       } catch (error) {
         onError(error instanceof Error ? error : new Error(String(error)));
       }
+    },
+
+    getProperties: () => {
+      return globalProperties as GlobalProperties<T>;
+    },
+
+    getGroups: () => {
+      return groupProperties;
     }
   };
 }
