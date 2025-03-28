@@ -58,20 +58,9 @@ ${Object.keys(trackingConfig.events)
   },
   groups: {
 ${Object.entries(trackingConfig.groups || {})
-        .map(([key, group]) => `    "${key}": {
+        .map(([_, group]) => `    "${group.name}": {
       name: "${group.name}",
       properties: ${JSON.stringify(group.properties)}
-    }`)
-        .join(',\n')}
-  },
-  properties: {
-${Object.entries(trackingConfig.properties || {})
-        .map(([key, prop]) => `    "${key}": () => {
-      return {
-        name: "${prop.name}",
-        type: ${JSON.stringify(prop.type)},
-        optional: ${!!prop.optional}
-      };
     }`)
         .join(',\n')}
   }
@@ -154,25 +143,29 @@ function generateTypeDefinitions(events, globals) {
             .map(key => `"${key}"`)
             .join(' | ')
         : 'never';
-    // Generate global properties type
-    const globalPropertiesType = (globals.properties || [])
-        .map(prop => {
-        const type = Array.isArray(prop.type) ? prop.type : [prop.type];
-        const tsType = type.map(t => {
-            switch (t) {
-                case 'string': return 'string';
-                case 'number': return 'number';
-                case 'boolean': return 'boolean';
-                case 'string[]': return 'string[]';
-                case 'number[]': return 'number[]';
-                case 'boolean[]': return 'boolean[]';
-                default: return 'any';
-            }
-        }).join(' | ');
-        const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
-        return `  "${prop.name}": ${valueType};`;
+    // Generate union of event property types
+    const eventPropertyTypes = Object.values(events.events)
+        .map(event => {
+        var _a;
+        const propertyTypes = ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.map(prop => {
+            const type = Array.isArray(prop.type) ? prop.type : [prop.type];
+            const tsType = type.map(t => {
+                switch (t) {
+                    case 'string': return 'string';
+                    case 'number': return 'number';
+                    case 'boolean': return 'boolean';
+                    case 'string[]': return 'string[]';
+                    case 'number[]': return 'number[]';
+                    case 'boolean[]': return 'boolean[]';
+                    default: return 'any';
+                }
+            }).join(' | ');
+            const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
+            return `  "${prop.name}": ${valueType} | (() => ${valueType});`;
+        }).join('\n')) || '';
+        return `{${propertyTypes}\n}`;
     })
-        .join('\n');
+        .join(' | ');
     // Define the base types
     const baseTypes = [
         '// 🔹 Generated Types',
@@ -194,13 +187,6 @@ function generateTypeDefinitions(events, globals) {
         groupEntries,
         '  };',
         '  globals: {',
-        '    properties: {',
-        '      [K: string]: {',
-        '        name: string;',
-        '        type: string | string[] | "boolean" | "number" | "string" | "string[]" | "number[]" | "boolean[]";',
-        '        optional?: boolean;',
-        '      };',
-        '    };',
         '    dimensions: {',
         '      [K: string]: {',
         '        name: string;',
@@ -231,34 +217,27 @@ function generateTypeDefinitions(events, globals) {
         'export type EventProperties<T extends TrackerEvents, E extends TrackerEvent<T>> = T["events"][E]["properties"];',
         'export type GroupProperties<T extends TrackerEvents, G extends TrackerGroup<T>> = T["groups"][G]["properties"];',
         '',
-        `export type GlobalProperties<T extends TrackerEvents> = ${globalPropertiesType ? `{${globalPropertiesType ? `\n${globalPropertiesType}` : ''}\n}` : 'never'};`,
-        '',
         'export interface AnalyticsTracker<T extends TrackerEvents> {',
         '  track<E extends TrackerEvent<T>>(',
         '    event: E,',
         '    properties: EventProperties<T, E>',
         '  ): void;',
-        '  group<G extends TrackerGroup<T>>(',
+        '  updateGroup<G extends TrackerGroup<T>>(',
         '    groupName: G,',
-        '    groupIdentifier: string | number,',
-        '    properties: GroupProperties<T, G>',
+        '    properties: Partial<GroupProperties<T, G>>',
         '  ): void;',
-        '  setProperties(properties: Partial<GlobalProperties<T>>): void;',
-        '  getProperties(): Partial<GlobalProperties<T>>;',
         '  getGroups(): Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;',
         '}',
         '',
         'export interface TrackerOptions<T extends TrackerEvents> {',
-        '  trackEvent: (',
-        '    eventName: T["events"][TrackerEvent<T>]["name"],',
-        '    eventProperties: EventProperties<T, TrackerEvent<T>>,',
-        '    globalProperties: GlobalProperties<T>,',
-        '    groupProperties: Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>',
+        '  trackEvent: <E extends TrackerEvent<T>>(',
+        `    eventName: ${eventNames},`,
+        `    eventProperties: ${eventPropertyTypes},`,
+        '    groupProperties: Record<TrackerGroup<T>, T["groups"][TrackerGroup<T>]["properties"]>',
         '  ) => Promise<void>;',
-        '  groupIdentify: (',
-        '    groupName: T["groups"][TrackerGroup<T>]["name"],',
-        '    groupIdentifier: string | number,',
-        '    properties: GroupProperties<T, TrackerGroup<T>>',
+        '  updateGroup: <G extends TrackerGroup<T>>(',
+        `    groupName: ${groupNames},`,
+        '    properties: Partial<Record<TrackerGroup<T>, T["groups"][TrackerGroup<T>]["properties"]>[G]>',
         '  ) => Promise<void>;',
         '  onError?: (error: Error) => void;',
         '}'
@@ -333,7 +312,7 @@ function generateJavaScriptOutput(trackingConfig, events, includeComments, outpu
 // 🔹 Event Configurations
 ${generateEventConfigs(trackingConfig, events, includeComments)}
 
-${generateTrackingConfig(trackingConfig, { groups: [], properties: [], dimensions: [] })}
+${generateTrackingConfig(trackingConfig, { groups: [], dimensions: [] })}
 `;
     fs_1.default.writeFileSync(outputPath, jsOutput);
     console.log(`✅ Generated tracking config in ${outputPath}`);
@@ -404,15 +383,7 @@ function registerGenerateCommand(program) {
                             }))) || []
                         }
                     ];
-                })),
-                properties: Object.fromEntries((globals.properties || []).map((prop) => [
-                    prop.name,
-                    {
-                        name: prop.name,
-                        type: prop.type,
-                        optional: prop.optional
-                    }
-                ]))
+                }))
             };
             // Generate output based on file extension
             if (outputExt === ".ts" || outputExt === ".tsx") {

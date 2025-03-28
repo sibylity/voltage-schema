@@ -29,7 +29,6 @@ export interface AnalyticsSchemaDimension {
 
 export interface AnalyticsSchemaGlobals {
   dimensions: AnalyticsSchemaDimension[];
-  properties: AnalyticsSchemaProperty[];
 }
 
 export interface AnalyticsSchemaEvent {
@@ -63,7 +62,6 @@ export interface GenerationConfig {
 // Analytics Globals Types
 export interface AnalyticsGlobals {
   groups: Group[];
-  properties: Property[];
   dimensions: Dimension[];
 }
 
@@ -117,16 +115,14 @@ export interface Event {
 }
 
 export interface TrackerOptions<T extends TrackerEvents> {
-  trackEvent: (
-    eventName: TrackerEvent<T>,
-    eventProperties: EventProperties<T, TrackerEvent<T>>,
-    globalProperties: GlobalProperties<T>,
-    groupProperties: Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>
+  trackEvent: <E extends TrackerEvent<T>>(
+    eventName: T["events"][E]["name"],
+    eventProperties: T["events"][E]["properties"],
+    groupProperties: Record<TrackerGroup<T>, T["groups"][TrackerGroup<T>]["properties"]>
   ) => Promise<void>;
-  groupIdentify: (
-    groupName: TrackerGroup<T>,
-    groupIdentifier: string | number,
-    properties: GroupProperties<T, TrackerGroup<T>>
+  updateGroup: <G extends TrackerGroup<T>>(
+    groupName: T["groups"][G]["name"],
+    properties: Partial<T["groups"][G]["properties"]>
   ) => Promise<void>;
   onError?: (error: Error) => void;
 }
@@ -148,13 +144,6 @@ export interface TrackerEvents {
     };
   };
   globals: {
-    properties: {
-      [K: string]: {
-        name: string;
-        type: string | string[] | 'boolean' | 'number' | 'string' | 'string[]' | 'number[]' | 'boolean[]';
-        optional?: boolean;
-      };
-    };
     dimensions: {
       [K: string]: {
         name: string;
@@ -192,29 +181,14 @@ export type GroupProperties<
   G extends TrackerGroup<T>
 > = T['groups'][G]['properties'];
 
-export type GlobalProperties<T extends TrackerEvents> = {
-  [K in keyof T['globals']['properties']]: T['globals']['properties'][K]['type'] extends 'boolean' ? boolean :
-    T['globals']['properties'][K]['type'] extends 'number' ? number :
-    T['globals']['properties'][K]['type'] extends 'string' ? string :
-    T['globals']['properties'][K]['type'] extends 'string[]' ? string[] :
-    T['globals']['properties'][K]['type'] extends 'number[]' ? number[] :
-    T['globals']['properties'][K]['type'] extends 'boolean[]' ? boolean[] :
-    any;
-};
-
 export interface AnalyticsTracker<T extends TrackerEvents> {
   track<E extends TrackerEvent<T>>(
     event: E,
     properties: EventProperties<T, E>
   ): void;
-  group<G extends TrackerGroup<T>>(
+  updateGroup<G extends TrackerGroup<T>>(
     groupName: G,
-    groupIdentifier: string | number,
-    properties: GroupProperties<T, G>
+    properties: Partial<GroupProperties<T, G>>
   ): void;
-  setProperties(properties: Partial<{
-    [K in keyof GlobalProperties<T>]: GlobalProperties<T>[K] | (() => GlobalProperties<T>[K]);
-  }>): void;
-  getProperties(): GlobalProperties<T>;
   getGroups(): Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;
 }

@@ -50,7 +50,6 @@ function readGenerationConfigFiles(genConfig) {
         console.log(`ℹ️ No globals file found at ${globalsPath}, using default empty values.`);
         globals = {
             groups: [],
-            properties: [],
             dimensions: []
         };
     }

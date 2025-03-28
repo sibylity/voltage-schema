@@ -2,8 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createAnalyticsTracker = createAnalyticsTracker;
 function createAnalyticsTracker(context, options) {
-    const { trackEvent, groupIdentify, onError = console.error } = options;
-    let globalProperties = {};
+    const { trackEvent, updateGroup, onError = console.error } = options;
     let groupProperties = {};
     return {
         track: (eventKey, eventProperties) => {
@@ -16,7 +15,7 @@ function createAnalyticsTracker(context, options) {
                 validateEventProperties(event, eventProperties);
                 // Send the event
                 try {
-                    trackEvent(event.name, eventProperties, globalProperties, groupProperties);
+                    trackEvent(event.name, eventProperties, groupProperties);
                 }
                 catch (error) {
                     onError(new Error(`Failed to send event: ${error instanceof Error ? error.message : String(error)}`));
@@ -26,7 +25,7 @@ function createAnalyticsTracker(context, options) {
                 onError(error instanceof Error ? error : new Error(String(error)));
             }
         },
-        group: (groupName, groupIdentifier, properties) => {
+        updateGroup: (groupName, properties) => {
             try {
                 const group = context.groups[groupName];
                 if (!group) {
@@ -35,38 +34,18 @@ function createAnalyticsTracker(context, options) {
                 // Validate properties
                 validateGroupProperties(group, properties);
                 // Update group properties
-                groupProperties[groupName] = properties;
+                groupProperties[groupName] = Object.assign(Object.assign({}, groupProperties[groupName]), properties);
                 // Send the group data
                 try {
-                    groupIdentify(group.name, groupIdentifier, properties);
+                    updateGroup(group.name, properties);
                 }
                 catch (error) {
-                    onError(new Error(`Failed to group: ${error instanceof Error ? error.message : String(error)}`));
+                    onError(new Error(`Failed to update group: ${error instanceof Error ? error.message : String(error)}`));
                 }
             }
             catch (error) {
                 onError(error instanceof Error ? error : new Error(String(error)));
             }
-        },
-        setProperties: (properties) => {
-            try {
-                // Update the global properties
-                globalProperties = Object.entries(properties).reduce((acc, [key, getter]) => {
-                    try {
-                        acc[key] = typeof getter === 'function' ? getter() : getter;
-                    }
-                    catch (error) {
-                        onError(new Error(`Failed to get property "${key}": ${error instanceof Error ? error.message : String(error)}`));
-                    }
-                    return acc;
-                }, {});
-            }
-            catch (error) {
-                onError(error instanceof Error ? error : new Error(String(error)));
-            }
-        },
-        getProperties: () => {
-            return globalProperties;
         },
         getGroups: () => {
             return groupProperties;

@@ -12,7 +12,6 @@ const validateGlobalsSchema = createValidator(path.resolve(__dirname, "../../sch
 // Default empty globals when file is not provided
 export const defaultGlobals: AnalyticsGlobals = {
   groups: [],
-  properties: [],
   dimensions: []
 };
 
@@ -67,42 +66,6 @@ function validateGlobalDimensions(dimensions: Dimension[]): ValidationResult<voi
   return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
 }
 
-function validateGlobalProperties(properties: AnalyticsGlobals["properties"]): ValidationResult<void> {
-  const errors: string[] = [];
-
-  properties.forEach((prop) => {
-    if (!prop.name) {
-      errors.push("Property name is required");
-      return;
-    }
-
-    if (!prop.description) {
-      errors.push(`Property "${prop.name}" description is required`);
-      return;
-    }
-
-    if (!prop.type) {
-      errors.push(`Property "${prop.name}" type is required`);
-      return;
-    }
-
-    // Validate property type
-    const validTypes = ["string", "number", "boolean", "string[]", "number[]", "boolean[]"];
-    const type = Array.isArray(prop.type) ? prop.type : [prop.type];
-    const invalidTypes = type.filter((t) => !validTypes.includes(t));
-
-    if (invalidTypes.length > 0) {
-      errors.push(
-        `Property "${prop.name}" has invalid type(s): ${invalidTypes.join(", ")}. Valid types are: ${validTypes.join(
-          ", "
-        )}`
-      );
-    }
-  });
-
-  return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
-}
-
 export function validateGlobals(globalsPath: string): ValidationResult<AnalyticsGlobals> {
   const context = { filePath: globalsPath };
   logValidationStart(context);
@@ -133,16 +96,10 @@ export function validateGlobals(globalsPath: string): ValidationResult<Analytics
     return { isValid: false, data: globals, errors };
   }
 
-  console.log(`✅ Validating global properties for ${globalsPath}...`);
-  const propertiesResult = validateGlobalProperties(globals.properties);
-
   console.log(`✅ Validating global dimensions for ${globalsPath}...`);
   const dimensionsResult = validateGlobalDimensions(globals.dimensions);
 
   const errors: string[] = [];
-  if (!propertiesResult.isValid && propertiesResult.errors) {
-    errors.push(...propertiesResult.errors);
-  }
   if (!dimensionsResult.isValid && dimensionsResult.errors) {
     errors.push(...dimensionsResult.errors);
   }

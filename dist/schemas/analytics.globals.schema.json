@@ -98,28 +98,6 @@
         },
         "required": ["name", "description", "identifiers"]
       }
-    },
-    "properties": {
-      "type": "array",
-      "default": [],
-      "items": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string" },
-          "description": { "type": "string" },
-          "type": {
-            "oneOf": [
-              { "enum": ["string", "number", "boolean", "string[]", "number[]", "boolean[]"] },
-              { "type": "array", "items": { "type": ["string", "number", "boolean"] } }
-            ]
-          },
-          "optional": {
-            "type": "boolean",
-            "default": false
-          }
-        },
-        "required": ["name", "description", "type"]
-      }
     }
   },
   "required": []

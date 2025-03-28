@@ -52,7 +52,6 @@ export function readGenerationConfigFiles(genConfig: AnalyticsConfig["generates"
     console.log(`ℹ️ No globals file found at ${globalsPath}, using default empty values.`);
     globals = {
       groups: [],
-      properties: [],
       dimensions: []
     };
   }

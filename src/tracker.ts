@@ -5,8 +5,7 @@ import type {
   EventProperties,
   TrackerOptions,
   TrackerGroup,
-  GroupProperties,
-  GlobalProperties
+  GroupProperties
 } from './types';
 
 export interface RuntimeEvent {
@@ -32,7 +31,6 @@ export interface RuntimeGroup {
 export interface TrackerContext<T extends TrackerEvents> {
   events: Record<string, RuntimeEvent>;
   groups: Record<string, RuntimeGroup>;
-  properties: Record<string, () => any>;
 }
 
 export function createAnalyticsTracker<T extends TrackerEvents>(
@@ -41,11 +39,10 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
 ): AnalyticsTracker<T> {
   const {
     trackEvent,
-    groupIdentify,
+    updateGroup,
     onError = console.error
   } = options;
 
-  let globalProperties: Partial<GlobalProperties<T>> = {};
   let groupProperties: Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>> = {} as Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;
 
   return {
@@ -64,7 +61,7 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
 
         // Send the event
         try {
-          trackEvent(event.name, eventProperties, globalProperties as GlobalProperties<T>, groupProperties);
+          trackEvent(event.name, eventProperties, groupProperties);
         } catch (error) {
           onError(new Error(`Failed to send event: ${error instanceof Error ? error.message : String(error)}`));
         }
@@ -73,10 +70,9 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
       }
     },
 
-    group: <G extends TrackerGroup<T>>(
+    updateGroup: <G extends TrackerGroup<T>>(
       groupName: G,
-      groupIdentifier: string | number,
-      properties: GroupProperties<T, G>
+      properties: Partial<GroupProperties<T, G>>
     ) => {
       try {
         const group = context.groups[groupName];
@@ -88,39 +84,20 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
         validateGroupProperties(group, properties);
 
         // Update group properties
-        groupProperties[groupName] = properties;
+        groupProperties[groupName] = {
+          ...groupProperties[groupName],
+          ...properties
+        } as GroupProperties<T, G>;
 
         // Send the group data
         try {
-          groupIdentify(group.name, groupIdentifier, properties as Record<string, any>);
+          updateGroup(group.name, properties as Record<string, any>);
         } catch (error) {
-          onError(new Error(`Failed to group: ${error instanceof Error ? error.message : String(error)}`));
+          onError(new Error(`Failed to update group: ${error instanceof Error ? error.message : String(error)}`));
         }
       } catch (error) {
         onError(error instanceof Error ? error : new Error(String(error)));
       }
-    },
-
-    setProperties: (properties: Partial<{
-      [K in keyof GlobalProperties<T>]: GlobalProperties<T>[K] | (() => GlobalProperties<T>[K]);
-    }>) => {
-      try {
-        // Update the global properties
-        globalProperties = Object.entries(properties).reduce((acc, [key, getter]) => {
-          try {
-            acc[key as keyof GlobalProperties<T>] = typeof getter === 'function' ? getter() : getter;
-          } catch (error) {
-            onError(new Error(`Failed to get property "${key}": ${error instanceof Error ? error.message : String(error)}`));
-          }
-          return acc;
-        }, {} as Partial<GlobalProperties<T>>);
-      } catch (error) {
-        onError(error instanceof Error ? error : new Error(String(error)));
-      }
-    },
-
-    getProperties: () => {
-      return globalProperties as GlobalProperties<T>;
     },
 
     getGroups: () => {
