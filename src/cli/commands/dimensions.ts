@@ -1,10 +1,17 @@
 import { Command } from "commander";
-import { type AnalyticsConfig, type AnalyticsEvents, type AnalyticsGlobals } from "../../types";
+import { type AnalyticsConfig, type AnalyticsEvents, type AnalyticsGlobals, type Dimension } from "../../types";
 import { validateAnalyticsFiles } from "../validation";
 import { getAnalyticsConfig, readGenerationConfigFiles } from "../utils/analyticsConfigHelper";
 
 interface DimensionEventMap {
-  [dimension: string]: string[];
+  [dimension: string]: {
+    events: string[];
+    eventDetails: Array<{
+      key: string;
+      name: string;
+      description: string;
+    }>;
+  };
 }
 
 interface DimensionEventCounts {
@@ -15,7 +22,27 @@ interface DimensionEventCounts {
 
 interface DimensionOutput {
   dimension: string;
+  description: string;
+  identifiers: Array<{
+    property: string;
+    contains?: (string | number | boolean)[];
+    equals?: string | number | boolean;
+    not?: string | number | boolean;
+    in?: (string | number | boolean)[];
+    notIn?: (string | number | boolean)[];
+    startsWith?: string;
+    endsWith?: string;
+    lt?: number;
+    lte?: number;
+    gt?: number;
+    gte?: number;
+  }>;
   events: string[];
+  eventDetails?: Array<{
+    key: string;
+    name: string;
+    description: string;
+  }>;
 }
 
 function initializeDimensionMaps(globals: AnalyticsGlobals): {
@@ -26,7 +53,10 @@ function initializeDimensionMaps(globals: AnalyticsGlobals): {
   const dimensionEventCounts: DimensionEventCounts = {};
 
   globals.dimensions.forEach((dim) => {
-    dimensionMap[dim.name] = [];
+    dimensionMap[dim.name] = {
+      events: [],
+      eventDetails: []
+    };
     dimensionEventCounts[dim.name] = {};
   });
 
@@ -53,22 +83,47 @@ function processEvent(
     
     // Add event to dimension map with count if needed
     const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
-    dimensionMap[dim].push(displayName);
+    dimensionMap[dim].events.push(displayName);
+    dimensionMap[dim].eventDetails.push({
+      key: eventKey,
+      name: event.name,
+      description: event.description
+    });
   });
 }
 
-function formatDimensionOutput(dimensionMap: DimensionEventMap): DimensionOutput[] {
-  return Object.entries(dimensionMap).map(([dimension, events]) => ({
-    dimension,
-    events,
-  }));
+function formatDimensionOutput(
+  dimensionMap: DimensionEventMap,
+  globals: AnalyticsGlobals,
+  includeEventDetails: boolean
+): DimensionOutput[] {
+  return Object.entries(dimensionMap).map(([dimension, data]) => {
+    const dimensionConfig = globals.dimensions.find(d => d.name === dimension);
+    if (!dimensionConfig) {
+      throw new Error(`Dimension "${dimension}" not found in globals`);
+    }
+
+    const output: DimensionOutput = {
+      dimension,
+      description: dimensionConfig.description,
+      identifiers: dimensionConfig.identifiers,
+      events: data.events
+    };
+
+    if (includeEventDetails) {
+      output.eventDetails = data.eventDetails;
+    }
+
+    return output;
+  });
 }
 
 export function registerDimensionsCommand(program: Command) {
   program
     .command("dimensions")
     .description("List all events grouped by dimension")
-    .action(() => {
+    .option("--include-event-details", "Include event names and descriptions in the output")
+    .action((options) => {
       try {
         console.log("🔍 Running validation before listing dimensions...");
         if (!validateAnalyticsFiles()) {
@@ -79,14 +134,20 @@ export function registerDimensionsCommand(program: Command) {
         let dimensionMap: DimensionEventMap = {};
         let dimensionEventCounts: DimensionEventCounts = {};
         let isFirstConfig = true;
+        let globals: AnalyticsGlobals | undefined;
 
         // Process all generation configs
         for (const genConfig of config.generates) {
-          const { globals, events } = readGenerationConfigFiles(genConfig);
+          const { globals: currentGlobals, events } = readGenerationConfigFiles(genConfig);
+
+          // Store globals from first config
+          if (isFirstConfig) {
+            globals = currentGlobals;
+          }
 
           // Initialize maps only from the first config that has dimensions
           if (isFirstConfig || Object.keys(dimensionMap).length === 0) {
-            ({ dimensionMap, dimensionEventCounts } = initializeDimensionMaps(globals));
+            ({ dimensionMap, dimensionEventCounts } = initializeDimensionMaps(currentGlobals));
             isFirstConfig = false;
           }
 
@@ -96,11 +157,15 @@ export function registerDimensionsCommand(program: Command) {
           });
         }
 
+        if (!globals) {
+          throw new Error("No globals configuration found");
+        }
+
         // Format and output results
-        const dimensionList = formatDimensionOutput(dimensionMap);
+        const dimensionList = formatDimensionOutput(dimensionMap, globals, options.includeEventDetails);
         console.log(JSON.stringify(dimensionList, null, 2));
       } catch (error) {
-        console.error("❌ Error processing dimensions:", error);
+        console.error("❌ Error listing dimensions:", error instanceof Error ? error.message : String(error));
         process.exit(1);
       }
     });
