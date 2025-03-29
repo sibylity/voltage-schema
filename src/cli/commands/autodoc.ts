@@ -5,6 +5,7 @@ import { validateAnalyticsFiles } from "../validation";
 import { getAllEvents } from "../utils/analyticsEventUtils";
 import { getAllProperties } from "../utils/analyticsPropertyUtils";
 import { getAllDimensions } from "../utils/analyticsDimensionUtils";
+import { getAnalyticsConfig } from "../utils/analyticsConfigHelper";
 
 interface Property {
   name: string;
@@ -69,9 +70,51 @@ export function registerAutodocCommand(program: Command) {
 
         // Serve static assets
         app.get("/", (req: Request, res: Response) => {
-          const events = getAllEvents({ verbose: true }) as AnalyticsEvent[];
+          const analyticsEvents = getAllEvents({ verbose: true }) as AnalyticsEvent[];
           const properties = getAllProperties({ verbose: true });
           const dimensions = getAllDimensions({ verbose: true });
+          const config = getAnalyticsConfig();
+
+          // Generate schema config sections from analytics.config.json
+          const schemaConfigSections = config.generates.map((genConfig, index) => `
+            <div class="schema-config" id="config-${index}">
+              <div class="schema-config-header" onclick="toggleConfig(${index})">
+                <div class="schema-config-title">Schema Config ${index + 1}</div>
+                <div class="schema-config-toggle">
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="schema-config-content">
+                <div class="schema-group">
+                  <div class="schema-group-title">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                      <path d="M3 3h10v2H3zM3 7h7v2H3zM3 11h4v2H3z" fill="currentColor"/>
+                    </svg>
+                    Input Schema
+                  </div>
+                  <div class="file-path" data-tooltip="${genConfig.events}">
+                    <input type="text" value="${genConfig.events}" readonly>
+                  </div>
+                  <div class="file-path" data-tooltip="${genConfig.globals}">
+                    <input type="text" value="${genConfig.globals}" readonly>
+                  </div>
+                </div>
+                <div class="schema-group">
+                  <div class="schema-group-title">
+                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+                      <path d="M8 2v12m4-4l-4 4m-4-4l4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    Generated Output
+                  </div>
+                  <div class="file-path" data-tooltip="${genConfig.output}">
+                    <input type="text" value="${genConfig.output}" readonly>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `).join('');
 
           const htmlTemplate = `
             <!DOCTYPE html>
@@ -104,6 +147,203 @@ export function registerAutodocCommand(program: Command) {
                     padding: 0;
                     margin: 0;
                     background: var(--bg-secondary);
+                    display: flex;
+                  }
+
+                  .sidebar {
+                    width: 280px;
+                    background: #1a1a1a;
+                    color: #ffffff;
+                    border-right: 1px solid rgba(255, 255, 255, 0.1);
+                    height: 100vh;
+                    position: fixed;
+                    left: 0;
+                    top: 0;
+                    padding: 1.5rem;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 2rem;
+                  }
+
+                  .main-content {
+                    flex: 1;
+                    margin-left: 280px;
+                    padding: 0;
+                    min-height: 100vh;
+                  }
+
+                  .logo {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    font-size: 1.25rem;
+                    font-weight: 600;
+                    color: #ffffff;
+                  }
+
+                  .logo svg {
+                    width: 1.5rem;
+                    height: 1.5rem;
+                    color: var(--primary-color);
+                  }
+
+                  .external-link {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    padding: 0.75rem 1rem;
+                    border-radius: 0.5rem;
+                    color: rgba(255, 255, 255, 0.9);
+                    font-size: 0.875rem;
+                    font-weight: 500;
+                    text-decoration: none;
+                    background: rgba(255, 255, 255, 0.1);
+                    transition: all 0.15s ease;
+                  }
+
+                  .external-link:hover {
+                    background: rgba(255, 255, 255, 0.15);
+                    color: #ffffff;
+                  }
+
+                  .info-callout {
+                    padding: 1rem;
+                    background: rgba(255, 255, 255, 0.1);
+                    border-radius: 0.5rem;
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    max-height: calc(100vh - 280px);
+                    overflow-y: auto;
+                  }
+
+                  .info-callout-title {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    font-weight: 600;
+                    font-size: 0.875rem;
+                    margin-bottom: 0.75rem;
+                    color: #ffffff;
+                  }
+
+                  .info-callout-content {
+                    font-size: 0.8125rem;
+                    color: rgba(255, 255, 255, 0.8);
+                    line-height: 1.5;
+                  }
+
+                  .schema-config {
+                    margin-bottom: 1rem;
+                    background: rgba(0, 0, 0, 0.2);
+                    border-radius: 0.5rem;
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                    overflow: hidden;
+                  }
+
+                  .schema-config:last-child {
+                    margin-bottom: 0;
+                  }
+
+                  .schema-config-header {
+                    padding: 0.75rem 1rem;
+                    display: flex;
+                    align-items: center;
+                    gap: 0.75rem;
+                    cursor: pointer;
+                    user-select: none;
+                    transition: all 0.15s ease;
+                  }
+
+                  .schema-config-header:hover {
+                    background: rgba(255, 255, 255, 0.05);
+                  }
+
+                  .schema-config-title {
+                    font-size: 0.75rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.05em;
+                    color: rgba(255, 255, 255, 0.7);
+                    font-weight: 600;
+                    flex: 1;
+                  }
+
+                  .schema-config-toggle svg {
+                    transition: transform 0.2s ease;
+                  }
+
+                  .schema-config.collapsed .schema-config-toggle svg {
+                    transform: rotate(-90deg);
+                  }
+
+                  .schema-config-content {
+                    padding: 0.75rem 1rem;
+                    border-top: 1px solid rgba(255, 255, 255, 0.05);
+                    display: flex;
+                    flex-direction: column;
+                    gap: 1rem;
+                  }
+
+                  .schema-config.collapsed .schema-config-content {
+                    display: none;
+                  }
+
+                  .schema-group-title {
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    font-size: 0.75rem;
+                    color: rgba(255, 255, 255, 0.6);
+                    margin-bottom: 0.5rem;
+                  }
+
+                  .file-path {
+                    display: flex;
+                    align-items: center;
+                    margin-top: 0.5rem;
+                    position: relative;
+                  }
+
+                  .file-path input {
+                    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+                    font-size: 0.75rem;
+                    padding: 0.375rem 0.75rem;
+                    background: rgba(0, 0, 0, 0.3);
+                    border-radius: 0.25rem;
+                    color: rgba(255, 255, 255, 0.9);
+                    border: 1px solid rgba(255, 255, 255, 0.1);
+                    width: 100%;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    transition: all 0.15s ease;
+                    cursor: text;
+                    outline: none;
+                  }
+
+                  .file-path input:hover {
+                    border-color: rgba(255, 255, 255, 0.2);
+                  }
+
+                  .file-path input:focus {
+                    border-color: var(--primary-color);
+                  }
+
+                  [data-tooltip] {
+                    position: relative;
+                  }
+
+                  [data-tooltip]:hover::after {
+                    content: attr(data-tooltip);
+                    position: absolute;
+                    bottom: calc(100% + 5px);
+                    left: 50%;
+                    transform: translateX(-50%);
+                    padding: 0.5rem;
+                    background: rgba(0, 0, 0, 0.8);
+                    color: white;
+                    border-radius: 0.25rem;
+                    font-size: 0.75rem;
+                    white-space: nowrap;
+                    z-index: 10;
                   }
 
                   .header {
@@ -125,9 +365,15 @@ export function registerAutodocCommand(program: Command) {
                     max-width: 1200px;
                     margin: 0 auto;
                     display: grid;
-                    grid-template-columns: auto 1fr auto;
+                    grid-template-columns: auto auto 1fr;
                     align-items: center;
                     gap: 2rem;
+                  }
+
+                  .header-title {
+                    font-size: 1.125rem;
+                    font-weight: 600;
+                    color: var(--text-primary);
                   }
 
                   .controls {
@@ -228,10 +474,7 @@ export function registerAutodocCommand(program: Command) {
                   }
 
                   .container {
-                    max-width: 1200px;
-                    margin: 0 auto;
-                    padding: 0 2rem;
-                    min-height: calc(100vh - 88px); /* Match content min-height */
+                    padding: 2rem;
                   }
 
                   .event-list {
@@ -516,7 +759,7 @@ export function registerAutodocCommand(program: Command) {
                     gap: 0.5rem;
                     font-size: 1.25rem;
                     font-weight: 600;
-                    color: var(--text-primary);
+                    color: #ffffff;
                   }
 
                   .logo svg {
@@ -570,6 +813,13 @@ export function registerAutodocCommand(program: Command) {
                     opacity: 1;
                   }
 
+                  .content-header {
+                    padding: 2rem 0 0;
+                    color: var(--text-secondary);
+                    font-size: 0.875rem;
+                    font-weight: 500;
+                  }
+
                   #propertyList, #dimensionList, #eventGroups {
                     display: flex;
                     flex-direction: column;
@@ -579,67 +829,105 @@ export function registerAutodocCommand(program: Command) {
                 </style>
               </head>
               <body>
-                <header class="header">
-                  <div class="header-content">
-                    <div class="logo">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" fill="currentColor"/>
+                <aside class="sidebar">
+                  <div class="logo">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" fill="currentColor"/>
+                    </svg>
+                    <span>Voltage</span>
+                  </div>
+
+                  <a href="https://github.com/sibylity/voltage-schema" target="_blank" rel="noopener" class="external-link">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M8.5 2h5v5m0-5l-7 7m3-6h-6a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    API Documentation
+                  </a>
+
+                  <div class="info-callout">
+                    <div class="info-callout-title">
+                      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 15A7 7 0 1 0 8 1a7 7 0 0 0 0 14zM8 11V8m0-3h.01" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                       </svg>
-                      <span>Voltage</span>
+                      Schema Files
                     </div>
-                    <nav class="nav">
-                      <button class="nav-item active" onclick="showContent('events')">Events</button>
-                      <button class="nav-item" onclick="showContent('properties')">Properties</button>
-                      <button class="nav-item" onclick="showContent('dimensions')">Dimensions</button>
-                    </nav>
-                    <div class="controls">
-                      <div class="filter-bar">
-                        <div class="toggle-group">
-                          <button class="toggle-button active" id="listAllButton" title="List All">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                              <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
-                          </button>
-                          <button class="toggle-button" id="groupByDimButton" title="Group by Dimension">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
-                              <path d="M1 4h4v4H1zM7 4h8v4H7zM1 10h4v4H1zM7 10h8v4H7z" />
-                            </svg>
-                          </button>
-                        </div>
-                        <select class="filter-select" id="dimensionFilter">
-                          <option value="">All Dimensions</option>
-                        </select>
-                        <div class="search-bar">
-                          <input type="text" placeholder="Search..." id="searchInput">
+                    <div class="info-callout-content">
+                      ${schemaConfigSections}
+                    </div>
+                  </div>
+                </aside>
+
+                <main class="main-content">
+                  <header class="header">
+                    <div class="header-content">
+                      <div class="header-title">Taxonomy</div>
+                      <nav class="nav">
+                        <button class="nav-item active" onclick="showContent('events')">Events</button>
+                        <button class="nav-item" onclick="showContent('properties')">Properties</button>
+                        <button class="nav-item" onclick="showContent('dimensions')">Dimensions</button>
+                      </nav>
+                      <div class="controls">
+                        <div class="filter-bar">
+                          <div id="eventControls" style="display: flex; gap: 0.75rem; align-items: center;">
+                            <div class="toggle-group">
+                              <button class="toggle-button active" id="listAllButton" title="List All">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                  <path d="M2 4h12M2 8h12M2 12h12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                              </button>
+                              <button class="toggle-button" id="groupByDimButton" title="Group by Dimension">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                  <path d="M1 4h4v4H1zM7 4h8v4H7zM1 10h4v4H1zM7 10h8v4H7z" />
+                                </svg>
+                              </button>
+                            </div>
+                            <select class="filter-select" id="dimensionFilter">
+                              <option value="">All Dimensions</option>
+                            </select>
+                          </div>
+                          <div class="search-bar">
+                            <input type="text" placeholder="Search..." id="searchInput">
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                </header>
+                  </header>
 
-                <main class="container">
-                  <div id="eventsContent" class="content active">
-                    <div id="eventGroups"></div>
-                  </div>
-                  <div id="propertiesContent" class="content">
-                    <div id="propertyList"></div>
-                  </div>
-                  <div id="dimensionsContent" class="content">
-                    <div id="dimensionList"></div>
-                  </div>
+                  <main class="container">
+                    <div id="eventsContent" class="content active">
+                      <div class="content-header">
+                        <span id="eventsCount"></span>
+                      </div>
+                      <div id="eventGroups"></div>
+                    </div>
+                    <div id="propertiesContent" class="content">
+                      <div class="content-header">
+                        <span id="propertiesCount"></span>
+                      </div>
+                      <div id="propertyList"></div>
+                    </div>
+                    <div id="dimensionsContent" class="content">
+                      <div class="content-header">
+                        <span id="dimensionsCount"></span>
+                      </div>
+                      <div id="dimensionList"></div>
+                    </div>
+                  </main>
                 </main>
+
                 <script>
                   // Initialize state with all data
                   window.state = {
-                    events: JSON.parse('${JSON.stringify(events).replace(/'/g, "\\'")}'),
-                    properties: JSON.parse('${JSON.stringify(properties).replace(/'/g, "\\'")}'),
-                    dimensions: JSON.parse('${JSON.stringify(dimensions).replace(/'/g, "\\'")}'),
+                    events: ${JSON.stringify(analyticsEvents)},
+                    properties: ${JSON.stringify(properties)},
+                    dimensions: ${JSON.stringify(dimensions)},
                     filters: {
                       search: '',
                       dimension: '',
                       activeFilters: new Set()
                     },
-                    grouping: 'none'
+                    grouping: 'none',
+                    schemaFileCount: ${config.generates.length}
                   };
 
                   // Initialize filters
@@ -656,11 +944,69 @@ export function registerAutodocCommand(program: Command) {
                     dimensionFilter?.appendChild(option);
                   });
 
+                  // Toggle config sections
+                  window.toggleConfig = function(index) {
+                    const config = document.getElementById('config-' + index);
+                    if (config) {
+                      config.classList.toggle('collapsed');
+                    }
+                  };
+
+                  function filterEvents(events) {
+                    return events.filter(event => {
+                      if (window.state.filters.search) {
+                        const searchTerm = window.state.filters.search.toLowerCase();
+                        const searchMatch = 
+                          event.name.toLowerCase().includes(searchTerm) ||
+                          event.key.toLowerCase().includes(searchTerm) ||
+                          event.description?.toLowerCase().includes(searchTerm) ||
+                          event.properties.some(p => 
+                            p.name.toLowerCase().includes(searchTerm) ||
+                            p.description?.toLowerCase().includes(searchTerm)
+                          );
+                        if (!searchMatch) return false;
+                      }
+
+                      if (window.state.filters.dimension) {
+                        if (!event.dimensions?.some(d => d.name === window.state.filters.dimension)) {
+                          return false;
+                        }
+                      }
+
+                      return true;
+                    });
+                  }
+
+                  function filterProperties() {
+                    if (!window.state.filters.search) return window.state.properties;
+                    
+                    const searchTerm = window.state.filters.search.toLowerCase();
+                    return window.state.properties.filter(prop => 
+                      prop.property.toLowerCase().includes(searchTerm) ||
+                      prop.sources.some(source => 
+                        source.name.toLowerCase().includes(searchTerm) ||
+                        source.description?.toLowerCase().includes(searchTerm)
+                      )
+                    );
+                  }
+
+                  function filterDimensions() {
+                    if (!window.state.filters.search) return window.state.dimensions;
+                    
+                    const searchTerm = window.state.filters.search.toLowerCase();
+                    return window.state.dimensions.filter(dim => 
+                      dim.dimension.toLowerCase().includes(searchTerm) ||
+                      dim.description?.toLowerCase().includes(searchTerm) ||
+                      dim.events.some(event => event.toLowerCase().includes(searchTerm))
+                    );
+                  }
+
                   function renderProperties() {
                     const container = document.getElementById('propertyList');
                     if (!container) return;
 
-                    container.innerHTML = window.state.properties
+                    const filteredProperties = filterProperties();
+                    container.innerHTML = filteredProperties
                       .map(prop => {
                         const sourcesHtml = prop.sources.map(source => {
                           const descriptionHtml = source.description 
@@ -695,13 +1041,16 @@ export function registerAutodocCommand(program: Command) {
                         '</div>';
                       })
                       .join('');
+                    
+                    updateCounts();
                   }
 
                   function renderDimensions() {
                     const container = document.getElementById('dimensionList');
                     if (!container) return;
 
-                    container.innerHTML = window.state.dimensions
+                    const filteredDimensions = filterDimensions();
+                    container.innerHTML = filteredDimensions
                       .map(dim => {
                         const identifiersHtml = dim.identifiers.map(identifier => {
                           const entriesHtml = Object.entries(identifier)
@@ -753,6 +1102,8 @@ export function registerAutodocCommand(program: Command) {
                         '</div>';
                       })
                       .join('');
+                    
+                    updateCounts();
                   }
 
                   function renderEventCard(event) {
@@ -866,44 +1217,32 @@ export function registerAutodocCommand(program: Command) {
                     document.getElementById(section + 'Content').classList.add('active');
 
                     // Update controls visibility
-                    const controls = document.querySelector('.controls');
+                    const eventControls = document.getElementById('eventControls');
                     if (section === 'events') {
-                      controls.style.display = 'flex';
-                      window.filterAndRenderEvents();
+                      eventControls.style.display = 'flex';
                     } else {
-                      controls.style.display = 'none';
-                      if (section === 'properties') {
-                        renderProperties();
-                      } else if (section === 'dimensions') {
-                        renderDimensions();
-                      }
+                      eventControls.style.display = 'none';
                     }
+
+                    // Clear search when switching sections
+                    const searchInput = document.getElementById('searchInput');
+                    if (searchInput instanceof HTMLInputElement) {
+                      searchInput.value = '';
+                      window.state.filters.search = '';
+                    }
+
+                    // Render appropriate content
+                    if (section === 'events') {
+                      window.filterAndRenderEvents();
+                    } else if (section === 'properties') {
+                      renderProperties();
+                    } else if (section === 'dimensions') {
+                      renderDimensions();
+                    }
+
+                    // Update counts
+                    updateCounts();
                   };
-
-                  function filterEvents(events) {
-                    return events.filter(event => {
-                      if (window.state.filters.search) {
-                        const searchTerm = window.state.filters.search.toLowerCase();
-                        const searchMatch = 
-                          event.name.toLowerCase().includes(searchTerm) ||
-                          event.key.toLowerCase().includes(searchTerm) ||
-                          event.description?.toLowerCase().includes(searchTerm) ||
-                          event.properties.some(p => 
-                            p.name.toLowerCase().includes(searchTerm) ||
-                            p.description?.toLowerCase().includes(searchTerm)
-                          );
-                        if (!searchMatch) return false;
-                      }
-
-                      if (window.state.filters.dimension) {
-                        if (!event.dimensions?.some(d => d.name === window.state.filters.dimension)) {
-                          return false;
-                        }
-                      }
-
-                      return true;
-                    });
-                  }
 
                   function groupEvents(events) {
                     if (window.state.grouping === 'none') {
@@ -961,6 +1300,9 @@ export function registerAutodocCommand(program: Command) {
                         '</section>';
                       })
                       .join('');
+
+                    // Update counts after rendering
+                    updateCounts();
                   };
 
                   window.toggleGroup = function(groupName) {
@@ -975,7 +1317,15 @@ export function registerAutodocCommand(program: Command) {
                     const target = e.currentTarget;
                     if (target instanceof HTMLInputElement) {
                       window.state.filters.search = target.value;
-                      window.filterAndRenderEvents();
+                      const activeContent = document.querySelector('.content.active');
+                      if (activeContent?.id === 'eventsContent') {
+                        window.filterAndRenderEvents();
+                      } else if (activeContent?.id === 'propertiesContent') {
+                        renderProperties();
+                      } else if (activeContent?.id === 'dimensionsContent') {
+                        renderDimensions();
+                      }
+                      updateCounts();
                     }
                   });
 
@@ -984,6 +1334,7 @@ export function registerAutodocCommand(program: Command) {
                     if (target instanceof HTMLSelectElement) {
                       window.state.filters.dimension = target.value;
                       window.filterAndRenderEvents();
+                      updateCounts();
                     }
                   });
 
@@ -995,6 +1346,7 @@ export function registerAutodocCommand(program: Command) {
                       groupButton.classList.remove('active');
                       window.state.grouping = 'none';
                       window.filterAndRenderEvents();
+                      updateCounts();
                     }
                   });
 
@@ -1006,8 +1358,33 @@ export function registerAutodocCommand(program: Command) {
                       listButton.classList.remove('active');
                       window.state.grouping = 'dimension';
                       window.filterAndRenderEvents();
+                      updateCounts();
                     }
                   });
+
+                  // Update count displays
+                  function updateCounts() {
+                    const eventsCount = document.getElementById('eventsCount');
+                    const propertiesCount = document.getElementById('propertiesCount');
+                    const dimensionsCount = document.getElementById('dimensionsCount');
+                    
+                    const filteredEvents = filterEvents(window.state.events);
+                    const filteredProperties = filterProperties();
+                    const filteredDimensions = filterDimensions();
+                    
+                    if (eventsCount) {
+                      eventsCount.textContent = filteredEvents.length + ' events from ' + window.state.schemaFileCount + ' analytics schema files';
+                    }
+                    if (propertiesCount) {
+                      propertiesCount.textContent = filteredProperties.length + ' properties from ' + window.state.schemaFileCount + ' analytics schema files';
+                    }
+                    if (dimensionsCount) {
+                      dimensionsCount.textContent = filteredDimensions.length + ' dimensions from ' + window.state.schemaFileCount + ' analytics schema files';
+                    }
+                  }
+
+                  // Call updateCounts on initial load
+                  updateCounts();
 
                   // Initial render
                   window.filterAndRenderEvents();
