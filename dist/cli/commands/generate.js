@@ -75,7 +75,6 @@ function generateTypeDefinitions(events, globals) {
     const eventEntries = Object.entries(events.events)
         .map(([key, event]) => {
         var _a;
-        const normalizedKey = normalizeEventKey(key);
         const propertyTypes = ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.map(prop => {
             const type = Array.isArray(prop.type) ? prop.type : [prop.type];
             const tsType = type.map(t => {
@@ -145,29 +144,6 @@ function generateTypeDefinitions(events, globals) {
             .map(key => `"${key}"`)
             .join(' | ')
         : 'never';
-    // Generate union of event property types
-    const eventPropertyTypes = Object.values(events.events)
-        .map(event => {
-        var _a;
-        const propertyTypes = ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.map(prop => {
-            const type = Array.isArray(prop.type) ? prop.type : [prop.type];
-            const tsType = type.map(t => {
-                switch (t) {
-                    case 'string': return 'string';
-                    case 'number': return 'number';
-                    case 'boolean': return 'boolean';
-                    case 'string[]': return 'string[]';
-                    case 'number[]': return 'number[]';
-                    case 'boolean[]': return 'boolean[]';
-                    default: return 'any';
-                }
-            }).join(' | ');
-            const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
-            return `  "${prop.name}"${prop.optional ? '?' : ''}: ${valueType} | (() => ${valueType});`;
-        }).join('\n')) || '';
-        return `{${propertyTypes}\n}`;
-    })
-        .join(' | ');
     // Generate the AnalyticsTracker interface
     const analyticsTrackerInterface = [
         'export interface AnalyticsTracker<T extends TrackerEvents> {',
@@ -285,39 +261,7 @@ function getPropertyType(type) {
     }
     return type;
 }
-function generateEventType(eventKey, event) {
-    if (!event.properties) {
-        return `export interface ${eventKey}Event {}`;
-    }
-    const properties = event.properties
-        .map((prop) => {
-        const type = getPropertyType(prop.type);
-        const optional = prop.optional ? " | null | undefined" : "";
-        return `  ${prop.name}: ${type}${optional};`;
-    })
-        .join("\n");
-    return `export interface ${eventKey}Event {
-${properties}
-}`;
-}
 function generateJavaScriptOutput(trackingConfig, events, includeComments, outputPath) {
-    const eventTypes = Object.entries(events.events)
-        .map(([eventKey, event]) => generateEventType(eventKey, event))
-        .join("\n\n");
-    const trackingConfigEvents = Object.entries(events.events).map(([eventKey, event]) => {
-        var _a;
-        return ({
-            name: eventKey,
-            properties: ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.map((prop) => ({
-                name: prop.name,
-                type: prop.type,
-                optional: prop.optional
-            }))) || []
-        });
-    });
-    const config = {
-        events: trackingConfigEvents
-    };
     const jsOutput = `
 // 🔹 Event Configurations
 ${generateEventConfigs(trackingConfig, events, includeComments)}

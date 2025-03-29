@@ -1,23 +1,14 @@
 import fs from "fs";
 import path from "path";
 import { Command } from "commander";
-import { type AnalyticsConfig, type AnalyticsGlobals, type AnalyticsEvents, type Event, type Property, type GenerationConfig } from "../../types";
+import { type AnalyticsGlobals, type AnalyticsEvents, type GenerationConfig } from "../../types";
 import { validateAnalyticsFiles } from "../validation";
 import { getAnalyticsConfig, readGenerationConfigFiles } from "../utils/analyticsConfigHelper";
-import { type ValidationResult } from "../validation/types";
-import { validateAnalyticsConfig } from "../validation/validateAnalyticsConfig";
-import { validateGlobals } from "../validation/validateAnalyticsGlobals";
-import { validateEvents } from "../validation/validateAnalyticsEvents";
 
 interface TrackingConfigProperty {
   name: string;
   type: string | string[];
   optional?: boolean;
-}
-
-interface TrackingConfigEvent {
-  name: string;
-  properties: TrackingConfigProperty[];
 }
 
 interface TrackingConfig {
@@ -101,7 +92,6 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
   // Generate the TrackerEvents interface content
   const eventEntries = Object.entries(events.events)
     .map(([key, event]) => {
-      const normalizedKey = normalizeEventKey(key);
       const propertyTypes = event.properties?.map(prop => {
         const type = Array.isArray(prop.type) ? prop.type : [prop.type];
         const tsType = type.map(t => {
@@ -173,29 +163,6 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
         .map(key => `"${key}"`)
         .join(' | ')
     : 'never';
-
-  // Generate union of event property types
-  const eventPropertyTypes = Object.values(events.events)
-    .map(event => {
-      const propertyTypes = event.properties?.map(prop => {
-        const type = Array.isArray(prop.type) ? prop.type : [prop.type];
-        const tsType = type.map(t => {
-          switch (t) {
-            case 'string': return 'string';
-            case 'number': return 'number';
-            case 'boolean': return 'boolean';
-            case 'string[]': return 'string[]';
-            case 'number[]': return 'number[]';
-            case 'boolean[]': return 'boolean[]';
-            default: return 'any';
-          }
-        }).join(' | ');
-        const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
-        return `  "${prop.name}"${prop.optional ? '?' : ''}: ${valueType} | (() => ${valueType});`;
-      }).join('\n') || '';
-      return `{${propertyTypes}\n}`;
-    })
-    .join(' | ');
 
   // Generate the AnalyticsTracker interface
   const analyticsTrackerInterface = [
@@ -322,42 +289,7 @@ function getPropertyType(type: string | string[]): string {
   return type;
 }
 
-function generateEventType(eventKey: string, event: Event): string {
-  if (!event.properties) {
-    return `export interface ${eventKey}Event {}`;
-  }
-
-  const properties = event.properties
-    .map((prop: Property) => {
-      const type = getPropertyType(prop.type);
-      const optional = prop.optional ? " | null | undefined" : "";
-      return `  ${prop.name}: ${type}${optional};`;
-    })
-    .join("\n");
-
-  return `export interface ${eventKey}Event {
-${properties}
-}`;
-}
-
 function generateJavaScriptOutput(trackingConfig: TrackingConfig, events: AnalyticsEvents, includeComments: boolean, outputPath: string) {
-  const eventTypes = Object.entries(events.events)
-    .map(([eventKey, event]) => generateEventType(eventKey, event))
-    .join("\n\n");
-
-  const trackingConfigEvents = Object.entries(events.events).map(([eventKey, event]) => ({
-    name: eventKey,
-    properties: event.properties?.map((prop: Property) => ({
-      name: prop.name,
-      type: prop.type,
-      optional: prop.optional
-    })) || []
-  }));
-
-  const config = {
-    events: trackingConfigEvents
-  };
-
   const jsOutput = `
 // 🔹 Event Configurations
 ${generateEventConfigs(trackingConfig, events, includeComments)}
