@@ -761,6 +761,128 @@ export function generateAutodocHtml(): string {
              gap: 0.75rem;
              padding: 2rem 0;
            }
+
+           .event-implementation {
+             margin: 0.75rem 0;
+             border: 1px solid var(--border-color);
+             border-radius: 0.5rem;
+             background: white;
+           }
+
+           .event-implementation-header {
+             padding: 1rem 1.25rem;
+             cursor: pointer;
+             display: flex;
+             align-items: center;
+             gap: 1.5rem;
+             justify-content: space-between;
+             transition: background-color 0.15s ease;
+             border-radius: 0.5rem;
+           }
+
+           .event-implementation-header:hover {
+             background: var(--bg-hover);
+           }
+
+           .event-implementation-left {
+             display: flex;
+             align-items: center;
+             gap: 1.5rem;
+             flex: 1;
+           }
+
+           .event-details {
+             padding: 1.25rem;
+             border-top: 1px solid var(--border-color);
+             display: none;
+             background: var(--bg-secondary);
+           }
+
+           .event-details.expanded {
+             display: block;
+           }
+
+           .combined-properties {
+             margin: 1.5rem 0;
+           }
+
+           .collapsible-section {
+             margin: 1rem 0;
+             border: 1px solid var(--border-color);
+             border-radius: 0.5rem;
+             background: white;
+           }
+
+           .collapsible-header {
+             padding: 1rem 1.25rem;
+             display: flex;
+             align-items: center;
+             justify-content: space-between;
+             cursor: pointer;
+             transition: background-color 0.15s ease;
+           }
+
+           .collapsible-header:hover {
+             background: var(--bg-hover);
+           }
+
+           .collapsible-toggle {
+             display: flex;
+             align-items: center;
+             color: var(--text-secondary);
+           }
+
+           .collapsible-toggle svg {
+             transition: transform 0.2s ease;
+           }
+
+           .collapsible-section.expanded .collapsible-toggle svg {
+             transform: rotate(180deg);
+           }
+
+           .collapsible-content {
+             display: none;
+             padding: 1.25rem;
+             border-top: 1px solid var(--border-color);
+             background: var(--bg-secondary);
+           }
+
+           .collapsible-section.expanded .collapsible-content {
+             display: block;
+           }
+
+           .implementations-title {
+             margin: 1.5rem 0 1rem;
+           }
+
+           .implementations-list {
+             padding: 0 0.5rem;
+           }
+
+           .event-description {
+             margin: 1.5rem 0;
+             padding: 1.25rem;
+             background: white;
+             border: 1px solid var(--border-color);
+             border-radius: 0.5rem;
+           }
+
+           .section-title {
+             font-size: 0.75rem;
+             font-weight: 600;
+             text-transform: uppercase;
+             color: var(--text-secondary);
+             letter-spacing: 0.05em;
+           }
+
+           .property {
+             padding: 1.25rem;
+           }
+
+           .property-description {
+             margin-top: 1rem;
+             padding-top: 1rem;
+           }
          </style>
        </head>
        <body>
@@ -936,6 +1058,31 @@ export function generateAutodocHtml(): string {
              );
            }
 
+           function groupEventsByName(events) {
+             const eventsByName = {};
+             events.forEach(event => {
+               if (!eventsByName[event.name]) {
+                 eventsByName[event.name] = [];
+               }
+               eventsByName[event.name].push(event);
+             });
+             return eventsByName;
+           }
+
+           function renderEventGroupInList(groupName, events) {
+             return '<div class="event-group">' +
+               '<div class="event-group-header">' +
+                 '<div class="event-group-name">' + groupName + '</div>' +
+                 '<div class="event-group-count">' + events.length + ' implementation' + (events.length > 1 ? 's' : '') + '</div>' +
+               '</div>' +
+               '<div class="event-group-keys">' +
+                 events.map(event => 
+                   '<div class="event-group-key">' + event.key + '</div>'
+                 ).join('') +
+               '</div>' +
+             '</div>';
+           }
+
            function renderProperties() {
              const container = document.getElementById('propertyList');
              if (!container) return;
@@ -947,10 +1094,21 @@ export function generateAutodocHtml(): string {
                    const descriptionHtml = source.description 
                      ? '<div class="property-description">' + source.description + '</div>'
                      : '';
+
+                   // Group events by name for each source
+                   const eventsByName = groupEventsByName(source.events || []);
+                   const eventsHtml = Object.entries(eventsByName)
+                     .map(([eventName, events]) => renderEventGroupInList(eventName, events))
+                     .join('');
+
                    return '<div class="property">' +
                      '<div class="property-name">' + source.name + '</div>' +
                      '<div class="property-type">' + source.type + '</div>' +
                      descriptionHtml +
+                     (eventsHtml ? '<div class="property-events">' +
+                       '<div class="section-title">Events</div>' +
+                       '<div class="event-groups-list">' + eventsHtml + '</div>' +
+                     '</div>' : '') +
                      '</div>';
                  }).join('');
 
@@ -999,19 +1157,26 @@ export function generateAutodocHtml(): string {
                      '</div>';
                  }).join('');
 
+                 // Group events by name for event details
                  const eventDetailsHtml = dim.eventDetails ? 
                    '<div class="section-title">Events</div>' +
                    '<div class="property-list">' +
-                     dim.eventDetails.map(event => {
-                       const descriptionHtml = event.description 
-                         ? '<div class="property-description">' + event.description + '</div>'
-                         : '';
-                       return '<div class="property">' +
-                         '<div class="property-name">' + event.name + '</div>' +
-                         '<div class="property-type">' + event.key + '</div>' +
-                         descriptionHtml +
-                         '</div>';
-                     }).join('') +
+                     Object.entries(groupEventsByName(dim.eventDetails))
+                       .map(([eventName, events]) => {
+                         const descriptionHtml = events[0].description 
+                           ? '<div class="property-description">' + events[0].description + '</div>'
+                           : '';
+                         return '<div class="property">' +
+                           '<div class="property-name">' + eventName + '</div>' +
+                           '<div class="property-type">' + events.length + ' implementation' + (events.length > 1 ? 's' : '') + '</div>' +
+                           '<div class="event-group-keys">' +
+                             events.map(event => 
+                               '<div class="event-group-key">' + event.key + '</div>'
+                             ).join('') +
+                           '</div>' +
+                           descriptionHtml +
+                           '</div>';
+                       }).join('') +
                    '</div>' : '';
 
                  return '<div class="event-row">' +
@@ -1080,22 +1245,14 @@ export function generateAutodocHtml(): string {
                ? '<p class="event-description">' + event.description + '</p>'
                : '';
 
-             const contributorsHtml = event.contributors ?
-               '<div class="event-contributors">' +
-                 event.contributors.map(c => 
-                   '<div class="contributor" title="' + c.name + '">' + c.name[0].toUpperCase() + '</div>'
-                 ).join('') +
-               '</div>' : '';
-
              const dimensionsHtml = event.dimensions?.map(d => 
                '<span class="event-tag" onclick="filterByDimension(&quot;' + d.name + '&quot;)">' + d.name + '</span>'
              ).join('') || '';
 
-             return '<div class="event-row" data-event-key="' + event.key + '">' +
-               '<div class="event-summary" onclick="toggleDetails(&quot;' + event.key + '&quot;)">' +
-                 '<div class="event-summary-left">' +
+             return '<div class="event-implementation" data-event-key="' + event.key + '">' +
+               '<div class="event-implementation-header" onclick="toggleImplementationDetails(&quot;' + event.key + '&quot;, event)">' +
+                 '<div class="event-implementation-left">' +
                    '<div class="event-basic-info">' +
-                     '<div class="event-name">' + event.name + '</div>' +
                      '<div class="event-key">' + event.key + '</div>' +
                    '</div>' +
                    '<div class="event-dimensions">' +
@@ -1107,11 +1264,121 @@ export function generateAutodocHtml(): string {
                    '<span>properties</span>' +
                  '</div>' +
                '</div>' +
-               '<div class="event-details" id="details-' + event.key + '">' +
+               '<div class="event-details" id="implementation-details-' + event.key + '">' +
                  descriptionHtml +
                  eventPropertiesHtml +
                  groupPropertiesHtml +
-                 contributorsHtml +
+               '</div>' +
+             '</div>';
+           }
+
+           function renderEventGroup(groupName, events) {
+             // Get all unique properties across all implementations
+             const allProperties = new Map();
+             const allGroupProperties = new Map();
+             const allDimensions = new Set();
+
+             events.forEach(event => {
+               // Track dimensions
+               event.dimensions?.forEach(d => allDimensions.add(d.name));
+
+               // Track properties
+               event.properties.forEach(prop => {
+                 if (prop.source === 'event') {
+                   if (!allProperties.has(prop.name)) {
+                     allProperties.set(prop.name, prop);
+                   }
+                 } else if (prop.source === 'group') {
+                   if (!allGroupProperties.has(prop.name)) {
+                     allGroupProperties.set(prop.name, prop);
+                   }
+                 }
+               });
+             });
+
+             // Render combined properties section with collapsible headers
+             const combinedPropertiesHtml = (allProperties.size > 0 || allGroupProperties.size > 0) ?
+               '<div class="combined-properties">' +
+                 (allProperties.size > 0 ? 
+                   '<div class="collapsible-section">' +
+                     '<div class="collapsible-header" onclick="toggleCollapsible(&quot;common-event-props-' + groupName + '&quot;)">' +
+                       '<div class="section-title">Common Event Properties</div>' +
+                       '<div class="collapsible-toggle">' +
+                         '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
+                           '<path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                         '</svg>' +
+                       '</div>' +
+                     '</div>' +
+                     '<div class="collapsible-content" id="common-event-props-' + groupName + '">' +
+                       '<div class="property-list">' +
+                         Array.from(allProperties.values()).map(prop => {
+                           const descriptionHtml = prop.description 
+                             ? '<div class="property-description">' + prop.description + '</div>'
+                             : '';
+                           return '<div class="property">' +
+                             '<div class="property-name">' + prop.name + '</div>' +
+                             '<div class="property-type">' + prop.type + '</div>' +
+                             descriptionHtml +
+                             '</div>';
+                         }).join('') +
+                       '</div>' +
+                     '</div>' +
+                   '</div>' : '') +
+                 (allGroupProperties.size > 0 ?
+                   '<div class="collapsible-section">' +
+                     '<div class="collapsible-header" onclick="toggleCollapsible(&quot;common-group-props-' + groupName + '&quot;)">' +
+                       '<div class="section-title">Common Group Properties</div>' +
+                       '<div class="collapsible-toggle">' +
+                         '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
+                           '<path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                         '</svg>' +
+                       '</div>' +
+                     '</div>' +
+                     '<div class="collapsible-content" id="common-group-props-' + groupName + '">' +
+                       '<div class="property-list">' +
+                         Array.from(allGroupProperties.values()).map(prop => {
+                           const descriptionHtml = prop.description 
+                             ? '<div class="property-description">' + prop.description + '</div>'
+                             : '';
+                           return '<div class="property">' +
+                             '<div class="property-name">' + prop.name + '</div>' +
+                             '<div class="property-type">' + prop.type + '</div>' +
+                             '<div class="property-source">From ' + prop.groupName + '</div>' +
+                             descriptionHtml +
+                             '</div>';
+                         }).join('') +
+                       '</div>' +
+                     '</div>' +
+                   '</div>' : '') +
+               '</div>' : '';
+
+             const implementations = events.map(event => renderEventCard(event)).join('');
+             const totalProperties = events.reduce((sum, e) => sum + e.properties.length, 0);
+
+             return '<div class="event-row" data-event-name="' + groupName + '">' +
+               '<div class="event-summary" onclick="toggleEventDetails(&quot;' + groupName + '&quot;)">' +
+                 '<div class="event-summary-left">' +
+                   '<div class="event-basic-info">' +
+                     '<div class="event-name">' + groupName + '</div>' +
+                     '<div class="event-key">' + events.length + ' implementation' + (events.length > 1 ? 's' : '') + '</div>' +
+                   '</div>' +
+                   '<div class="event-dimensions">' +
+                     Array.from(allDimensions).map(d => 
+                       '<span class="event-tag" onclick="filterByDimension(&quot;' + d + '&quot;)">' + d + '</span>'
+                     ).join('') +
+                   '</div>' +
+                 '</div>' +
+                 '<div class="event-stat">' +
+                   '<span>' + totalProperties + '</span>' +
+                   '<span>properties</span>' +
+                 '</div>' +
+               '</div>' +
+               '<div class="event-details" id="event-details-' + groupName + '">' +
+                 combinedPropertiesHtml +
+                 '<div class="section-title implementations-title">Implementations</div>' +
+                 '<div class="implementations-list">' +
+                   implementations +
+                 '</div>' +
                '</div>' +
              '</div>';
            }
@@ -1187,19 +1454,35 @@ export function generateAutodocHtml(): string {
              // If filtering by dimension, only show that dimension group
              if (window.state.filters.dimension) {
                return {
-                 [window.state.filters.dimension]: events
+                 [window.state.filters.dimension]: events.filter(event => 
+                   event.dimensions?.some(d => d.name === window.state.filters.dimension)
+                 )
                };
              }
 
              // Otherwise show all dimension groups
-             return events.reduce((acc, event) => {
-               const groups = event.dimensions?.map(d => d.name) || ['Ungrouped'];
-               groups.forEach(group => {
-                 if (!acc[group]) acc[group] = [];
-                 acc[group].push(event);
-               });
-               return acc;
-             }, {});
+             const groups = {};
+             events.forEach(event => {
+               if (!event.dimensions || event.dimensions.length === 0) {
+                 if (!groups['Ungrouped']) groups['Ungrouped'] = [];
+                 groups['Ungrouped'].push(event);
+               } else {
+                 // Only add the event to the groups that match its dimensions
+                 event.dimensions.forEach(d => {
+                   if (!groups[d.name]) groups[d.name] = [];
+                   groups[d.name].push(event);
+                 });
+               }
+             });
+
+             // Filter out empty groups
+             Object.keys(groups).forEach(key => {
+               if (groups[key].length === 0) {
+                 delete groups[key];
+               }
+             });
+
+             return groups;
            }
 
            window.filterAndRenderEvents = function() {
@@ -1209,15 +1492,28 @@ export function generateAutodocHtml(): string {
              const container = document.getElementById('eventGroups');
              if (!container) return;
 
+             // For each dimension group, group events by name, but only include events that have that dimension
              container.innerHTML = Object.entries(groupedEvents)
                .map(([groupName, groupEvents]) => {
+                 // Group events by name, but only within this dimension group
+                 const eventsByName = {};
+                 groupEvents.forEach(event => {
+                   // Only include the event if it has the current dimension
+                   if (groupName === 'All Events' || event.dimensions?.some(d => d.name === groupName)) {
+                     if (!eventsByName[event.name]) {
+                       eventsByName[event.name] = [];
+                     }
+                     eventsByName[event.name].push(event);
+                   }
+                 });
+
                  const groupHeaderHtml = groupName !== 'All Events' ? 
                    '<div class="group-header" onclick="toggleGroup(&quot;' + groupName + '&quot;)">' +
                      '<div class="group-header-content">' +
                        '<div class="group-name">' + groupName + '</div>' +
                        '<div class="group-stats">' +
-                         groupEvents.length + ' events • ' +
-                         groupEvents.reduce((sum, e) => sum + e.properties.length, 0) + ' properties' +
+                         Object.keys(eventsByName).length + ' unique events • ' +
+                         Object.values(eventsByName).flat().length + ' implementations' +
                        '</div>' +
                        '<div class="group-toggle">' +
                          '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
@@ -1230,7 +1526,9 @@ export function generateAutodocHtml(): string {
                  return '<section class="group" id="group-' + groupName + '">' +
                    groupHeaderHtml +
                    '<div class="event-list">' +
-                     groupEvents.map(renderEventCard).join('') +
+                     Object.entries(eventsByName)
+                       .map(([eventName, events]) => renderEventGroup(eventName, events))
+                       .join('') +
                    '</div>' +
                  '</section>';
                })
@@ -1244,6 +1542,22 @@ export function generateAutodocHtml(): string {
              const group = document.getElementById('group-' + groupName);
              if (group) {
                group.classList.toggle('collapsed');
+             }
+           };
+
+           // Update the toggle functions in the script section
+           window.toggleEventDetails = function(groupName) {
+             const details = document.getElementById('event-details-' + groupName);
+             if (details) {
+               details.classList.toggle('expanded');
+             }
+           };
+
+           window.toggleImplementationDetails = function(key, event) {
+             event.stopPropagation(); // Prevent event from bubbling up
+             const details = document.getElementById('implementation-details-' + key);
+             if (details) {
+               details.classList.toggle('expanded');
              }
            };
 
@@ -1323,6 +1637,14 @@ export function generateAutodocHtml(): string {
 
            // Initial render
            window.filterAndRenderEvents();
+
+           // Add new toggle function for collapsible sections
+           window.toggleCollapsible = function(id) {
+             const section = document.getElementById(id)?.parentElement;
+             if (section) {
+               section.classList.toggle('expanded');
+             }
+           };
          </script>
        </body>
      </html>
