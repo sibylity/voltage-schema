@@ -850,7 +850,7 @@ function generateAutodocHtml() {
              display: block;
            }
 
-           .implementations-title {
+           .implementations-title, .properties-title {
              margin: 1.5rem 0 1rem;
            }
 
@@ -1301,7 +1301,7 @@ function generateAutodocHtml() {
                  (allProperties.size > 0 ? 
                    '<div class="collapsible-section">' +
                      '<div class="collapsible-header" onclick="toggleCollapsible(&quot;common-event-props-' + groupName + '&quot;)">' +
-                       '<div class="section-title">Common Event Properties</div>' +
+                       '<div class="section-title">Properties from Events (' + allProperties.size + ')</div>' +
                        '<div class="collapsible-toggle">' +
                          '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
                            '<path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
@@ -1326,7 +1326,7 @@ function generateAutodocHtml() {
                  (allGroupProperties.size > 0 ?
                    '<div class="collapsible-section">' +
                      '<div class="collapsible-header" onclick="toggleCollapsible(&quot;common-group-props-' + groupName + '&quot;)">' +
-                       '<div class="section-title">Common Group Properties</div>' +
+                       '<div class="section-title">Properties from Groups (' + allGroupProperties.size + ')</div>' +
                        '<div class="collapsible-toggle">' +
                          '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
                            '<path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
@@ -1373,6 +1373,7 @@ function generateAutodocHtml() {
                  '</div>' +
                '</div>' +
                '<div class="event-details" id="event-details-' + groupName + '">' +
+                 '<div class="section-title implementations-title">Properties</div>' +
                  combinedPropertiesHtml +
                  '<div class="section-title implementations-title">Implementations</div>' +
                  '<div class="implementations-list">' +
