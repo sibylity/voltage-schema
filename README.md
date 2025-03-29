@@ -118,6 +118,9 @@ npm voltage properties
 
 # List all events and their properties
 npm voltage events
+
+# Start a local documentation server
+npm voltage autodoc
 ```
 
 ## License
