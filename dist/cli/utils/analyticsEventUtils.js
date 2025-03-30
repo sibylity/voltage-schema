@@ -26,7 +26,6 @@ function processEvent(eventKey, event, includeGroups, includeDimensions, groups,
         key: eventKey,
         name: event.name,
         description: event.description,
-        version: event.version,
         properties: allProperties,
         passthrough: event.passthrough
     };

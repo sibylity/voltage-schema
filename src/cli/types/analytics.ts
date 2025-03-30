@@ -64,7 +64,6 @@ export interface AnalyticsDimension {
 }
 
 export interface AnalyticsConfig {
-  version: string;
   generates: Array<{
     events: string;
     globals: string;

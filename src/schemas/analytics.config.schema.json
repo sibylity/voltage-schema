@@ -2,7 +2,6 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
-    "version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$", "default": "1.0" },
     "generates": {
       "type": "array",
       "items": {
@@ -20,5 +19,5 @@
       }
     }
   },
-  "required": ["generates", "version"]
+  "required": ["generates"]
 } 

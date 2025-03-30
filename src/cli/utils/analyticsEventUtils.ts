@@ -29,7 +29,6 @@ export interface EventOutput {
   key: string;
   name: string;
   description: string;
-  version?: string;
   dimensions?: EventDimension[];
   properties: EventProperty[];
   passthrough?: boolean;
@@ -87,7 +86,6 @@ function processEvent(
     key: eventKey,
     name: event.name,
     description: event.description,
-    version: event.version,
     properties: allProperties,
     passthrough: event.passthrough
   };

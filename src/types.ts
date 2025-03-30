@@ -34,21 +34,12 @@ export interface AnalyticsSchemaGlobals {
 export interface AnalyticsSchemaEvent {
   name: string;
   description: string;
-  version?: string;
   dimensions?: string[];
   properties?: AnalyticsSchemaProperty[];
 }
 
-export interface AnalyticsSchema {
-  version: string;
-  generatedDir: string;
-  globals: AnalyticsSchemaGlobals;
-  events: Record<string, AnalyticsSchemaEvent>;
-}
-
 // Analytics Config Types
 export interface AnalyticsConfig {
-  version: string;
   generates: GenerationConfig[];
 }
 
@@ -109,7 +100,6 @@ export interface AnalyticsEvents {
 export interface Event {
   name: string;
   description: string;
-  version?: string;
   dimensions?: string[];
   properties?: Property[];
   passthrough?: boolean;
