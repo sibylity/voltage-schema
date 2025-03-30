@@ -155,7 +155,7 @@ function generateTypeDefinitions(events, globals) {
         '    groupName: G,',
         '    properties: T["groups"][G]["properties"]',
         '  ) => void;',
-        '  getProperties: () => Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;',
+        '  getProperties: () => { [K in TrackerGroup<T>]: T["groups"][K]["properties"] };',
         '}'
     ].join('\n');
     // Generate the TrackerOptions interface

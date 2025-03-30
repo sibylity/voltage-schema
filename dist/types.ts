@@ -180,7 +180,7 @@ export interface AnalyticsTracker<T extends TrackerEvents> {
     groupName: G,
     properties: T["groups"][G]["properties"]
   ) => void;
-  getProperties: () => Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;
+  getProperties: () => { [K in TrackerGroup<T>]: T["groups"][K]["properties"] };
 }
 
 export interface TrackerOptions<T extends TrackerEvents> {

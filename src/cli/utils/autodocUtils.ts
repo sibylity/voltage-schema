@@ -25,8 +25,7 @@ export function generateAutodocHtml(): string {
         <div class="schema-group">
           <div class="schema-group-title">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-              <path d="M2 12L6 8L10 10L14 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-              <path d="M2 12L6 8L10 10L14 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="2 2"/>
+              <path d="M3 3h10v2H3zM3 7h7v2H3zM3 11h4v2H3z" fill="currentColor"/>
             </svg>
             Input Events
           </div>
@@ -37,7 +36,7 @@ export function generateAutodocHtml(): string {
         <div class="schema-group">
           <div class="schema-group-title">
             <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
-              <path d="M2 4h12v2H2zM2 8h12v2H2zM2 12h12v2H2z" fill="currentColor"/>
+              <path d="M3 3h10v2H3zM3 7h7v2H3zM3 11h4v2H3z" fill="currentColor"/>
             </svg>
             Input Groups
           </div>
