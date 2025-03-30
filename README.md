@@ -25,7 +25,7 @@ Create an `analytics.config.json` file in your project root:
 {
   "generates": [
     {
-      "globals": "./analytics.globals.json",
+      "groups": ["./analytics.all-groups.json"],
       "events": "./analytics.events.json",
       "output": "/__analytics_generated__/analytics.ts"
     }

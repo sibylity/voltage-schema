@@ -24,7 +24,6 @@ export interface GenerationFiles {
 }
 
 export function readGenerationConfigFiles(genConfig: AnalyticsConfig["generates"][0]): GenerationFiles {
-  const globalsPath = path.resolve(process.cwd(), genConfig.globals);
   const eventsPath = path.resolve(process.cwd(), genConfig.events);
 
   if (!fs.existsSync(eventsPath)) {
@@ -40,21 +39,31 @@ export function readGenerationConfigFiles(genConfig: AnalyticsConfig["generates"
     process.exit(1);
   }
 
-  let globals: AnalyticsGlobals;
-  if (fs.existsSync(globalsPath)) {
-    try {
-      globals = JSON.parse(fs.readFileSync(globalsPath, "utf8")) as AnalyticsGlobals;
-    } catch (error) {
-      console.error(`❌ Failed to parse globals file at ${globalsPath}:`, error);
-      process.exit(1);
+  // Combine groups and dimensions from all group files
+  const combinedGlobals: AnalyticsGlobals = {
+    groups: [],
+    dimensions: []
+  };
+
+  for (const groupFile of genConfig.groups) {
+    const groupPath = path.resolve(process.cwd(), groupFile);
+    if (fs.existsSync(groupPath)) {
+      try {
+        const groupContent = JSON.parse(fs.readFileSync(groupPath, "utf8")) as AnalyticsGlobals;
+        if (groupContent.groups) {
+          combinedGlobals.groups.push(...groupContent.groups);
+        }
+        if (groupContent.dimensions) {
+          combinedGlobals.dimensions.push(...groupContent.dimensions);
+        }
+      } catch (error) {
+        console.error(`❌ Failed to parse group file at ${groupPath}:`, error);
+        process.exit(1);
+      }
+    } else {
+      console.log(`ℹ️ Group file not found at ${groupPath}, skipping.`);
     }
-  } else {
-    console.log(`ℹ️ No globals file found at ${globalsPath}, using default empty values.`);
-    globals = {
-      groups: [],
-      dimensions: []
-    };
   }
 
-  return { globals, events };
+  return { globals: combinedGlobals, events };
 } 

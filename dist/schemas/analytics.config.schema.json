@@ -9,11 +9,14 @@
         "type": "object",
         "properties": {
           "events": { "type": "string" },
-          "globals": { "type": "string" },
+          "groups": { 
+            "type": "array",
+            "items": { "type": "string" }
+          },
           "output": { "type": "string" },
           "disableComments": { "type": "boolean", "default": false }
         },
-        "required": ["events", "globals", "output"]
+        "required": ["events", "groups", "output"]
       }
     }
   },

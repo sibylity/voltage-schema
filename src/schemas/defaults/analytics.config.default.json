@@ -3,7 +3,10 @@
   "generates": [
     {
       "events": "./analytics.events.json",
-      "globals": "./analytics.globals.json",
+      "groups": [
+        "./analytics.every-event-group.json",
+        "./analytics.user-and-team-groups.json"
+      ],
       "output": "./__analytics_generated__/analytics.ts"
     }
   ]

@@ -9,7 +9,7 @@ const path_1 = __importDefault(require("path"));
 // Default paths
 const configPath = path_1.default.resolve(process.cwd(), "analytics.config.json");
 const defaultConfigPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.config.default.json");
-const defaultGlobalsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.globals.default.json");
+const defaultAllGroupsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.all-groups.default.json");
 const defaultEventsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.events.default.json");
 function registerInitCommand(program) {
     program
@@ -19,7 +19,7 @@ function registerInitCommand(program) {
         .action((options) => {
         const files = [
             { src: defaultConfigPath, dest: configPath, name: "config" },
-            { src: defaultGlobalsPath, dest: "analytics.globals.json", name: "globals" },
+            { src: defaultAllGroupsPath, dest: "analytics.all-groups.json", name: "all-groups" },
             { src: defaultEventsPath, dest: "analytics.events.json", name: "events" }
         ];
         for (const file of files) {

@@ -7,7 +7,7 @@ import { createValidator } from "./schemaValidation";
 import { parseJsonFile } from "./fileValidation";
 import { logValidationStart, logValidationSuccess, logValidationErrors } from "./logging";
 
-const validateGlobalsSchema = createValidator(path.resolve(__dirname, "../../schemas/analytics.globals.schema.json"));
+const validateGlobalsSchema = createValidator(path.resolve(__dirname, "../../schemas/analytics.groups.schema.json"));
 
 // Default empty globals when file is not provided
 export const defaultGlobals: AnalyticsGlobals = {

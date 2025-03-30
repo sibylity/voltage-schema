@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { Command } from "commander";
-import { type AnalyticsGlobals, type AnalyticsEvents, type GenerationConfig } from "../../types";
+import { type AnalyticsGlobals, type AnalyticsEvents, type GenerationConfig, type AnalyticsSchemaProperty } from "../../types";
 import { validateAnalyticsFiles } from "../validation";
 import { getAnalyticsConfig, readGenerationConfigFiles } from "../utils/analyticsConfigHelper";
 
@@ -336,7 +336,17 @@ export function registerGenerateCommand(program: Command) {
         const outputDir = path.dirname(outputPath);
         const outputExt = path.extname(outputPath).toLowerCase();
 
-        const { events, globals } = readGenerationConfigFiles(genConfig);
+        const { events } = readGenerationConfigFiles(genConfig);
+
+        // Combine groups from all group files
+        const allGroups: Record<string, any> = {};
+        for (const groupFile of genConfig.groups) {
+          const groupPath = path.resolve(process.cwd(), groupFile);
+          const groupContent = JSON.parse(fs.readFileSync(groupPath, 'utf-8'));
+          if (groupContent.groups) {
+            Object.assign(allGroups, groupContent.groups);
+          }
+        }
 
         if (!fs.existsSync(outputDir)) {
           fs.mkdirSync(outputDir, { recursive: true });
@@ -351,7 +361,7 @@ export function registerGenerateCommand(program: Command) {
               eventKey,
               {
                 name: event.name,
-                properties: event.properties?.map((prop) => ({
+                properties: event.properties?.map((prop: AnalyticsSchemaProperty) => ({
                   name: prop.name,
                   type: prop.type,
                   optional: prop.optional
@@ -360,11 +370,11 @@ export function registerGenerateCommand(program: Command) {
             ])
           ),
           groups: Object.fromEntries(
-            Object.entries(globals.groups || {}).map(([groupName, group]) => [
+            Object.entries(allGroups).map(([groupName, group]) => [
               groupName,
               {
                 name: group.name,
-                properties: group.properties?.map((prop) => ({
+                properties: group.properties?.map((prop: AnalyticsSchemaProperty) => ({
                   name: prop.name,
                   type: prop.type,
                   optional: prop.optional

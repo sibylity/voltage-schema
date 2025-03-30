@@ -54,7 +54,7 @@ export interface AnalyticsConfig {
 
 export interface GenerationConfig {
   events: string;
-  globals: string;
+  groups: string[];
   output: string;
   disableComments?: boolean;
 }

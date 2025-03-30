@@ -10,7 +10,7 @@ const path_1 = __importDefault(require("path"));
 const schemaValidation_1 = require("./schemaValidation");
 const fileValidation_1 = require("./fileValidation");
 const logging_1 = require("./logging");
-const validateGlobalsSchema = (0, schemaValidation_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.globals.schema.json"));
+const validateGlobalsSchema = (0, schemaValidation_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.groups.schema.json"));
 // Default empty globals when file is not provided
 exports.defaultGlobals = {
     groups: [],

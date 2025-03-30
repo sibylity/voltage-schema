@@ -22,7 +22,6 @@ function getAnalyticsConfig() {
     }
 }
 function readGenerationConfigFiles(genConfig) {
-    const globalsPath = path_1.default.resolve(process.cwd(), genConfig.globals);
     const eventsPath = path_1.default.resolve(process.cwd(), genConfig.events);
     if (!fs_1.default.existsSync(eventsPath)) {
         console.error(`❌ Events file not found: ${eventsPath}`);
@@ -36,22 +35,31 @@ function readGenerationConfigFiles(genConfig) {
         console.error(`❌ Failed to parse events file at ${eventsPath}:`, error);
         process.exit(1);
     }
-    let globals;
-    if (fs_1.default.existsSync(globalsPath)) {
-        try {
-            globals = JSON.parse(fs_1.default.readFileSync(globalsPath, "utf8"));
+    // Combine groups and dimensions from all group files
+    const combinedGlobals = {
+        groups: [],
+        dimensions: []
+    };
+    for (const groupFile of genConfig.groups) {
+        const groupPath = path_1.default.resolve(process.cwd(), groupFile);
+        if (fs_1.default.existsSync(groupPath)) {
+            try {
+                const groupContent = JSON.parse(fs_1.default.readFileSync(groupPath, "utf8"));
+                if (groupContent.groups) {
+                    combinedGlobals.groups.push(...groupContent.groups);
+                }
+                if (groupContent.dimensions) {
+                    combinedGlobals.dimensions.push(...groupContent.dimensions);
+                }
+            }
+            catch (error) {
+                console.error(`❌ Failed to parse group file at ${groupPath}:`, error);
+                process.exit(1);
+            }
         }
-        catch (error) {
-            console.error(`❌ Failed to parse globals file at ${globalsPath}:`, error);
-            process.exit(1);
+        else {
+            console.log(`ℹ️ Group file not found at ${groupPath}, skipping.`);
         }
     }
-    else {
-        console.log(`ℹ️ No globals file found at ${globalsPath}, using default empty values.`);
-        globals = {
-            groups: [],
-            dimensions: []
-        };
-    }
-    return { globals, events };
+    return { globals: combinedGlobals, events };
 }

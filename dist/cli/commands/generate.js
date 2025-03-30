@@ -303,7 +303,16 @@ function registerGenerateCommand(program) {
             const outputPath = path_1.default.resolve(process.cwd(), genConfig.output);
             const outputDir = path_1.default.dirname(outputPath);
             const outputExt = path_1.default.extname(outputPath).toLowerCase();
-            const { events, globals } = (0, analyticsConfigHelper_1.readGenerationConfigFiles)(genConfig);
+            const { events } = (0, analyticsConfigHelper_1.readGenerationConfigFiles)(genConfig);
+            // Combine groups from all group files
+            const allGroups = {};
+            for (const groupFile of genConfig.groups) {
+                const groupPath = path_1.default.resolve(process.cwd(), groupFile);
+                const groupContent = JSON.parse(fs_1.default.readFileSync(groupPath, 'utf-8'));
+                if (groupContent.groups) {
+                    Object.assign(allGroups, groupContent.groups);
+                }
+            }
             if (!fs_1.default.existsSync(outputDir)) {
                 fs_1.default.mkdirSync(outputDir, { recursive: true });
             }
@@ -324,7 +333,7 @@ function registerGenerateCommand(program) {
                         }
                     ];
                 })),
-                groups: Object.fromEntries(Object.entries(globals.groups || {}).map(([groupName, group]) => {
+                groups: Object.fromEntries(Object.entries(allGroups).map(([groupName, group]) => {
                     var _a;
                     return [
                         groupName,
