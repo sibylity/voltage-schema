@@ -120,7 +120,7 @@ function formatDimensionOutput(
     const output: DimensionData = {
       dimension,
       description: dimensionConfig.description,
-      identifiers: dimensionConfig.identifiers,
+      identifiers: dimensionConfig.identifiers || { AND: [], OR: [] },
       events: data.events
     };
 

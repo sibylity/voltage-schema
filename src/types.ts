@@ -76,8 +76,36 @@ export interface Dimension {
   name: string;
   description: string;
   identifiers: {
-    AND?: DimensionIdentifier[];
-    OR?: DimensionIdentifier[];
+    AND?: Array<{
+      property: string;
+      group?: string;
+      equals?: string | number | boolean;
+      not?: string | number | boolean;
+      contains?: (string | number | boolean)[];
+      in?: (string | number | boolean)[];
+      notIn?: (string | number | boolean)[];
+      startsWith?: string;
+      endsWith?: string;
+      lt?: number;
+      lte?: number;
+      gt?: number;
+      gte?: number;
+    }>;
+    OR?: Array<{
+      property: string;
+      group?: string;
+      equals?: string | number | boolean;
+      not?: string | number | boolean;
+      contains?: (string | number | boolean)[];
+      in?: (string | number | boolean)[];
+      notIn?: (string | number | boolean)[];
+      startsWith?: string;
+      endsWith?: string;
+      lt?: number;
+      lte?: number;
+      gt?: number;
+      gte?: number;
+    }>;
   };
 }
 

@@ -1167,7 +1167,8 @@ function generateAutodocHtml() {
              const filteredDimensions = filterDimensions();
              container.innerHTML = filteredDimensions
                .map(dim => {
-                 const identifiersHtml = dim.identifiers.map(identifier => {
+                 const combinedIdentifiers = [...dim.identifiers.OR || [], ...dim.identifiers.AND || []];
+                 const identifiersHtml = combinedIdentifiers.map(identifier => {
                    const entriesHtml = Object.entries(identifier)
                      .filter(([key]) => key !== 'property')
                      .map(([key, value]) => 
@@ -1487,7 +1488,9 @@ function generateAutodocHtml() {
              const groups = {};
              events.forEach(event => {
                if (!event.dimensions || event.dimensions.length === 0) {
-                 if (!groups['Ungrouped']) groups['Ungrouped'] = [];
+                 if (!groups['Ungrouped']) {
+                   groups['Ungrouped'] = [];
+                 }
                  groups['Ungrouped'].push(event);
                } else {
                  // Only add the event to the groups that match its dimensions
@@ -1522,7 +1525,7 @@ function generateAutodocHtml() {
                  const eventsByName = {};
                  groupEvents.forEach(event => {
                    // Only include the event if it has the current dimension
-                   if (groupName === 'All Events' || event.dimensions?.some(d => d.name === groupName)) {
+                   if (groupName === 'All Events' || groupName === 'Ungrouped' || event.dimensions?.some(d => d.name === groupName)) {
                      if (!eventsByName[event.name]) {
                        eventsByName[event.name] = [];
                      }
@@ -1640,12 +1643,13 @@ function generateAutodocHtml() {
              const propertiesCount = document.getElementById('propertiesCount');
              const dimensionsCount = document.getElementById('dimensionsCount');
              
-             const filteredEvents = filterEvents(window.state.events);
-             const filteredProperties = filterProperties();
-             const filteredDimensions = filterDimensions();
+             const filteredEventImplementations = filterEvents(window.state.events) || [];
+             const filteredEventNames = new Set(filteredEventImplementations.map(event => event.name));
+             const filteredProperties = filterProperties() || [];
+             const filteredDimensions = filterDimensions() || [];
              
              if (eventsCount) {
-               eventsCount.textContent = filteredEvents.length + ' events from ' + window.state.schemaFileCount + ' analytics schema files';
+               eventsCount.textContent = filteredEventNames.size + ' events and ' + filteredEventImplementations.length + ' implementations from ' + window.state.schemaFileCount + ' analytics schema files';
              }
              if (propertiesCount) {
                propertiesCount.textContent = filteredProperties.length + ' properties from ' + window.state.schemaFileCount + ' analytics schema files';
