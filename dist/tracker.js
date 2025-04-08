@@ -15,7 +15,7 @@ function resolveProperties(properties) {
     return resolved;
 }
 function createAnalyticsTracker(context, options) {
-    const { onEventTracked, onGroupUpdate, onError = console.error } = options;
+    const { onEventTracked, onGroupUpdated, onError = console.error } = options;
     const groupProperties = {};
     return {
         track: (eventKey, eventProperties) => {
@@ -58,7 +58,7 @@ function createAnalyticsTracker(context, options) {
                 try {
                     const groupNameStr = group.name;
                     const resolvedProperties = resolveProperties(properties);
-                    onGroupUpdate(groupNameStr, resolvedProperties);
+                    onGroupUpdated(groupNameStr, resolvedProperties);
                 }
                 catch (error) {
                     onError(new Error(`Failed to update group: ${error instanceof Error ? error.message : String(error)}`));

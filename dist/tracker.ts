@@ -56,7 +56,7 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
 ): AnalyticsTracker<T> {
   const {
     onEventTracked,
-    onGroupUpdate,
+    onGroupUpdated,
     onError = console.error
   } = options;
 
@@ -118,7 +118,7 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
         try {
           const groupNameStr = group.name as T["groups"][G]["name"];
           const resolvedProperties = resolveProperties(properties as Record<string, PropertyValue>);
-          onGroupUpdate(groupNameStr, resolvedProperties);
+          onGroupUpdated(groupNameStr, resolvedProperties);
         } catch (error) {
           onError(new Error(`Failed to update group: ${error instanceof Error ? error.message : String(error)}`));
         }

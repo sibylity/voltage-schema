@@ -212,7 +212,7 @@ export interface TrackerOptions<T extends TrackerEvents> {
     eventProperties: T["events"][TrackerEvent<T>]["properties"],
     groupProperties: { [K in TrackerGroup<T>]: T["groups"][K]["properties"] }
   ) => void;
-  onGroupUpdate: (
+  onGroupUpdated: (
     groupName: T["groups"][TrackerGroup<T>]["name"],
     properties: T["groups"][TrackerGroup<T>]["properties"]
   ) => void;

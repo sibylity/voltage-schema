@@ -172,7 +172,7 @@ function generateTypeDefinitions(events, globals) {
         '    eventProperties: T["events"][E]["properties"],',
         '    groupProperties: Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>',
         '  ) => void;',
-        '  onGroupUpdate: <G extends TrackerGroup<T>>(',
+        '  onGroupUpdated: <G extends TrackerGroup<T>>(',
         '    groupName: T["groups"][G]["name"],',
         '    properties: T["groups"][G]["properties"]',
         '  ) => void;',
