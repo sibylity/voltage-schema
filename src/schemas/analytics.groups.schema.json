@@ -56,6 +56,7 @@
               "type": "object",
               "properties": {
                 "property": { "type": "string" },
+                "group": { "type": "string" },
                 "contains": {
                   "type": "array",
                   "items": { "type": ["string", "number", "boolean"] }
@@ -95,7 +96,7 @@
                   "type": "number"
                 }
               },
-              "required": ["property"]
+              "required": ["property", "group"]
             }
           }
         },

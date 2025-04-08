@@ -7,9 +7,9 @@ exports.validateAnalyticsFiles = validateAnalyticsFiles;
 const path_1 = __importDefault(require("path"));
 const logging_1 = require("./logging");
 const validateAnalyticsConfig_1 = require("./validateAnalyticsConfig");
-const validateAnalyticsGlobals_1 = require("./validateAnalyticsGlobals");
 const validateAnalyticsEvents_1 = require("./validateAnalyticsEvents");
 const analyticsConfigHelper_1 = require("../utils/analyticsConfigHelper");
+const validateAnalyticsGroups_1 = require("./validateAnalyticsGroups");
 function validateAnalyticsFiles() {
     var _a, _b;
     const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
@@ -28,13 +28,13 @@ function validateAnalyticsFiles() {
         // First pass: collect all group names and check for duplicates
         for (const groupFile of genConfig.groups) {
             const groupPath = path_1.default.resolve(process.cwd(), groupFile);
-            const globalsResult = (0, validateAnalyticsGlobals_1.validateGlobals)(groupPath, eventsPath);
-            if (!globalsResult.isValid) {
+            const groupsResult = (0, validateAnalyticsGroups_1.validateGroups)(groupPath, eventsPath);
+            if (!groupsResult.isValid) {
                 hasValidGroups = false;
                 continue;
             }
             // Check for duplicate group names
-            (_a = globalsResult.data) === null || _a === void 0 ? void 0 : _a.groups.forEach((group) => {
+            (_a = groupsResult.data) === null || _a === void 0 ? void 0 : _a.groups.forEach((group) => {
                 if (groupNames.has(group.name)) {
                     duplicateGroups.add(group.name);
                 }
@@ -53,13 +53,13 @@ function validateAnalyticsFiles() {
         const allDimensions = new Set();
         for (const groupFile of genConfig.groups) {
             const groupPath = path_1.default.resolve(process.cwd(), groupFile);
-            const globalsResult = (0, validateAnalyticsGlobals_1.validateGlobals)(groupPath, eventsPath);
-            if (!globalsResult.isValid) {
+            const groupsResult = (0, validateAnalyticsGroups_1.validateGroups)(groupPath, eventsPath);
+            if (!groupsResult.isValid) {
                 hasValidGroups = false;
                 continue;
             }
             // Add dimensions from this group file to the set
-            (_b = globalsResult.data) === null || _b === void 0 ? void 0 : _b.dimensions.forEach((dim) => {
+            (_b = groupsResult.data) === null || _b === void 0 ? void 0 : _b.dimensions.forEach((dim) => {
                 allDimensions.add(dim.name);
             });
         }

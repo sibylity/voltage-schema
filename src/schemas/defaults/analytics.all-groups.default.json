@@ -6,6 +6,7 @@
       "identifiers": [
         {
           "property": "Plan",
+          "group": "Team",
           "equals": "FREE"
         }
       ]
@@ -16,6 +17,7 @@
       "identifiers": [
         {
           "property": "Plan",
+          "group": "Team",
           "not": "FREE"
         }
       ]

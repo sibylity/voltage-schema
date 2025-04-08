@@ -3,9 +3,9 @@ import { type AnalyticsConfig } from "../../types";
 import { type ValidationResult } from "./types";
 import { logValidationErrors } from "./logging";
 import { validateAnalyticsConfig } from "./validateAnalyticsConfig";
-import { validateGlobals } from "./validateAnalyticsGlobals";
 import { validateEvents } from "./validateAnalyticsEvents";
 import { getAnalyticsConfig } from "../utils/analyticsConfigHelper";
+import { validateGroups } from "./validateAnalyticsGroups";
 
 export function validateAnalyticsFiles(): boolean {
   const config = getAnalyticsConfig();
@@ -27,15 +27,15 @@ export function validateAnalyticsFiles(): boolean {
     // First pass: collect all group names and check for duplicates
     for (const groupFile of genConfig.groups) {
       const groupPath = path.resolve(process.cwd(), groupFile);
-      const globalsResult = validateGlobals(groupPath, eventsPath);
+      const groupsResult = validateGroups(groupPath, eventsPath);
       
-      if (!globalsResult.isValid) {
+      if (!groupsResult.isValid) {
         hasValidGroups = false;
         continue;
       }
 
       // Check for duplicate group names
-      globalsResult.data?.groups.forEach((group: { name: string }) => {
+      groupsResult.data?.groups.forEach((group: { name: string }) => {
         if (groupNames.has(group.name)) {
           duplicateGroups.add(group.name);
         } else {
@@ -55,15 +55,15 @@ export function validateAnalyticsFiles(): boolean {
     const allDimensions = new Set<string>();
     for (const groupFile of genConfig.groups) {
       const groupPath = path.resolve(process.cwd(), groupFile);
-      const globalsResult = validateGlobals(groupPath, eventsPath);
+      const groupsResult = validateGroups(groupPath, eventsPath);
       
-      if (!globalsResult.isValid) {
+      if (!groupsResult.isValid) {
         hasValidGroups = false;
         continue;
       }
 
       // Add dimensions from this group file to the set
-      globalsResult.data?.dimensions.forEach((dim: { name: string }) => {
+      groupsResult.data?.dimensions.forEach((dim: { name: string }) => {
         allDimensions.add(dim.name);
       });
     }

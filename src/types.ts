@@ -79,6 +79,7 @@ export interface Dimension {
 
 export interface DimensionIdentifier {
   property: string;
+  group: string;
   contains?: (string | number | boolean)[];
   equals?: string | number | boolean;
   not?: string | number | boolean;
