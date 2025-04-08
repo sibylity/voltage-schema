@@ -1,13 +1,28 @@
 # Voltage Schema
 
-A type-safe analytics schema and tracking library.
+A comprehensive analytics schema system that provides type-safe tracking & documentation that can be read & understood by AI agents to help with analysis.
 
 ## Features
 
-- Robust analytics schema configuration
-- Auto-doc of all analytics data
-- Type-safe tracking generated from schemas
-- Agnostic of destination (works with any analytics vendor)
+- **Type-Safe Analytics**
+  - Robust analytics schema configuration
+  - Type-safe tracking generated from schemas
+  - Agnostic of destination (works with any analytics vendor)
+
+- **Documentation & Understanding**
+  - Auto-generated documentation of all analytics data
+  - Rich context for events, properties, and dimensions
+  - Interactive documentation viewer
+
+- **Schema Evolution Tracking**
+  - Historical tracking of schema changes
+  - AI-readable format for analytics understanding
+  - Context preservation for data analysis
+
+- **AI-Assisted Analytics**
+  - Machine-readable schema documentation
+  - Historical context for AI analysis
+  - Evolution tracking for intelligent data interpretation
 
 ## Installation
 
@@ -17,6 +32,8 @@ npm install voltage-schema
 
 ## Usage
 
+Schema files for voltage can be initialized by running ```npm voltage init```.
+
 ### 1. Configure Analytics
 
 Create an `analytics.config.json` file in your project root:
@@ -25,10 +42,10 @@ Create an `analytics.config.json` file in your project root:
 {
   "generates": [
     {
-      "dimensions": ["./analytics.all-dimensions.json"],
-      "groups": ["./analytics.all-groups.json"],
-      "events": "./analytics.events.json",
-      "output": "/__analytics_generated__/analytics.ts"
+      "dimensions": ["./analytics.all-dimensions.json"], // optional
+      "groups": ["./analytics.all-groups.json"], // optional
+      "events": "./analytics.events.json", // required
+      "output": "/__analytics_generated__/analytics.ts" // required
     }
   ]
 }
@@ -42,26 +59,26 @@ Create `analytics.events.json` to define your events:
 {
   "events": {
     "page_view": {
+      "name": "Page View",
+      "description": "Triggered when a user views a page.",
+      "dimensions": ["Free", "Paid"],
       "properties": [
         {
-          "name": "page_title",
-          "type": "string"
-        },
-        {
-          "name": "page_url",
+          "name": "Page Name",
+          "description": "The name of the page that was viewed.",
           "type": "string"
         }
       ]
     },
-    "button_click": {
+    "add_user": {
+      "name": "Add User",
+      "description": "Triggered when an admin adds a user to their team. This requires a paid plan.",
+      "dimensions": ["Paid"],
       "properties": [
         {
-          "name": "button_id",
-          "type": "string"
-        },
-        {
-          "name": "button_text",
-          "type": "string"
+          "name": "Role",
+          "description": "The role of the user that was added.",
+          "type": ["admin", "member"]
         }
       ]
     }
@@ -93,9 +110,8 @@ tracker.track('page_view', {
 });
 
 // Track a button click event
-tracker.track('button_click', {
-  button_id: 'signup_button',
-  button_text: 'Sign Up'
+tracker.track('add_user', {
+  Role: 'member',
 });
 ```
 
@@ -123,6 +139,27 @@ npm voltage events
 # Start a local documentation server
 npm voltage autodoc
 ```
+
+### 5. Documentation
+
+The autodoc system provides:
+- Comprehensive documentation of all analytics events
+- Property and dimension definitions
+- Historical schema changes
+- Machine-readable format for AI consumption
+
+Access the documentation by running:
+```bash
+npm voltage autodoc
+```
+
+## Contributing
+
+When contributing to Voltage Schema:
+1. Ensure all events and properties are well-documented
+2. Include clear descriptions and context
+3. Follow the schema evolution guidelines
+4. Run validation and tests before submitting changes
 
 ## License
 
