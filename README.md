@@ -25,6 +25,7 @@ Create an `analytics.config.json` file in your project root:
 {
   "generates": [
     {
+      "dimensions": ["./analytics.all-dimensions.json"],
       "groups": ["./analytics.all-groups.json"],
       "events": "./analytics.events.json",
       "output": "/__analytics_generated__/analytics.ts"
@@ -80,7 +81,7 @@ const tracker: AnalyticsTracker<TrackerEvents> = createAnalyticsTracker<TrackerE
   onEventTracked: (eventName, eventProperties, groupProperties) => {
     // Send the event to your analytics service
   },
-  onGroupUpdate: (groupName, properties) => {
+  onGroupUpdated: (groupName, properties) => {
     // Send the group traits to your analytics service
   },
 } as TrackerOptions<GeneratedTrackerEvents>);
