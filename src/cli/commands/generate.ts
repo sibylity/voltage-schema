@@ -340,11 +340,13 @@ export function registerGenerateCommand(program: Command) {
 
         // Combine groups from all group files
         const allGroups: Record<string, any> = {};
-        for (const groupFile of genConfig.groups) {
-          const groupPath = path.resolve(process.cwd(), groupFile);
-          const groupContent = JSON.parse(fs.readFileSync(groupPath, 'utf-8'));
-          if (groupContent.groups) {
-            Object.assign(allGroups, groupContent.groups);
+        if (genConfig.groups) {
+          for (const groupFile of genConfig.groups) {
+            const groupPath = path.resolve(process.cwd(), groupFile);
+            const groupContent = JSON.parse(fs.readFileSync(groupPath, 'utf-8'));
+            if (groupContent.groups) {
+              Object.assign(allGroups, groupContent.groups);
+            }
           }
         }
 

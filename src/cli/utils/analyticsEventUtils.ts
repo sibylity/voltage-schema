@@ -1,4 +1,4 @@
-import { type AnalyticsConfig, type AnalyticsEvents, type AnalyticsGlobals, type AnalyticsSchemaProperty, type Dimension } from "../../types";
+import { type AnalyticsEvents, type AnalyticsGlobals, type AnalyticsSchemaProperty, type Dimension } from "../../types";
 import { getAnalyticsConfig, readGenerationConfigFiles } from "./analyticsConfigHelper";
 
 export interface EventProperty extends AnalyticsSchemaProperty {

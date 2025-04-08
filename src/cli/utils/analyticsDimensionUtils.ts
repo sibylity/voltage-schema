@@ -1,5 +1,5 @@
 import { getAnalyticsConfig, readGenerationConfigFiles } from "./analyticsConfigHelper";
-import { type AnalyticsEvents, type AnalyticsGlobals, type Dimension } from "../../types";
+import { type AnalyticsEvents, type AnalyticsGlobals } from "../../types";
 
 interface DimensionEventMap {
   [dimension: string]: {

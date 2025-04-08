@@ -2,9 +2,11 @@
   "generates": [
     {
       "events": "./analytics.events.json",
+      "dimensions": [
+        "./analytics.all-dimensions.json"
+      ],
       "groups": [
-        "./analytics.every-event-group.json",
-        "./analytics.user-and-team-groups.json"
+        "./analytics.all-groups.json"
       ],
       "output": "./__analytics_generated__/analytics.ts"
     }

@@ -39,29 +39,49 @@ export function readGenerationConfigFiles(genConfig: AnalyticsConfig["generates"
     process.exit(1);
   }
 
-  // Combine groups and dimensions from all group files
+  // Combine groups and dimensions from all files
   const combinedGlobals: AnalyticsGlobals = {
     groups: [],
     dimensions: []
   };
 
-  for (const groupFile of genConfig.groups) {
-    const groupPath = path.resolve(process.cwd(), groupFile);
-    if (fs.existsSync(groupPath)) {
-      try {
-        const groupContent = JSON.parse(fs.readFileSync(groupPath, "utf8")) as AnalyticsGlobals;
-        if (groupContent.groups) {
-          combinedGlobals.groups.push(...groupContent.groups);
+  // Process groups if present
+  if (genConfig.groups) {
+    for (const groupFile of genConfig.groups) {
+      const groupPath = path.resolve(process.cwd(), groupFile);
+      if (fs.existsSync(groupPath)) {
+        try {
+          const groupContent = JSON.parse(fs.readFileSync(groupPath, "utf8")) as AnalyticsGlobals;
+          if (groupContent.groups) {
+            combinedGlobals.groups.push(...groupContent.groups);
+          }
+        } catch (error) {
+          console.error(`❌ Failed to parse group file at ${groupPath}:`, error);
+          process.exit(1);
         }
-        if (groupContent.dimensions) {
-          combinedGlobals.dimensions.push(...groupContent.dimensions);
-        }
-      } catch (error) {
-        console.error(`❌ Failed to parse group file at ${groupPath}:`, error);
-        process.exit(1);
+      } else {
+        console.log(`ℹ️ Group file not found at ${groupPath}, skipping.`);
       }
-    } else {
-      console.log(`ℹ️ Group file not found at ${groupPath}, skipping.`);
+    }
+  }
+
+  // Process dimensions if present
+  if (genConfig.dimensions) {
+    for (const dimensionFile of genConfig.dimensions) {
+      const dimensionPath = path.resolve(process.cwd(), dimensionFile);
+      if (fs.existsSync(dimensionPath)) {
+        try {
+          const dimensionContent = JSON.parse(fs.readFileSync(dimensionPath, "utf8")) as AnalyticsGlobals;
+          if (dimensionContent.dimensions) {
+            combinedGlobals.dimensions.push(...dimensionContent.dimensions);
+          }
+        } catch (error) {
+          console.error(`❌ Failed to parse dimension file at ${dimensionPath}:`, error);
+          process.exit(1);
+        }
+      } else {
+        console.log(`ℹ️ Dimension file not found at ${dimensionPath}, skipping.`);
+      }
     }
   }
 

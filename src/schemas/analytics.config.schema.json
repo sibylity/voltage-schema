@@ -8,6 +8,10 @@
         "type": "object",
         "properties": {
           "events": { "type": "string" },
+          "dimensions": { 
+            "type": "array",
+            "items": { "type": "string" }
+          },
           "groups": { 
             "type": "array",
             "items": { "type": "string" }
@@ -15,7 +19,7 @@
           "output": { "type": "string" },
           "disableComments": { "type": "boolean", "default": false }
         },
-        "required": ["events", "groups", "output"]
+        "required": ["events", "output"]
       }
     }
   },

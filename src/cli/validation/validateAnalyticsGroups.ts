@@ -1,8 +1,8 @@
 import fs from "fs";
 import path from "path";
 import type { ErrorObject } from "ajv";
-import { type AnalyticsGlobals, type Dimension, type DimensionIdentifier, type Group, type Property } from "../../types";
-import { type ValidationResult, type ValidationContext } from "./types";
+import { type AnalyticsGlobals, type Dimension, type Group, } from "../../types";
+import { type ValidationResult } from "./types";
 import { createValidator } from "./schemaValidation";
 import { parseJsonFile } from "./fileValidation";
 import { logValidationStart, logValidationSuccess, logValidationErrors } from "./logging";

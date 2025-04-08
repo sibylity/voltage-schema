@@ -306,11 +306,13 @@ function registerGenerateCommand(program) {
             const { events } = (0, analyticsConfigHelper_1.readGenerationConfigFiles)(genConfig);
             // Combine groups from all group files
             const allGroups = {};
-            for (const groupFile of genConfig.groups) {
-                const groupPath = path_1.default.resolve(process.cwd(), groupFile);
-                const groupContent = JSON.parse(fs_1.default.readFileSync(groupPath, 'utf-8'));
-                if (groupContent.groups) {
-                    Object.assign(allGroups, groupContent.groups);
+            if (genConfig.groups) {
+                for (const groupFile of genConfig.groups) {
+                    const groupPath = path_1.default.resolve(process.cwd(), groupFile);
+                    const groupContent = JSON.parse(fs_1.default.readFileSync(groupPath, 'utf-8'));
+                    if (groupContent.groups) {
+                        Object.assign(allGroups, groupContent.groups);
+                    }
                 }
             }
             if (!fs_1.default.existsSync(outputDir)) {

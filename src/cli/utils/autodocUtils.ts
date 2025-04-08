@@ -40,11 +40,24 @@ export function generateAutodocHtml(): string {
             </svg>
             Input Groups
           </div>
-          ${genConfig.groups.map(groupFile => `
+          ${genConfig.groups ? genConfig.groups.map(groupFile => `
             <div class="file-path" data-tooltip="${groupFile}">
               <input type="text" value="${groupFile}" readonly>
             </div>
-          `).join('')}
+          `).join('') : '<div class="file-path">No groups configured</div>'}
+        </div>
+        <div class="schema-group">
+          <div class="schema-group-title">
+            <svg width="12" height="12" viewBox="0 0 16 16" fill="none">
+              <path d="M3 3h10v2H3zM3 7h7v2H3zM3 11h4v2H3z" fill="currentColor"/>
+            </svg>
+            Input Dimensions
+          </div>
+          ${genConfig.dimensions ? genConfig.dimensions.map(dimensionFile => `
+            <div class="file-path" data-tooltip="${dimensionFile}">
+              <input type="text" value="${dimensionFile}" readonly>
+            </div>
+          `).join('') : '<div class="file-path">No dimensions configured</div>'}
         </div>
         <div class="schema-group">
           <div class="schema-group-title">
