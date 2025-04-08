@@ -42,10 +42,8 @@ Create an `analytics.config.json` file in your project root:
 {
   "generates": [
     {
-      "dimensions": ["./analytics.all-dimensions.json"], // optional
-      "groups": ["./analytics.all-groups.json"], // optional
-      "events": "./analytics.events.json", // required
-      "output": "/__analytics_generated__/analytics.ts" // required
+      "events": "./analytics.events.json",
+      "output": "/__analytics_generated__/analytics.ts"
     }
   ]
 }
@@ -61,7 +59,6 @@ Create `analytics.events.json` to define your events:
     "page_view": {
       "name": "Page View",
       "description": "Triggered when a user views a page.",
-      "dimensions": ["Free", "Paid"],
       "properties": [
         {
           "name": "Page Name",
@@ -73,7 +70,6 @@ Create `analytics.events.json` to define your events:
     "add_user": {
       "name": "Add User",
       "description": "Triggered when an admin adds a user to their team. This requires a paid plan.",
-      "dimensions": ["Paid"],
       "properties": [
         {
           "name": "Role",
