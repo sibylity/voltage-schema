@@ -1,26 +1,4 @@
 {
-  "dimensions": [
-    {
-      "name": "Free",
-      "description": "Teams without a paid plan.",
-      "identifiers": [
-        {
-          "property": "Plan",
-          "equals": "FREE"
-        }
-      ]
-    },
-    {
-      "name": "Paid",
-      "description": "Teams with a paid plan.",
-      "identifiers": [
-        {
-          "property": "Plan",
-          "not": "FREE"
-        }
-      ]
-    }
-  ],
   "groups": [
     {
       "name": "EveryEvent",

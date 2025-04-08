@@ -78,18 +78,21 @@ function generateTypeDefinitions(events, globals) {
         const propertyTypes = ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.map(prop => {
             const type = Array.isArray(prop.type) ? prop.type : [prop.type];
             const tsType = type.map(t => {
-                switch (t) {
-                    case 'string': return 'string';
-                    case 'number': return 'number';
-                    case 'boolean': return 'boolean';
-                    case 'string[]': return 'string[]';
-                    case 'number[]': return 'number[]';
-                    case 'boolean[]': return 'boolean[]';
-                    default: return 'any';
+                if (typeof t === 'string') {
+                    switch (t) {
+                        case 'string': return 'string';
+                        case 'number': return 'number';
+                        case 'boolean': return 'boolean';
+                        case 'string[]': return 'string[]';
+                        case 'number[]': return 'number[]';
+                        case 'boolean[]': return 'boolean[]';
+                        default: return `'${t}'`;
+                    }
                 }
+                return 'any';
             }).join(' | ');
             const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
-            return `  "${prop.name}"${prop.optional ? '?' : ''}: ${valueType} | (() => ${valueType});`;
+            return `  "${prop.name}": ${valueType} | (() => ${valueType});`;
         }).join('\n')) || '';
         return [
             `  "${key}": {`,
@@ -113,18 +116,21 @@ function generateTypeDefinitions(events, globals) {
         const propertyTypes = ((_a = group.properties) === null || _a === void 0 ? void 0 : _a.map(prop => {
             const type = Array.isArray(prop.type) ? prop.type : [prop.type];
             const tsType = type.map(t => {
-                switch (t) {
-                    case 'string': return 'string';
-                    case 'number': return 'number';
-                    case 'boolean': return 'boolean';
-                    case 'string[]': return 'string[]';
-                    case 'number[]': return 'number[]';
-                    case 'boolean[]': return 'boolean[]';
-                    default: return 'any';
+                if (typeof t === 'string') {
+                    switch (t) {
+                        case 'string': return 'string';
+                        case 'number': return 'number';
+                        case 'boolean': return 'boolean';
+                        case 'string[]': return 'string[]';
+                        case 'number[]': return 'number[]';
+                        case 'boolean[]': return 'boolean[]';
+                        default: return `'${t}'`;
+                    }
                 }
+                return 'any';
             }).join(' | ');
             const valueType = prop.optional ? `(${tsType} | null | undefined)` : tsType;
-            return `  "${prop.name}"${prop.optional ? '?' : ''}: ${valueType} | (() => ${valueType});`;
+            return `  "${prop.name}": ${valueType} | (() => ${valueType});`;
         }).join('\n')) || '';
         return [
             `  "${group.name}": {`,
@@ -257,7 +263,15 @@ ${properties || '    // No properties'}
 }
 function getPropertyType(type) {
     if (Array.isArray(type)) {
-        return type.map(t => t).join(" | ");
+        return type.map(t => {
+            if (typeof t === 'string' && !['string', 'number', 'boolean', 'string[]', 'number[]', 'boolean[]'].includes(t)) {
+                return `'${t}'`;
+            }
+            return t;
+        }).join(' | ');
+    }
+    if (typeof type === 'string' && !['string', 'number', 'boolean', 'string[]', 'number[]', 'boolean[]'].includes(type)) {
+        return `'${type}'`;
     }
     return type;
 }
@@ -306,11 +320,13 @@ function registerGenerateCommand(program) {
             const { events } = (0, analyticsConfigHelper_1.readGenerationConfigFiles)(genConfig);
             // Combine groups from all group files
             const allGroups = {};
-            for (const groupFile of genConfig.groups) {
-                const groupPath = path_1.default.resolve(process.cwd(), groupFile);
-                const groupContent = JSON.parse(fs_1.default.readFileSync(groupPath, 'utf-8'));
-                if (groupContent.groups) {
-                    Object.assign(allGroups, groupContent.groups);
+            if (genConfig.groups) {
+                for (const groupFile of genConfig.groups) {
+                    const groupPath = path_1.default.resolve(process.cwd(), groupFile);
+                    const groupContent = JSON.parse(fs_1.default.readFileSync(groupPath, 'utf-8'));
+                    if (groupContent.groups) {
+                        Object.assign(allGroups, groupContent.groups);
+                    }
                 }
             }
             if (!fs_1.default.existsSync(outputDir)) {

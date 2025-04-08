@@ -5,6 +5,7 @@ import { Command } from "commander";
 // Default paths
 const configPath = path.resolve(process.cwd(), "analytics.config.json");
 const defaultConfigPath = path.resolve(__dirname, "../../schemas/defaults/analytics.config.default.json");
+const defaultAllDimensionsPath = path.resolve(__dirname, "../../schemas/defaults/analytics.all-dimensions.default.json");
 const defaultAllGroupsPath = path.resolve(__dirname, "../../schemas/defaults/analytics.all-groups.default.json");
 const defaultEventsPath = path.resolve(__dirname, "../../schemas/defaults/analytics.events.default.json");
 
@@ -17,6 +18,7 @@ export function registerInitCommand(program: Command) {
       const files = [
         { src: defaultConfigPath, dest: configPath, name: "config" },
         { src: defaultAllGroupsPath, dest: "analytics.all-groups.json", name: "all-groups" },
+        { src: defaultAllDimensionsPath, dest: "analytics.all-dimensions.json", name: "all-dimensions" },
         { src: defaultEventsPath, dest: "analytics.events.json", name: "events" }
       ];
 

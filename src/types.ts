@@ -45,7 +45,8 @@ export interface AnalyticsConfig {
 
 export interface GenerationConfig {
   events: string;
-  groups: string[];
+  dimensions?: string[];
+  groups?: string[];
   output: string;
   disableComments?: boolean;
 }
@@ -74,11 +75,43 @@ export interface Property {
 export interface Dimension {
   name: string;
   description: string;
-  identifiers: DimensionIdentifier[];
+  identifiers: {
+    AND?: Array<{
+      property: string;
+      group?: string;
+      equals?: string | number | boolean;
+      not?: string | number | boolean;
+      contains?: (string | number | boolean)[];
+      in?: (string | number | boolean)[];
+      notIn?: (string | number | boolean)[];
+      startsWith?: string;
+      endsWith?: string;
+      lt?: number;
+      lte?: number;
+      gt?: number;
+      gte?: number;
+    }>;
+    OR?: Array<{
+      property: string;
+      group?: string;
+      equals?: string | number | boolean;
+      not?: string | number | boolean;
+      contains?: (string | number | boolean)[];
+      in?: (string | number | boolean)[];
+      notIn?: (string | number | boolean)[];
+      startsWith?: string;
+      endsWith?: string;
+      lt?: number;
+      lte?: number;
+      gt?: number;
+      gte?: number;
+    }>;
+  };
 }
 
 export interface DimensionIdentifier {
   property: string;
+  group: string;
   contains?: (string | number | boolean)[];
   equals?: string | number | boolean;
   not?: string | number | boolean;

@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "dimensions": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "identifiers": {
+            "type": "object",
+            "properties": {
+              "AND": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "property": { "type": "string" },
+                    "group": { "type": "string" },
+                    "contains": {
+                      "type": "array",
+                      "items": { "type": ["string", "number", "boolean"] }
+                    },
+                    "equals": {
+                      "type": ["string", "number", "boolean"]
+                    },
+                    "not": {
+                      "type": ["string", "number", "boolean"]
+                    },
+                    "in": {
+                      "type": "array",
+                      "items": { "type": ["string", "number", "boolean"] }
+                    },
+                    "notIn": {
+                      "type": "array",
+                      "items": { "type": ["string", "number", "boolean"] }
+                    },
+                    "startsWith": {
+                      "type": "array",
+                      "items": { "type": ["string", "number", "boolean"] }
+                    },
+                    "endsWith": {
+                      "type": "array",
+                      "items": { "type": ["string", "number", "boolean"] }
+                    },
+                    "lt": {
+                      "type": "number"
+                    },
+                    "lte": {
+                      "type": "number"
+                    },
+                    "gt": {
+                      "type": "number"
+                    },
+                    "gte": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["property", "group"]
+                }
+              },
+              "OR": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "property": { "type": "string" },
+                    "group": { "type": "string" },
+                    "contains": {
+                      "type": "array",
+                      "items": { "type": ["string", "number", "boolean"] }
+                    },
+                    "equals": {
+                      "type": ["string", "number", "boolean"]
+                    },
+                    "not": {
+                      "type": ["string", "number", "boolean"]
+                    },
+                    "in": {
+                      "type": "array",
+                      "items": { "type": ["string", "number", "boolean"] }
+                    },
+                    "notIn": {
+                      "type": "array",
+                      "items": { "type": ["string", "number", "boolean"] }
+                    },
+                    "startsWith": {
+                      "type": "array",
+                      "items": { "type": ["string", "number", "boolean"] }
+                    },
+                    "endsWith": {
+                      "type": "array",
+                      "items": { "type": ["string", "number", "boolean"] }
+                    },
+                    "lt": {
+                      "type": "number"
+                    },
+                    "lte": {
+                      "type": "number"
+                    },
+                    "gt": {
+                      "type": "number"
+                    },
+                    "gte": {
+                      "type": "number"
+                    }
+                  },
+                  "required": ["property", "group"]
+                }
+              }
+            },
+            "oneOf": [
+              { "required": ["AND"] },
+              { "required": ["OR"] }
+            ]
+          }
+        },
+        "required": ["name", "description", "identifiers"]
+      }
+    }
+  },
+  "required": []
+} 

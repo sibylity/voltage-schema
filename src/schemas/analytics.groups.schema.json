@@ -41,66 +41,6 @@
         },
         "required": ["name", "description", "properties"]
       }
-    },
-    "dimensions": {
-      "type": "array",
-      "default": [],
-      "items": {
-        "type": "object",
-        "properties": {
-          "name": { "type": "string" },
-          "description": { "type": "string" },
-          "identifiers": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "property": { "type": "string" },
-                "contains": {
-                  "type": "array",
-                  "items": { "type": ["string", "number", "boolean"] }
-                },
-                "equals": {
-                  "type": ["string", "number", "boolean"]
-                },
-                "not": {
-                  "type": ["string", "number", "boolean"]
-                },
-                "in": {
-                  "type": "array",
-                  "items": { "type": ["string", "number", "boolean"] }
-                },
-                "notIn": {
-                  "type": "array",
-                  "items": { "type": ["string", "number", "boolean"] }
-                },
-                "startsWith": {
-                  "type": "array",
-                  "items": { "type": ["string", "number", "boolean"] }
-                },
-                "endsWith": {
-                  "type": "array",
-                  "items": { "type": ["string", "number", "boolean"] }
-                },
-                "lt": {
-                  "type": "number"
-                },
-                "lte": {
-                  "type": "number"
-                },
-                "gt": {
-                  "type": "number"
-                },
-                "gte": {
-                  "type": "number"
-                }
-              },
-              "required": ["property"]
-            }
-          }
-        },
-        "required": ["name", "description", "identifiers"]
-      }
     }
   },
   "required": []
