@@ -26,20 +26,40 @@ function validateGroupDimensions(dimensions: Dimension[], groups: Group[], event
   });
 
   // Validate each dimension
-  dimensions.forEach(dimension => {
-    dimension.identifiers.forEach(identifier => {
-      // Check that the group exists
-      if (!groupProperties.has(identifier.group)) {
-        errors.push(`Dimension "${dimension.name}" references non-existent group "${identifier.group}"`);
-        return;
-      }
+  (dimensions || []).forEach(dimension => {
+    // Validate AND identifiers if present
+    if (dimension.identifiers.AND) {
+      dimension.identifiers.AND.forEach(identifier => {
+        // Check that the group exists
+        if (!groupProperties.has(identifier.group)) {
+          errors.push(`Dimension "${dimension.name}" references non-existent group "${identifier.group}"`);
+          return;
+        }
 
-      // Check that the property exists on the specified group
-      const properties = groupProperties.get(identifier.group)!;
-      if (!properties.has(identifier.property)) {
-        errors.push(`Dimension "${dimension.name}" references property "${identifier.property}" which does not exist on group "${identifier.group}"`);
-      }
-    });
+        // Check that the property exists on the specified group
+        const properties = groupProperties.get(identifier.group)!;
+        if (!properties.has(identifier.property)) {
+          errors.push(`Dimension "${dimension.name}" references property "${identifier.property}" which does not exist on group "${identifier.group}"`);
+        }
+      });
+    }
+
+    // Validate OR identifiers if present
+    if (dimension.identifiers.OR) {
+      dimension.identifiers.OR.forEach(identifier => {
+        // Check that the group exists
+        if (!groupProperties.has(identifier.group)) {
+          errors.push(`Dimension "${dimension.name}" references non-existent group "${identifier.group}"`);
+          return;
+        }
+
+        // Check that the property exists on the specified group
+        const properties = groupProperties.get(identifier.group)!;
+        if (!properties.has(identifier.property)) {
+          errors.push(`Dimension "${dimension.name}" references property "${identifier.property}" which does not exist on group "${identifier.group}"`);
+        }
+      });
+    }
   });
 
   return errors.length > 0 ? { isValid: false, errors } : { isValid: true };

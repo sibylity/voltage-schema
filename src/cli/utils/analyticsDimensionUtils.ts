@@ -21,20 +21,36 @@ interface DimensionEventCounts {
 export interface DimensionData {
   dimension: string;
   description: string;
-  identifiers: Array<{
-    property: string;
-    contains?: (string | number | boolean)[];
-    equals?: string | number | boolean;
-    not?: string | number | boolean;
-    in?: (string | number | boolean)[];
-    notIn?: (string | number | boolean)[];
-    startsWith?: string;
-    endsWith?: string;
-    lt?: number;
-    lte?: number;
-    gt?: number;
-    gte?: number;
-  }>;
+  identifiers: {
+    AND?: Array<{
+      property: string;
+      contains?: (string | number | boolean)[];
+      equals?: string | number | boolean;
+      not?: string | number | boolean;
+      in?: (string | number | boolean)[];
+      notIn?: (string | number | boolean)[];
+      startsWith?: string;
+      endsWith?: string;
+      lt?: number;
+      lte?: number;
+      gt?: number;
+      gte?: number;
+    }>;
+    OR?: Array<{
+      property: string;
+      contains?: (string | number | boolean)[];
+      equals?: string | number | boolean;
+      not?: string | number | boolean;
+      in?: (string | number | boolean)[];
+      notIn?: (string | number | boolean)[];
+      startsWith?: string;
+      endsWith?: string;
+      lt?: number;
+      lte?: number;
+      gt?: number;
+      gte?: number;
+    }>;
+  };
   events: string[];
   eventDetails?: Array<{
     key: string;
@@ -71,7 +87,7 @@ function processEvent(
 
   event.dimensions.forEach((dim) => {
     if (!dimensionMap[dim]) {
-      console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in any globals.dimensions.`);
+      console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in any dimensions.`);
       return;
     }
 

@@ -38,7 +38,7 @@ function validateEventDimensions(
     
     event.dimensions.forEach((dim) => {
       if (!validDimensions.has(dim)) {
-        errors.push(`Invalid dimension "${dim}" in event "${eventKey}". It is not listed in globals.dimensions.`);
+        errors.push(`Invalid dimension "${dim}" in event "${eventKey}". It is not listed in dimensions.`);
       }
     });
   }

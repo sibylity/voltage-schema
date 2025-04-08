@@ -19,7 +19,7 @@ function processEvent(eventKey, event, dimensionMap, dimensionEventCounts) {
         return;
     event.dimensions.forEach((dim) => {
         if (!dimensionMap[dim]) {
-            console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in any globals.dimensions.`);
+            console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in any dimensions.`);
             return;
         }
         // Track event count for this dimension

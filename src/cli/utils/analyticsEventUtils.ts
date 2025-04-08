@@ -9,20 +9,36 @@ export interface EventProperty extends AnalyticsSchemaProperty {
 export interface EventDimension {
   name: string;
   description: string;
-  identifiers: Array<{
-    property: string;
-    contains?: (string | number | boolean)[];
-    equals?: string | number | boolean;
-    not?: string | number | boolean;
-    in?: (string | number | boolean)[];
-    notIn?: (string | number | boolean)[];
-    startsWith?: string;
-    endsWith?: string;
-    lt?: number;
-    lte?: number;
-    gt?: number;
-    gte?: number;
-  }>;
+  identifiers: {
+    AND?: Array<{
+      property: string;
+      contains?: (string | number | boolean)[];
+      equals?: string | number | boolean;
+      not?: string | number | boolean;
+      in?: (string | number | boolean)[];
+      notIn?: (string | number | boolean)[];
+      startsWith?: string;
+      endsWith?: string;
+      lt?: number;
+      lte?: number;
+      gt?: number;
+      gte?: number;
+    }>;
+    OR?: Array<{
+      property: string;
+      contains?: (string | number | boolean)[];
+      equals?: string | number | boolean;
+      not?: string | number | boolean;
+      in?: (string | number | boolean)[];
+      notIn?: (string | number | boolean)[];
+      startsWith?: string;
+      endsWith?: string;
+      lt?: number;
+      lte?: number;
+      gt?: number;
+      gte?: number;
+    }>;
+  };
 }
 
 export interface EventOutput {

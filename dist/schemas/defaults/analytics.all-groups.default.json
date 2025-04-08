@@ -3,24 +3,38 @@
     {
       "name": "Free",
       "description": "Teams without a paid plan.",
-      "identifiers": [
-        {
-          "property": "Plan",
-          "group": "Team",
-          "equals": "FREE"
-        }
-      ]
+      "identifiers": {
+        "OR": [
+          {
+            "property": "Plan",
+            "group": "Team",
+            "equals": "FREE"
+          },
+          {
+            "property": "Plan",
+            "group": "Team",
+            "equals": "TRIAL"
+          }
+        ]
+      }
     },
     {
       "name": "Paid",
       "description": "Teams with a paid plan.",
-      "identifiers": [
-        {
-          "property": "Plan",
-          "group": "Team",
-          "not": "FREE"
-        }
-      ]
+      "identifiers": {
+        "AND": [
+          {
+            "property": "Plan",
+            "group": "Team",
+            "not": "FREE"
+          },
+          {
+            "property": "Plan",
+            "group": "Team",
+            "not": "TRIAL"
+          }
+        ]
+      }
     }
   ],
   "groups": [

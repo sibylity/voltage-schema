@@ -35,7 +35,7 @@ export function validateAnalyticsFiles(): boolean {
       }
 
       // Check for duplicate group names
-      groupsResult.data?.groups.forEach((group: { name: string }) => {
+      groupsResult.data?.groups?.forEach((group: { name: string }) => {
         if (groupNames.has(group.name)) {
           duplicateGroups.add(group.name);
         } else {
@@ -63,7 +63,7 @@ export function validateAnalyticsFiles(): boolean {
       }
 
       // Add dimensions from this group file to the set
-      groupsResult.data?.dimensions.forEach((dim: { name: string }) => {
+      groupsResult.data?.dimensions?.forEach((dim: { name: string }) => {
         allDimensions.add(dim.name);
       });
     }

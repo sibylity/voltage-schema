@@ -74,7 +74,10 @@ export interface Property {
 export interface Dimension {
   name: string;
   description: string;
-  identifiers: DimensionIdentifier[];
+  identifiers: {
+    AND?: DimensionIdentifier[];
+    OR?: DimensionIdentifier[];
+  };
 }
 
 export interface DimensionIdentifier {

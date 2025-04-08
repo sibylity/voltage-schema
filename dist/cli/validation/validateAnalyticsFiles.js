@@ -11,7 +11,7 @@ const validateAnalyticsEvents_1 = require("./validateAnalyticsEvents");
 const analyticsConfigHelper_1 = require("../utils/analyticsConfigHelper");
 const validateAnalyticsGroups_1 = require("./validateAnalyticsGroups");
 function validateAnalyticsFiles() {
-    var _a, _b;
+    var _a, _b, _c, _d;
     const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
     const configPath = path_1.default.resolve(process.cwd(), "analytics.config.json");
     const configResult = (0, validateAnalyticsConfig_1.validateAnalyticsConfig)(configPath, { filePath: configPath });
@@ -34,7 +34,7 @@ function validateAnalyticsFiles() {
                 continue;
             }
             // Check for duplicate group names
-            (_a = groupsResult.data) === null || _a === void 0 ? void 0 : _a.groups.forEach((group) => {
+            (_b = (_a = groupsResult.data) === null || _a === void 0 ? void 0 : _a.groups) === null || _b === void 0 ? void 0 : _b.forEach((group) => {
                 if (groupNames.has(group.name)) {
                     duplicateGroups.add(group.name);
                 }
@@ -59,7 +59,7 @@ function validateAnalyticsFiles() {
                 continue;
             }
             // Add dimensions from this group file to the set
-            (_b = groupsResult.data) === null || _b === void 0 ? void 0 : _b.dimensions.forEach((dim) => {
+            (_d = (_c = groupsResult.data) === null || _c === void 0 ? void 0 : _c.dimensions) === null || _d === void 0 ? void 0 : _d.forEach((dim) => {
                 allDimensions.add(dim.name);
             });
         }
