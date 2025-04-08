@@ -31,7 +31,10 @@ function validateGroupDimensions(dimensions: Dimension[], groups: Group[], event
     if (dimension.identifiers.AND) {
       dimension.identifiers.AND.forEach(identifier => {
         // Skip validation if no group is specified
-        if (!identifier.group) return;
+        if (!identifier.group) {
+          console.warn(`Dimension "${dimension.name}" has AND identifier with no group specified`);
+          return;
+        }
 
         // Check that the group exists
         if (!groupProperties.has(identifier.group)) {
@@ -51,7 +54,10 @@ function validateGroupDimensions(dimensions: Dimension[], groups: Group[], event
     if (dimension.identifiers.OR) {
       dimension.identifiers.OR.forEach(identifier => {
         // Skip validation if no group is specified
-        if (!identifier.group) return;
+        if (!identifier.group) {
+          errors.push(`Dimension "${dimension.name}" has OR identifier with no group specified`);
+          return;
+        }
 
         // Check that the group exists
         if (!groupProperties.has(identifier.group)) {
