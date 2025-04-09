@@ -11,11 +11,16 @@ const validateEventsSchema = createValidator(path.resolve(__dirname, "../../sche
 
 function validateEventProperties(event: Event, eventKey: string): ValidationResult<void> {
   const errors: string[] = [];
+  const propertyNames = new Set<string>();
 
   if (event.properties) {
     event.properties.forEach((prop) => {
       if (!prop.name || !prop.type) {
         errors.push(`Property in event "${eventKey}" is missing required fields (name, type).`);
+      } else if (propertyNames.has(prop.name)) {
+        errors.push(`Duplicate property name "${prop.name}" found in event "${eventKey}".`);
+      } else {
+        propertyNames.add(prop.name);
       }
     });
   }

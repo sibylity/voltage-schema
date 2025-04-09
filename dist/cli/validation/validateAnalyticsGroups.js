@@ -86,6 +86,19 @@ function validateGroupIdentifiedBy(group) {
     }
     return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
 }
+function validateGroupProperties(group) {
+    const errors = [];
+    const propertyNames = new Set();
+    group.properties.forEach((prop) => {
+        if (propertyNames.has(prop.name)) {
+            errors.push(`Duplicate property name "${prop.name}" found in group "${group.name}".`);
+        }
+        else {
+            propertyNames.add(prop.name);
+        }
+    });
+    return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
+}
 function validateGroups(groupsPath, eventsPath) {
     var _a;
     const context = { filePath: groupsPath };
@@ -124,12 +137,16 @@ function validateGroups(groupsPath, eventsPath) {
     if (!dimensionsResult.isValid && dimensionsResult.errors) {
         errors.push(...dimensionsResult.errors);
     }
-    // Validate each group's identifiedBy field
+    // Validate each group's identifiedBy field and properties
     groups.groups.forEach(group => {
         console.log(`🔍 Validating group: ${group.name}`);
         const identifiedByResult = validateGroupIdentifiedBy(group);
         if (!identifiedByResult.isValid && identifiedByResult.errors) {
             errors.push(...identifiedByResult.errors);
+        }
+        const propertiesResult = validateGroupProperties(group);
+        if (!propertiesResult.isValid && propertiesResult.errors) {
+            errors.push(...propertiesResult.errors);
         }
     });
     if (errors.length > 0) {

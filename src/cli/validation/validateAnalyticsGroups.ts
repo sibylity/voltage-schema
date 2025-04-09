@@ -96,6 +96,21 @@ function validateGroupIdentifiedBy(group: { name: string; properties: Array<{ na
   return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
 }
 
+function validateGroupProperties(group: { name: string; properties: Array<{ name: string }> }): ValidationResult<void> {
+  const errors: string[] = [];
+  const propertyNames = new Set<string>();
+
+  group.properties.forEach((prop) => {
+    if (propertyNames.has(prop.name)) {
+      errors.push(`Duplicate property name "${prop.name}" found in group "${group.name}".`);
+    } else {
+      propertyNames.add(prop.name);
+    }
+  });
+
+  return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
+}
+
 export function validateGroups(groupsPath: string, eventsPath: string): ValidationResult<AnalyticsGlobals> {
   const context = { filePath: groupsPath };
   logValidationStart(context);
@@ -143,12 +158,17 @@ export function validateGroups(groupsPath: string, eventsPath: string): Validati
     errors.push(...dimensionsResult.errors);
   }
 
-  // Validate each group's identifiedBy field
+  // Validate each group's identifiedBy field and properties
   groups.groups.forEach(group => {
     console.log(`🔍 Validating group: ${group.name}`);
     const identifiedByResult = validateGroupIdentifiedBy(group);
     if (!identifiedByResult.isValid && identifiedByResult.errors) {
       errors.push(...identifiedByResult.errors);
+    }
+
+    const propertiesResult = validateGroupProperties(group);
+    if (!propertiesResult.isValid && propertiesResult.errors) {
+      errors.push(...propertiesResult.errors);
     }
   });
 

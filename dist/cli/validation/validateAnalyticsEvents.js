@@ -11,10 +11,17 @@ const logging_1 = require("./logging");
 const validateEventsSchema = (0, schemaValidation_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.events.schema.json"));
 function validateEventProperties(event, eventKey) {
     const errors = [];
+    const propertyNames = new Set();
     if (event.properties) {
         event.properties.forEach((prop) => {
             if (!prop.name || !prop.type) {
                 errors.push(`Property in event "${eventKey}" is missing required fields (name, type).`);
+            }
+            else if (propertyNames.has(prop.name)) {
+                errors.push(`Duplicate property name "${prop.name}" found in event "${eventKey}".`);
+            }
+            else {
+                propertyNames.add(prop.name);
             }
         });
     }

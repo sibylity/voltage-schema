@@ -3,15 +3,31 @@ import { type ValidationResult } from "./types";
 import { createValidator } from "./schemaValidation";
 import { parseJsonFile } from "./fileValidation";
 import { logValidationErrors } from "./logging";
+import { type AnalyticsSchemaDimension } from "../../types";
 
 const validateDimensionsSchema = createValidator(path.resolve(__dirname, "../../schemas/analytics.dimensions.schema.json"));
+
+function validateDimensionNames(dimensions: Array<{ name: string }>): ValidationResult<void> {
+  const errors: string[] = [];
+  const dimensionNames = new Set<string>();
+
+  dimensions.forEach((dim) => {
+    if (dimensionNames.has(dim.name)) {
+      errors.push(`Duplicate dimension name "${dim.name}" found in dimensions file.`);
+    } else {
+      dimensionNames.add(dim.name);
+    }
+  });
+
+  return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
+}
 
 export function validateDimensions(
   dimensionPath: string,
   eventsPath: string
-): ValidationResult<any> {
-  const result = parseJsonFile(dimensionPath);
-  if (!result.isValid) {
+): ValidationResult<{ dimensions: AnalyticsSchemaDimension[] }> {
+  const result = parseJsonFile<{ dimensions: AnalyticsSchemaDimension[] }>(dimensionPath);
+  if (!result.isValid || !result.data) {
     logValidationErrors(result.errors || []);
     return result;
   }
@@ -23,6 +39,13 @@ export function validateDimensions(
     ) || [];
     logValidationErrors(errors);
     return { isValid: false, errors };
+  }
+
+  // Check for duplicate dimension names
+  const namesResult = validateDimensionNames(result.data.dimensions);
+  if (!namesResult.isValid && namesResult.errors) {
+    logValidationErrors(namesResult.errors);
+    return { isValid: false, errors: namesResult.errors };
   }
 
   return result;
