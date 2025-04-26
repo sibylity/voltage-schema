@@ -9,6 +9,7 @@ interface TrackingConfigProperty {
   name: string;
   type: string | string[];
   optional?: boolean;
+  value?: any;
 }
 
 interface TrackingConfig {
@@ -63,7 +64,7 @@ function generateEventConfigs(trackingConfig: TrackingConfig, events: AnalyticsE
   properties: [
     ${event.properties.map(prop => `{
       name: '${prop.name}',
-      type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}
+      type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.value !== undefined ? `,\n      value: ${JSON.stringify(prop.value)}` : ''}
     }`).join(',\n    ')}
   ]
 };`;
@@ -76,20 +77,25 @@ function generateEventConfigs(trackingConfig: TrackingConfig, events: AnalyticsE
  */
 export function generateTrackingConfig(globals: any, events: any): string {
   const eventEntries = Object.entries(events.events || {})
-    .map(([key, _]) => `    ${key}: ${normalizeEventKey(key)}Event`)
+    .map(([key, event]: [string, any]) => {
+      return `    ${key}: {
+      name: '${event.name}',
+      properties: [
+        ${event.properties?.map((prop: any) => `{
+          name: '${prop.name}',
+          type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.value !== undefined ? `,\n          value: ${JSON.stringify(prop.value)}` : ''}
+        }`).join(',\n        ')}
+      ]
+    }`;
+    })
     .join(',\n');
 
   const groupsConfig = globals.groups.map((group: any) => {
-    const properties = group.properties.map((prop: { name: string; type: string | string[] }) => ({
-      name: prop.name,
-      type: prop.type
-    }));
-
-    const propertyEntries = properties.map((prop: { name: string; type: string | string[] }) => {
+    const propertyEntries = group.properties.map((prop: any) => {
       const type = Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`;
       return `        {
           name: '${prop.name}',
-          type: ${type}
+          type: ${type}${prop.value !== undefined ? `,\n          value: ${JSON.stringify(prop.value)}` : ''}
         }`;
     }).join(',\n');
 
@@ -118,7 +124,9 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
   const eventTypes = Object.entries(events.events).map(([key, event]) => {
     const properties = event.properties?.map((prop) => {
       const type = Array.isArray(prop.type) ? prop.type.map((t: string) => `'${t}'`).join(' | ') : prop.type;
-      return `'${prop.name}': ${type} | (() => ${type})`;
+      // Make properties with default values optional
+      const isOptional = prop.optional || prop.value !== undefined;
+      return `'${prop.name}'${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
     }).join('; ') || '';
 
     return `    ${key}: {
@@ -130,7 +138,9 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
   const groupTypes = globals.groups.map((group) => {
     const properties = group.properties.map((prop) => {
       const type = Array.isArray(prop.type) ? prop.type.map((t: string) => `'${t}'`).join(' | ') : prop.type;
-      return `${prop.name}: ${type} | (() => ${type})`;
+      // Make properties with default values optional
+      const isOptional = prop.optional || prop.value !== undefined;
+      return `${prop.name}${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
     }).join('; ');
 
     return `    ${group.name}: {
@@ -155,28 +165,6 @@ ${eventTypes}
   };
   groups: {
 ${groupTypes}
-  };
-  globals: {
-    dimensions: {
-      [K: string]: {
-        name: string;
-        description: string;
-        identifiers: Array<{
-          property: string;
-          contains?: (string | number | boolean)[];
-          equals?: string | number | boolean;
-          not?: string | number | boolean;
-          in?: (string | number | boolean)[];
-          notIn?: (string | number | boolean)[];
-          startsWith?: string;
-          endsWith?: string;
-          lt?: number;
-          lte?: number;
-          gt?: number;
-          gte?: number;
-        }>;
-      };
-    };
   };
 }
 
@@ -298,7 +286,8 @@ export function registerGenerateCommand(program: Command) {
                 properties: event.properties?.map((prop: AnalyticsSchemaProperty) => ({
                   name: prop.name,
                   type: prop.type,
-                  optional: prop.optional
+                  optional: prop.optional,
+                  value: prop.value
                 })) || []
               }
             ])
@@ -311,7 +300,8 @@ export function registerGenerateCommand(program: Command) {
                 properties: group.properties?.map((prop: AnalyticsSchemaProperty) => ({
                   name: prop.name,
                   type: prop.type,
-                  optional: prop.optional
+                  optional: prop.optional,
+                  value: prop.value
                 })) || [],
                 identifiedBy: group.identifiedBy
               }

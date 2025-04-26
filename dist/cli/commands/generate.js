@@ -47,7 +47,7 @@ function generateEventConfigs(trackingConfig, events, includeComments) {
   properties: [
     ${event.properties.map(prop => `{
       name: '${prop.name}',
-      type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}
+      type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.value !== undefined ? `,\n      value: ${JSON.stringify(prop.value)}` : ''}
     }`).join(',\n    ')}
   ]
 };`;
@@ -59,18 +59,25 @@ function generateEventConfigs(trackingConfig, events, includeComments) {
  */
 function generateTrackingConfig(globals, events) {
     const eventEntries = Object.entries(events.events || {})
-        .map(([key, _]) => `    ${key}: ${normalizeEventKey(key)}Event`)
+        .map(([key, event]) => {
+        var _a;
+        return `    ${key}: {
+      name: '${event.name}',
+      properties: [
+        ${(_a = event.properties) === null || _a === void 0 ? void 0 : _a.map((prop) => `{
+          name: '${prop.name}',
+          type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.value !== undefined ? `,\n          value: ${JSON.stringify(prop.value)}` : ''}
+        }`).join(',\n        ')}
+      ]
+    }`;
+    })
         .join(',\n');
     const groupsConfig = globals.groups.map((group) => {
-        const properties = group.properties.map((prop) => ({
-            name: prop.name,
-            type: prop.type
-        }));
-        const propertyEntries = properties.map((prop) => {
+        const propertyEntries = group.properties.map((prop) => {
             const type = Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`;
             return `        {
           name: '${prop.name}',
-          type: ${type}
+          type: ${type}${prop.value !== undefined ? `,\n          value: ${JSON.stringify(prop.value)}` : ''}
         }`;
         }).join(',\n');
         return `    '${group.name}': {
@@ -97,7 +104,9 @@ function generateTypeDefinitions(events, globals) {
         var _a;
         const properties = ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.map((prop) => {
             const type = Array.isArray(prop.type) ? prop.type.map((t) => `'${t}'`).join(' | ') : prop.type;
-            return `'${prop.name}': ${type} | (() => ${type})`;
+            // Make properties with default values optional
+            const isOptional = prop.optional || prop.value !== undefined;
+            return `'${prop.name}'${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
         }).join('; ')) || '';
         return `    ${key}: {
       name: '${event.name}';
@@ -107,7 +116,9 @@ function generateTypeDefinitions(events, globals) {
     const groupTypes = globals.groups.map((group) => {
         const properties = group.properties.map((prop) => {
             const type = Array.isArray(prop.type) ? prop.type.map((t) => `'${t}'`).join(' | ') : prop.type;
-            return `${prop.name}: ${type} | (() => ${type})`;
+            // Make properties with default values optional
+            const isOptional = prop.optional || prop.value !== undefined;
+            return `${prop.name}${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
         }).join('; ');
         return `    ${group.name}: {
       name: '${group.name}';
@@ -130,28 +141,6 @@ ${eventTypes}
   };
   groups: {
 ${groupTypes}
-  };
-  globals: {
-    dimensions: {
-      [K: string]: {
-        name: string;
-        description: string;
-        identifiers: Array<{
-          property: string;
-          contains?: (string | number | boolean)[];
-          equals?: string | number | boolean;
-          not?: string | number | boolean;
-          in?: (string | number | boolean)[];
-          notIn?: (string | number | boolean)[];
-          startsWith?: string;
-          endsWith?: string;
-          lt?: number;
-          lte?: number;
-          gt?: number;
-          gte?: number;
-        }>;
-      };
-    };
   };
 }
 
@@ -262,7 +251,8 @@ function registerGenerateCommand(program) {
                             properties: ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.map((prop) => ({
                                 name: prop.name,
                                 type: prop.type,
-                                optional: prop.optional
+                                optional: prop.optional,
+                                value: prop.value
                             }))) || []
                         }
                     ];
@@ -276,7 +266,8 @@ function registerGenerateCommand(program) {
                             properties: ((_a = group.properties) === null || _a === void 0 ? void 0 : _a.map((prop) => ({
                                 name: prop.name,
                                 type: prop.type,
-                                optional: prop.optional
+                                optional: prop.optional,
+                                value: prop.value
                             }))) || [],
                             identifiedBy: group.identifiedBy
                         }

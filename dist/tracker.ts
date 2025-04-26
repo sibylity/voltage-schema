@@ -14,6 +14,7 @@ export interface RuntimeEvent {
     name: string;
     type: string | string[];
     optional?: boolean;
+    value?: any;
   }>;
   passthrough?: boolean;
 }
@@ -24,6 +25,7 @@ export interface RuntimeGroup {
     name: string;
     type: string | string[];
     optional?: boolean;
+    value?: any;
   }>;
   passthrough?: boolean;
 }
@@ -79,7 +81,23 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
         // Send the event
         try {
           const eventName = event.name as T["events"][E]["name"];
-          const resolvedEventProperties = resolveProperties(eventProperties);
+          
+          // Create a new object with default values
+          const propertiesWithDefaults: Record<string, PropertyValue> = {};
+          
+          // Add default values first
+          if (event.properties) {
+            for (const prop of event.properties) {
+              if (prop.value !== undefined) {
+                propertiesWithDefaults[prop.name] = prop.value;
+              }
+            }
+          }
+          
+          // Override with provided properties
+          Object.assign(propertiesWithDefaults, eventProperties);
+          
+          const resolvedEventProperties = resolveProperties(propertiesWithDefaults);
           const resolvedGroupProperties = Object.fromEntries(
             Object.entries(groupProperties).map(([key, props]) => [
               key,
@@ -117,7 +135,23 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
         // Send the group data
         try {
           const groupNameStr = group.name as T["groups"][G]["name"];
-          const resolvedProperties = resolveProperties(properties as Record<string, PropertyValue>);
+          
+          // Create a new object with default values
+          const propertiesWithDefaults: Record<string, PropertyValue> = {};
+          
+          // Add default values first
+          if (group.properties) {
+            for (const prop of group.properties) {
+              if (prop.value !== undefined) {
+                propertiesWithDefaults[prop.name] = prop.value;
+              }
+            }
+          }
+          
+          // Override with provided properties
+          Object.assign(propertiesWithDefaults, properties);
+          
+          const resolvedProperties = resolveProperties(propertiesWithDefaults);
           onGroupUpdated(groupNameStr, resolvedProperties);
         } catch (error) {
           onError(new Error(`Failed to update group: ${error instanceof Error ? error.message : String(error)}`));
