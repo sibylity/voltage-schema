@@ -21,8 +21,7 @@
                     "property": { "type": "string" },
                     "group": { "type": "string" },
                     "contains": {
-                      "type": "array",
-                      "items": { "type": ["string", "number", "boolean"] }
+                      "type": ["string", "number", "boolean"]
                     },
                     "equals": {
                       "type": ["string", "number", "boolean"]
@@ -70,8 +69,7 @@
                     "property": { "type": "string" },
                     "group": { "type": "string" },
                     "contains": {
-                      "type": "array",
-                      "items": { "type": ["string", "number", "boolean"] }
+                      "type": ["string", "number", "boolean"]
                     },
                     "equals": {
                       "type": ["string", "number", "boolean"]

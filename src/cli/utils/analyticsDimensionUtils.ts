@@ -24,7 +24,7 @@ export interface DimensionData {
   identifiers: {
     AND?: Array<{
       property: string;
-      contains?: (string | number | boolean)[];
+      contains?: (string | number | boolean);
       equals?: string | number | boolean;
       not?: string | number | boolean;
       in?: (string | number | boolean)[];
@@ -38,7 +38,7 @@ export interface DimensionData {
     }>;
     OR?: Array<{
       property: string;
-      contains?: (string | number | boolean)[];
+      contains?: (string | number | boolean);
       equals?: string | number | boolean;
       not?: string | number | boolean;
       in?: (string | number | boolean)[];

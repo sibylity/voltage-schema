@@ -12,7 +12,7 @@ export interface EventDimension {
   identifiers: {
     AND?: Array<{
       property: string;
-      contains?: (string | number | boolean)[];
+      contains?: (string | number | boolean);
       equals?: string | number | boolean;
       not?: string | number | boolean;
       in?: (string | number | boolean)[];
@@ -26,7 +26,7 @@ export interface EventDimension {
     }>;
     OR?: Array<{
       property: string;
-      contains?: (string | number | boolean)[];
+      contains?: (string | number | boolean);
       equals?: string | number | boolean;
       not?: string | number | boolean;
       in?: (string | number | boolean)[];

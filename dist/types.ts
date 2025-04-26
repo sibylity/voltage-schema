@@ -9,7 +9,7 @@ export interface AnalyticsSchemaProperty {
 
 export interface AnalyticsSchemaDimensionIdentifier {
   property: string;
-  contains?: (string | number | boolean)[];
+  contains?: (string | number | boolean);
   equals?: string | number | boolean;
   not?: string | number | boolean;
   in?: (string | number | boolean)[];
@@ -68,7 +68,7 @@ export interface DimensionIdentifier {
   group?: string;
   equals?: string | number | boolean;
   not?: string | number | boolean;
-  contains?: (string | number | boolean)[];
+  contains?: (string | number | boolean);
   in?: (string | number | boolean)[];
   notIn?: (string | number | boolean)[];
   startsWith?: string;
