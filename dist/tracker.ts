@@ -5,7 +5,8 @@ import type {
   EventProperties,
   TrackerOptions,
   TrackerGroup,
-  GroupProperties
+  GroupProperties,
+  HasProperties
 } from './types';
 
 export interface RuntimeEvent {
@@ -67,7 +68,7 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
   return {
     track: <E extends TrackerEvent<T>>(
       eventKey: E,
-      eventProperties: EventProperties<T, E>
+      ...args: HasProperties<T, E> extends true ? [eventProperties: EventProperties<T, E>] : []
     ) => {
       try {
         const event = context.events[eventKey];
@@ -75,8 +76,10 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
           throw new ValidationError(`Event "${String(eventKey)}" not found`);
         }
 
+        const eventProperties = args[0] as EventProperties<T, E> | undefined;
+
         // Validate properties
-        validateEventProperties(event, eventProperties);
+        validateEventProperties(event, eventProperties || {});
 
         // Send the event
         try {
@@ -95,7 +98,9 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
           }
           
           // Override with provided properties
-          Object.assign(propertiesWithDefaults, eventProperties);
+          if (eventProperties) {
+            Object.assign(propertiesWithDefaults, eventProperties);
+          }
           
           const resolvedEventProperties = resolveProperties(propertiesWithDefaults);
           const resolvedGroupProperties = Object.fromEntries(

@@ -59,13 +59,18 @@ function generateEventConfigs(trackingConfig: TrackingConfig, events: AnalyticsE
       const comment = includeComments && originalEvent.description 
         ? `/** ${originalEvent.description} */\n` 
         : '';
+      
+      // Check if properties array is empty or contains only undefined
+      const hasProperties = event.properties && event.properties.length > 0 && 
+        !event.properties.every(prop => prop === undefined);
+      
       return `${comment}export const ${normalizedKey}Event = {
   name: '${event.name}',
   properties: [
-    ${event.properties.map(prop => `{
+    ${hasProperties ? event.properties.map(prop => `{
       name: '${prop.name}',
       type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.value !== undefined ? `,\n      value: ${JSON.stringify(prop.value)}` : ''}
-    }`).join(',\n    ')}
+    }`).join(',\n    ') : ''}
   ]
 };`;
     })
@@ -78,26 +83,34 @@ function generateEventConfigs(trackingConfig: TrackingConfig, events: AnalyticsE
 export function generateTrackingConfig(globals: any, events: any): string {
   const eventEntries = Object.entries(events.events || {})
     .map(([key, event]: [string, any]) => {
+      // Check if properties array is empty or contains only undefined
+      const hasProperties = event.properties && event.properties.length > 0 && 
+        !event.properties.every((prop: any) => prop === undefined);
+      
       return `    ${key}: {
       name: '${event.name}',
       properties: [
-        ${event.properties?.map((prop: any) => `{
+        ${hasProperties ? event.properties.map((prop: any) => `{
           name: '${prop.name}',
           type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.value !== undefined ? `,\n          value: ${JSON.stringify(prop.value)}` : ''}
-        }`).join(',\n        ')}
+        }`).join(',\n        ') : ''}
       ]
     }`;
     })
     .join(',\n');
 
   const groupsConfig = globals.groups.map((group: any) => {
-    const propertyEntries = group.properties.map((prop: any) => {
+    // Check if properties array is empty or contains only undefined
+    const hasProperties = group.properties && group.properties.length > 0 && 
+      !group.properties.every((prop: any) => prop === undefined);
+    
+    const propertyEntries = hasProperties ? group.properties.map((prop: any) => {
       const type = Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`;
       return `        {
           name: '${prop.name}',
           type: ${type}${prop.value !== undefined ? `,\n          value: ${JSON.stringify(prop.value)}` : ''}
         }`;
-    }).join(',\n');
+    }).join(',\n') : '';
 
     return `    '${group.name}': {
       name: '${group.name}',
@@ -122,30 +135,34 @@ ${groupsConfig}
  */
 function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlobals): string {
   const eventTypes = Object.entries(events.events).map(([key, event]) => {
-    const properties = event.properties?.map((prop) => {
-      const type = Array.isArray(prop.type) ? prop.type.map((t: string) => `'${t}'`).join(' | ') : prop.type;
-      // Make properties with default values optional
-      const isOptional = prop.optional || prop.value !== undefined;
-      return `'${prop.name}'${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
-    }).join('; ') || '';
+    const properties = event.properties?.length 
+      ? `{ ${event.properties.map((prop) => {
+          const type = Array.isArray(prop.type) ? prop.type.map((t: string) => `'${t}'`).join(' | ') : prop.type;
+          // Make properties with default values optional
+          const isOptional = prop.optional || prop.value !== undefined;
+          return `'${prop.name}'${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
+        }).join('; ')} }`
+      : 'Record<string, never>';
 
     return `    ${key}: {
       name: '${event.name}';
-      properties: { ${properties} };
+      properties: ${properties};
     };`;
   }).join('\n\n');
 
   const groupTypes = globals.groups.map((group) => {
-    const properties = group.properties.map((prop) => {
-      const type = Array.isArray(prop.type) ? prop.type.map((t: string) => `'${t}'`).join(' | ') : prop.type;
-      // Make properties with default values optional
-      const isOptional = prop.optional || prop.value !== undefined;
-      return `${prop.name}${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
-    }).join('; ');
+    const properties = group.properties?.length
+      ? `{ ${group.properties.map((prop) => {
+          const type = Array.isArray(prop.type) ? prop.type.map((t: string) => `'${t}'`).join(' | ') : prop.type;
+          // Make properties with default values optional
+          const isOptional = prop.optional || prop.value !== undefined;
+          return `${prop.name}${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
+        }).join('; ')} }`
+      : 'Record<string, never>';
 
     return `    ${group.name}: {
       name: '${group.name}';
-      properties: { ${properties} };${group.identifiedBy ? `\n      identifiedBy: '${group.identifiedBy}';` : ''}
+      properties: ${properties};${group.identifiedBy ? `\n      identifiedBy: '${group.identifiedBy}';` : ''}
     };`;
   }).join('\n\n');
 
@@ -175,8 +192,14 @@ export type TrackerGroup<T extends TrackerEvents> = ${globals.groups.map(g => `'
 export type EventProperties<T extends TrackerEvents, E extends TrackerEvent<T>> = T['events'][E]['properties'];
 export type GroupProperties<T extends TrackerEvents, G extends TrackerGroup<T>> = T['groups'][G]['properties'];
 
+// Helper type to determine if an event has properties
+type HasProperties<T extends TrackerEvents, E extends TrackerEvent<T>> = EventProperties<T, E> extends Record<string, never> ? false : true;
+
 export interface AnalyticsTracker<T extends TrackerEvents> {
-  track: <E extends TrackerEvent<T>>(eventKey: E, eventProperties: EventProperties<T, E>) => void;
+  track: <E extends TrackerEvent<T>>(
+    eventKey: E,
+    ...args: HasProperties<T, E> extends true ? [eventProperties: EventProperties<T, E>] : []
+  ) => void;
   setProperties: <G extends TrackerGroup<T>>(groupName: G, properties: T['groups'][G]['properties']) => void;
   getProperties: () => { [K in TrackerGroup<T>]: T['groups'][K]['properties'] };
 }

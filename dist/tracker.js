@@ -18,14 +18,15 @@ function createAnalyticsTracker(context, options) {
     const { onEventTracked, onGroupUpdated, onError = console.error } = options;
     const groupProperties = {};
     return {
-        track: (eventKey, eventProperties) => {
+        track: (eventKey, ...args) => {
             try {
                 const event = context.events[eventKey];
                 if (!event) {
                     throw new ValidationError(`Event "${String(eventKey)}" not found`);
                 }
+                const eventProperties = args[0];
                 // Validate properties
-                validateEventProperties(event, eventProperties);
+                validateEventProperties(event, eventProperties || {});
                 // Send the event
                 try {
                     const eventName = event.name;
@@ -40,7 +41,9 @@ function createAnalyticsTracker(context, options) {
                         }
                     }
                     // Override with provided properties
-                    Object.assign(propertiesWithDefaults, eventProperties);
+                    if (eventProperties) {
+                        Object.assign(propertiesWithDefaults, eventProperties);
+                    }
                     const resolvedEventProperties = resolveProperties(propertiesWithDefaults);
                     const resolvedGroupProperties = Object.fromEntries(Object.entries(groupProperties).map(([key, props]) => [
                         key,

@@ -126,10 +126,13 @@ export type TrackerGroup<T extends TrackerEvents> = keyof T["groups"];
 export type EventProperties<T extends TrackerEvents, E extends TrackerEvent<T>> = T["events"][E]["properties"];
 export type GroupProperties<T extends TrackerEvents, G extends TrackerGroup<T>> = T["groups"][G]["properties"];
 
+// Helper type to determine if an event has properties
+export type HasProperties<T extends TrackerEvents, E extends TrackerEvent<T>> = EventProperties<T, E> extends Record<string, never> ? false : true;
+
 export interface AnalyticsTracker<T extends TrackerEvents> {
   track: <E extends TrackerEvent<T>>(
     eventKey: E,
-    eventProperties: EventProperties<T, E>
+    ...args: HasProperties<T, E> extends true ? [eventProperties: EventProperties<T, E>] : []
   ) => void;
   setProperties: <G extends TrackerGroup<T>>(
     groupName: G,
