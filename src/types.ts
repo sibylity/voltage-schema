@@ -28,17 +28,6 @@ export interface AnalyticsSchemaDimension {
   identifiers: AnalyticsSchemaDimensionIdentifier[];
 }
 
-export interface AnalyticsSchemaGlobals {
-  dimensions: AnalyticsSchemaDimension[];
-}
-
-export interface AnalyticsSchemaEvent {
-  name: string;
-  description: string;
-  dimensions?: string[];
-  properties?: AnalyticsSchemaProperty[];
-}
-
 // Analytics Config Types
 export interface AnalyticsConfig {
   generates: GenerationConfig[];
@@ -74,49 +63,12 @@ export interface Property {
   value?: any;
 }
 
-export interface Dimension {
-  name: string;
-  description: string;
-  identifiers: {
-    AND?: Array<{
-      property: string;
-      group?: string;
-      equals?: string | number | boolean;
-      not?: string | number | boolean;
-      contains?: (string | number | boolean)[];
-      in?: (string | number | boolean)[];
-      notIn?: (string | number | boolean)[];
-      startsWith?: string;
-      endsWith?: string;
-      lt?: number;
-      lte?: number;
-      gt?: number;
-      gte?: number;
-    }>;
-    OR?: Array<{
-      property: string;
-      group?: string;
-      equals?: string | number | boolean;
-      not?: string | number | boolean;
-      contains?: (string | number | boolean)[];
-      in?: (string | number | boolean)[];
-      notIn?: (string | number | boolean)[];
-      startsWith?: string;
-      endsWith?: string;
-      lt?: number;
-      lte?: number;
-      gt?: number;
-      gte?: number;
-    }>;
-  };
-}
-
 export interface DimensionIdentifier {
   property: string;
-  group: string;
-  contains?: (string | number | boolean)[];
+  group?: string;
   equals?: string | number | boolean;
   not?: string | number | boolean;
+  contains?: (string | number | boolean)[];
   in?: (string | number | boolean)[];
   notIn?: (string | number | boolean)[];
   startsWith?: string;
@@ -125,6 +77,15 @@ export interface DimensionIdentifier {
   lte?: number;
   gt?: number;
   gte?: number;
+}
+
+export interface Dimension {
+  name: string;
+  description: string;
+  identifiers: {
+    AND?: Array<DimensionIdentifier>;
+    OR?: Array<DimensionIdentifier>;
+  };
 }
 
 // Analytics Events Types
@@ -157,28 +118,6 @@ export interface TrackerEvents {
       identifiedBy?: string;
     };
   };
-  globals: {
-    dimensions: {
-      [K: string]: {
-        name: string;
-        description: string;
-        identifiers: Array<{
-          property: string;
-          contains?: (string | number | boolean)[];
-          equals?: string | number | boolean;
-          not?: string | number | boolean;
-          in?: (string | number | boolean)[];
-          notIn?: (string | number | boolean)[];
-          startsWith?: string;
-          endsWith?: string;
-          lt?: number;
-          lte?: number;
-          gt?: number;
-          gte?: number;
-        }>;
-      };
-    };
-  };
 }
 
 export type TrackerEvent<T extends TrackerEvents> = keyof T["events"];
@@ -186,15 +125,6 @@ export type TrackerGroup<T extends TrackerEvents> = keyof T["groups"];
 
 export type EventProperties<T extends TrackerEvents, E extends TrackerEvent<T>> = T["events"][E]["properties"];
 export type GroupProperties<T extends TrackerEvents, G extends TrackerGroup<T>> = T["groups"][G]["properties"];
-
-// Helper type to make all properties optional except identifiedBy
-type RequiredProperty<T extends TrackerEvents, G extends TrackerGroup<T>> = T["groups"][G]["identifiedBy"] extends string
-  ? { [K in T["groups"][G]["identifiedBy"]]: T["groups"][G]["properties"][K] }
-  : {};
-
-type OptionalProperties<T extends TrackerEvents, G extends TrackerGroup<T>> = T["groups"][G]["identifiedBy"] extends string
-  ? Omit<T["groups"][G]["properties"], T["groups"][G]["identifiedBy"]>
-  : T["groups"][G]["properties"];
 
 export interface AnalyticsTracker<T extends TrackerEvents> {
   track: <E extends TrackerEvent<T>>(

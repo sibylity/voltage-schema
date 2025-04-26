@@ -166,28 +166,6 @@ ${eventTypes}
   groups: {
 ${groupTypes}
   };
-  globals: {
-    dimensions: {
-      [K: string]: {
-        name: string;
-        description: string;
-        identifiers: Array<{
-          property: string;
-          contains?: (string | number | boolean)[];
-          equals?: string | number | boolean;
-          not?: string | number | boolean;
-          in?: (string | number | boolean)[];
-          notIn?: (string | number | boolean)[];
-          startsWith?: string;
-          endsWith?: string;
-          lt?: number;
-          lte?: number;
-          gt?: number;
-          gte?: number;
-        }>;
-      };
-    };
-  };
 }
 
 // Base types for type safety
