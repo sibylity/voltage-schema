@@ -7,7 +7,9 @@ exports.createValidator = createValidator;
 const fs_1 = __importDefault(require("fs"));
 const ajv_1 = __importDefault(require("ajv"));
 function createValidator(schemaPath) {
-    const ajv = new ajv_1.default();
+    const ajv = new ajv_1.default({
+        allowUnionTypes: true // Allow union types to suppress strict mode warnings
+    });
     const schema = JSON.parse(fs_1.default.readFileSync(schemaPath, "utf8"));
     return ajv.compile(schema);
 }
