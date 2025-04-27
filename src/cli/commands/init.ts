@@ -22,7 +22,7 @@ export function registerInitCommand(program: Command) {
         { src: defaultEventsPath, dest: "analytics.events.json", name: "events" }
       ];
 
-      for (const file of files) {
+      files.forEach(file => {
         if (!fs.existsSync(file.src)) {
           console.error(`❌ ${file.name} default file is missing. Please create it.`);
           process.exit(1);
@@ -31,12 +31,12 @@ export function registerInitCommand(program: Command) {
         const destPath = path.resolve(process.cwd(), file.dest);
         if (fs.existsSync(destPath) && !options.reset) {
           console.warn(`⚠️ ${file.dest} already exists. Use --reset to overwrite it.`);
-          continue;
+          return;
         }
 
         const defaultContent = fs.readFileSync(file.src, "utf8");
         fs.writeFileSync(destPath, defaultContent);
         console.log(`✅ ${file.dest} ${options.reset ? "reset" : "created"} successfully!`);
-      }
+      });
     });
 } 

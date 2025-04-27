@@ -1033,12 +1033,13 @@ function generateAutodocHtml() {
            function filterEvents(events) {
              return events.filter(event => {
                if (window.state.filters.search) {
+               const eventProperties = event.properties || [];
                  const searchTerm = window.state.filters.search.toLowerCase();
                  const searchMatch = 
                    event.name.toLowerCase().includes(searchTerm) ||
                    event.key.toLowerCase().includes(searchTerm) ||
                    event.description?.toLowerCase().includes(searchTerm) ||
-                   event.properties.some(p => 
+                   eventProperties.some(p => 
                      p.name.toLowerCase().includes(searchTerm) ||
                      p.description?.toLowerCase().includes(searchTerm)
                    );
@@ -1166,7 +1167,16 @@ function generateAutodocHtml() {
              const filteredDimensions = filterDimensions();
              container.innerHTML = filteredDimensions
                .map(dim => {
-                 const combinedIdentifiers = [...dim.identifiers.OR || [], ...dim.identifiers.AND || []];
+                 // Only combine identifiers if they exist
+                 const hasIdentifiers = dim.identifiers && (
+                   (dim.identifiers.OR && dim.identifiers.OR.length > 0) || 
+                   (dim.identifiers.AND && dim.identifiers.AND.length > 0)
+                 );
+                 
+                 const combinedIdentifiers = hasIdentifiers ? 
+                   [...(dim.identifiers.OR || []), ...(dim.identifiers.AND || [])] : 
+                   [];
+
                  const identifiersHtml = combinedIdentifiers.map(identifier => {
                    const entriesHtml = Object.entries(identifier)
                      .filter(([key]) => key !== 'property')
@@ -1184,25 +1194,23 @@ function generateAutodocHtml() {
                    '<div class="section-title">Events</div>' +
                    '<div class="property-list">' +
                      Object.entries(groupEventsByName(dim.eventDetails))
-                       .map(([eventName, events]) => {
-                         const descriptionHtml = events[0].description 
-                           ? '<div class="property-description">' + events[0].description + '</div>'
-                           : '';
-                         return '<div class="property">' +
-                           '<div class="property-name">' + eventName + '</div>' +
-                           '<div class="property-type">' + events.length + ' implementation' + (events.length > 1 ? 's' : '') + '</div>' +
-                           '<div class="event-group-keys">' +
-                             events.map(event => 
-                               '<div class="event-group-key">' + event.key + '</div>'
-                             ).join('') +
-                           '</div>' +
-                           descriptionHtml +
-                           '</div>';
-                       }).join('') +
+                       .map(([eventName, events]) => renderEventGroup(eventName, events, dim.dimension))
+                       .join('') +
                    '</div>' : '';
 
+                 // Only render the Identifiers section if there are actual identifiers
+                 const identifiersSectionHtml = hasIdentifiers 
+                   ? '<div class="section-title">Identifiers</div>' +
+                     '<div class="property-list">' +
+                       identifiersHtml +
+                     '</div>'
+                   : '';
+
+                 const uniqueId = dim.dimension;
+                 const safeId = uniqueId.replace(/[^a-zA-Z0-9-]/g, '-');
+
                  return '<div class="event-row">' +
-                   '<div class="event-summary" onclick="toggleDetails(&quot;' + dim.dimension + '&quot;)">' +
+                   '<div class="event-summary" onclick="toggleDetails(&quot;' + safeId + '&quot;)">' +
                      '<div class="event-summary-left">' +
                        '<div class="event-basic-info">' +
                          '<div class="event-name">' + dim.dimension + '</div>' +
@@ -1214,11 +1222,8 @@ function generateAutodocHtml() {
                        '<span>events</span>' +
                      '</div>' +
                    '</div>' +
-                   '<div class="event-details" id="details-' + dim.dimension + '">' +
-                     '<div class="section-title">Identifiers</div>' +
-                     '<div class="property-list">' +
-                       identifiersHtml +
-                     '</div>' +
+                   '<div class="event-details" id="details-' + safeId + '">' +
+                     identifiersSectionHtml +
                      eventDetailsHtml +
                    '</div>' +
                  '</div>';
@@ -1228,9 +1233,12 @@ function generateAutodocHtml() {
              updateCounts();
            }
 
-           function renderEventCard(event) {
-             const eventProperties = event.properties.filter(p => p.source === 'event');
-             const groupProperties = event.properties.filter(p => p.source === 'group');
+           function renderEventCard(event, dimensionName) {
+             const eventProperties = event.properties ? event.properties.filter(p => p.source === 'event') : [];
+             const groupProperties = event.properties ? event.properties.filter(p => p.source === 'group') : [];
+             const allProperties = [...eventProperties, ...groupProperties];
+             const uniqueId = dimensionName + '-' + event.key;
+             const safeId = uniqueId.replace(/[^a-zA-Z0-9-]/g, '-');
 
              const eventPropertiesHtml = eventProperties.length > 0 ?
                '<div class="section-title">Event Properties</div>' +
@@ -1272,7 +1280,7 @@ function generateAutodocHtml() {
              ).join('') || '';
 
              return '<div class="event-implementation" data-event-key="' + event.key + '">' +
-               '<div class="event-implementation-header" onclick="toggleImplementationDetails(&quot;' + event.key + '&quot;, event)">' +
+               '<div class="event-implementation-header" onclick="toggleImplementationDetails(&quot;' + safeId + '&quot;)">' +
                  '<div class="event-implementation-left">' +
                    '<div class="event-basic-info">' +
                      '<div class="event-key">' + event.key + '</div>' +
@@ -1282,11 +1290,11 @@ function generateAutodocHtml() {
                    '</div>' +
                  '</div>' +
                  '<div class="event-stat">' +
-                   '<span>' + event.properties.length + '</span>' +
+                   '<span>' + allProperties.length + '</span>' +
                    '<span>properties</span>' +
                  '</div>' +
                '</div>' +
-               '<div class="event-details" id="implementation-details-' + event.key + '">' +
+               '<div class="event-details" id="implementation-details-' + safeId + '">' +
                  descriptionHtml +
                  eventPropertiesHtml +
                  groupPropertiesHtml +
@@ -1294,18 +1302,20 @@ function generateAutodocHtml() {
              '</div>';
            }
 
-           function renderEventGroup(groupName, events) {
-             // Get all unique properties across all implementations
+           function renderEventGroup(groupName, events, dimensionName) {
              const allProperties = new Map();
              const allGroupProperties = new Map();
              const allDimensions = new Set();
+             const uniqueId = dimensionName + '-' + groupName;
+             const safeId = uniqueId.replace(/[^a-zA-Z0-9-]/g, '-');
 
              events.forEach(event => {
                // Track dimensions
                event.dimensions?.forEach(d => allDimensions.add(d.name));
 
                // Track properties
-               event.properties.forEach(prop => {
+               const eventProperties = event.properties || [];
+               eventProperties.forEach(prop => {
                  if (prop.source === 'event') {
                    if (!allProperties.has(prop.name)) {
                      allProperties.set(prop.name, prop);
@@ -1318,12 +1328,11 @@ function generateAutodocHtml() {
                });
              });
 
-             // Render combined properties section with collapsible headers
              const combinedPropertiesHtml = (allProperties.size > 0 || allGroupProperties.size > 0) ?
                '<div class="combined-properties">' +
                  (allProperties.size > 0 ? 
                    '<div class="collapsible-section">' +
-                     '<div class="collapsible-header" onclick="toggleCollapsible(&quot;common-event-props-' + groupName + '&quot;)">' +
+                     '<div class="collapsible-header" onclick="toggleCollapsible(&quot;common-event-props-' + safeId + '&quot;)">' +
                        '<div class="section-title">Properties from Events (' + allProperties.size + ')</div>' +
                        '<div class="collapsible-toggle">' +
                          '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
@@ -1331,7 +1340,7 @@ function generateAutodocHtml() {
                          '</svg>' +
                        '</div>' +
                      '</div>' +
-                     '<div class="collapsible-content" id="common-event-props-' + groupName + '">' +
+                     '<div class="collapsible-content" id="common-event-props-' + safeId + '">' +
                        '<div class="property-list">' +
                          Array.from(allProperties.values()).map(prop => {
                            const descriptionHtml = prop.description 
@@ -1348,7 +1357,7 @@ function generateAutodocHtml() {
                    '</div>' : '') +
                  (allGroupProperties.size > 0 ?
                    '<div class="collapsible-section">' +
-                     '<div class="collapsible-header" onclick="toggleCollapsible(&quot;common-group-props-' + groupName + '&quot;)">' +
+                     '<div class="collapsible-header" onclick="toggleCollapsible(&quot;common-group-props-' + safeId + '&quot;)">' +
                        '<div class="section-title">Properties from Groups (' + allGroupProperties.size + ')</div>' +
                        '<div class="collapsible-toggle">' +
                          '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
@@ -1356,7 +1365,7 @@ function generateAutodocHtml() {
                          '</svg>' +
                        '</div>' +
                      '</div>' +
-                     '<div class="collapsible-content" id="common-group-props-' + groupName + '">' +
+                     '<div class="collapsible-content" id="common-group-props-' + safeId + '">' +
                        '<div class="property-list">' +
                          Array.from(allGroupProperties.values()).map(prop => {
                            const descriptionHtml = prop.description 
@@ -1374,11 +1383,13 @@ function generateAutodocHtml() {
                    '</div>' : '') +
                '</div>' : '';
 
-             const implementations = events.map(event => renderEventCard(event)).join('');
-             const totalProperties = events.reduce((sum, e) => sum + e.properties.length, 0);
+             const implementations = events.map(event => renderEventCard(event, dimensionName)).join('');
+             const totalProperties = new Set(
+               events.flatMap(e => e.properties?.map(p => p.name) || [])
+             ).size;
 
              return '<div class="event-row" data-event-name="' + groupName + '">' +
-               '<div class="event-summary" onclick="toggleEventDetails(&quot;' + groupName + '&quot;)">' +
+               '<div class="event-summary" onclick="toggleEventDetails(&quot;' + safeId + '&quot;)">' +
                  '<div class="event-summary-left">' +
                    '<div class="event-basic-info">' +
                      '<div class="event-name">' + groupName + '</div>' +
@@ -1395,7 +1406,7 @@ function generateAutodocHtml() {
                    '<span>properties</span>' +
                  '</div>' +
                '</div>' +
-               '<div class="event-details" id="event-details-' + groupName + '">' +
+               '<div class="event-details" id="event-details-' + safeId + '">' +
                  '<div class="section-title implementations-title">Properties</div>' +
                  combinedPropertiesHtml +
                  '<div class="section-title implementations-title">Implementations</div>' +
@@ -1552,7 +1563,7 @@ function generateAutodocHtml() {
                    groupHeaderHtml +
                    '<div class="event-list">' +
                      Object.entries(eventsByName)
-                       .map(([eventName, events]) => renderEventGroup(eventName, events))
+                       .map(([eventName, events]) => renderEventGroup(eventName, events, groupName))
                        .join('') +
                    '</div>' +
                  '</section>';
@@ -1579,7 +1590,9 @@ function generateAutodocHtml() {
            };
 
            window.toggleImplementationDetails = function(key, event) {
-             event.stopPropagation(); // Prevent event from bubbling up
+             if (event) {
+              event.stopPropagation(); // Prevent event from bubbling up
+             }
              const details = document.getElementById('implementation-details-' + key);
              if (details) {
                details.classList.toggle('expanded');

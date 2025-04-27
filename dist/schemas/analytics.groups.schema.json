@@ -26,6 +26,10 @@
                 "optional": {
                   "type": "boolean",
                   "default": false
+                },
+                "value": {
+                  "type": ["string", "number", "boolean", "array", "object"],
+                  "description": "Optional fixed value for the property"
                 }
               },
               "required": ["name", "type"]

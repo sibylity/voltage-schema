@@ -1,5 +1,6 @@
 import { getAnalyticsConfig, readGenerationConfigFiles } from "./analyticsConfigHelper";
 import { type AnalyticsEvents, type AnalyticsGlobals } from "../../types";
+import fs from 'fs';
 
 interface DimensionEventMap {
   [dimension: string]: {
@@ -24,7 +25,7 @@ export interface DimensionData {
   identifiers: {
     AND?: Array<{
       property: string;
-      contains?: (string | number | boolean);
+      contains?: string;
       equals?: string | number | boolean;
       not?: string | number | boolean;
       in?: (string | number | boolean)[];
@@ -38,7 +39,7 @@ export interface DimensionData {
     }>;
     OR?: Array<{
       property: string;
-      contains?: (string | number | boolean);
+      contains?: string;
       equals?: string | number | boolean;
       not?: string | number | boolean;
       in?: (string | number | boolean)[];
@@ -83,8 +84,51 @@ function processEvent(
   dimensionMap: DimensionEventMap,
   dimensionEventCounts: DimensionEventCounts
 ): void {
-  if (!event.dimensions) return;
+  // If event has no dimensions field, include it in all dimensions
+  if (!event.dimensions) {
+    Object.keys(dimensionMap).forEach((dim) => {
+      // Track event count for this dimension
+      dimensionEventCounts[dim][eventKey] = (dimensionEventCounts[dim][eventKey] || 0) + 1;
+      const count = dimensionEventCounts[dim][eventKey];
+      
+      // Add event to dimension map with count if needed
+      const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
+      dimensionMap[dim].events.push(displayName);
+      dimensionMap[dim].eventDetails.push({
+        key: eventKey,
+        name: event.name,
+        description: event.description
+      });
+    });
+    return;
+  }
+  
+  // If event has an empty dimensions array, add it to "Ungrouped" dimension
+  if (event.dimensions.length === 0) {
+    if (!dimensionMap["Ungrouped"]) {
+      dimensionMap["Ungrouped"] = {
+        events: [],
+        eventDetails: []
+      };
+      dimensionEventCounts["Ungrouped"] = {};
+    }
+    
+    // Track event count for Ungrouped dimension
+    dimensionEventCounts["Ungrouped"][eventKey] = (dimensionEventCounts["Ungrouped"][eventKey] || 0) + 1;
+    const count = dimensionEventCounts["Ungrouped"][eventKey];
+    
+    // Add event to Ungrouped dimension with count if needed
+    const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
+    dimensionMap["Ungrouped"].events.push(displayName);
+    dimensionMap["Ungrouped"].eventDetails.push({
+      key: eventKey,
+      name: event.name,
+      description: event.description
+    });
+    return;
+  }
 
+  // Event has explicit dimensions
   event.dimensions.forEach((dim) => {
     if (!dimensionMap[dim]) {
       console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in any dimensions.`);
@@ -132,12 +176,43 @@ function formatDimensionOutput(
   });
 }
 
+interface Dimension {
+  name: string;
+  description: string;
+  identifiers: {
+    AND: Array<{
+      equals?: string;
+      notEquals?: string;
+      contains?: string;
+      notContains?: string;
+      startsWith?: string;
+      endsWith?: string;
+    }>;
+    OR: Array<{
+      equals?: string;
+      notEquals?: string;
+      contains?: string;
+      notContains?: string;
+      startsWith?: string;
+      endsWith?: string;
+    }>;
+  };
+}
+
 interface GetAllDimensionsOptions {
   includeEventDetails?: boolean;
   verbose?: boolean;
+  events?: AnalyticsEvents;
+  dimensions?: Dimension[];
 }
 
-export function getAllDimensions(options: GetAllDimensionsOptions = {}): DimensionData[] {
+export function getAllDimensions(options: GetAllDimensionsOptions = {}): DimensionData[] | Dimension[] {
+  // If dimensions are provided directly, use those
+  if (options.dimensions) {
+    return options.dimensions;
+  }
+
+  // Otherwise, use the original implementation
   const config = getAnalyticsConfig();
   let dimensionMap: DimensionEventMap = {};
   let dimensionEventCounts: DimensionEventCounts = {};
@@ -145,7 +220,7 @@ export function getAllDimensions(options: GetAllDimensionsOptions = {}): Dimensi
   let globals: AnalyticsGlobals | undefined;
 
   // Process all generation configs
-  for (const genConfig of config.generates) {
+  config.generates.forEach(genConfig => {
     const { globals: currentGlobals, events } = readGenerationConfigFiles(genConfig);
 
     // Store globals from first config
@@ -163,7 +238,7 @@ export function getAllDimensions(options: GetAllDimensionsOptions = {}): Dimensi
     Object.entries(events.events).forEach(([eventKey, event]) => {
       processEvent(eventKey, event, dimensionMap, dimensionEventCounts);
     });
-  }
+  });
 
   if (!globals) {
     throw new Error("No globals configuration found");

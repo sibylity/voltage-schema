@@ -5,6 +5,7 @@ import { validateEvents } from "./validateAnalyticsEvents";
 import { getAnalyticsConfig } from "../utils/analyticsConfigHelper";
 import { validateGroups } from "./validateAnalyticsGroups";
 import { validateDimensions } from "./validateAnalyticsDimensions";
+import fs from "fs";
 
 export function validateAnalyticsFiles(): boolean {
   const config = getAnalyticsConfig();
@@ -97,4 +98,41 @@ export function validateAnalyticsFiles(): boolean {
   }
 
   return true;
+}
+
+export function validateAnalyticsFilesWithFs(): boolean {
+  try {
+    const config = getAnalyticsConfig();
+
+    // Validate all files exist
+    config.generates.forEach(genConfig => {
+      // Validate events file exists
+      if (!fs.existsSync(genConfig.events)) {
+        throw new Error(`Events file not found: ${genConfig.events}`);
+      }
+
+      // Validate group files exist
+      if (genConfig.groups) {
+        genConfig.groups.forEach(groupFile => {
+          if (!fs.existsSync(groupFile)) {
+            throw new Error(`Group file not found: ${groupFile}`);
+          }
+        });
+      }
+
+      // Validate dimension files exist
+      if (genConfig.dimensions) {
+        genConfig.dimensions.forEach(dimensionFile => {
+          if (!fs.existsSync(dimensionFile)) {
+            throw new Error(`Dimension file not found: ${dimensionFile}`);
+          }
+        });
+      }
+    });
+
+    return true;
+  } catch (error) {
+    console.error(error);
+    return false;
+  }
 } 
