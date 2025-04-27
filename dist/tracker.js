@@ -102,7 +102,7 @@ function createAnalyticsTracker(context, options) {
 function validateEventProperties(event, properties) {
     if (!event.properties)
         return;
-    // Skip unexpected property validation if passthrough is enabled
+    // Check for unexpected properties only if passthrough is not enabled
     if (!event.passthrough) {
         // Check for unexpected properties
         const expectedProperties = new Set(event.properties.map(p => p.name));
@@ -112,9 +112,9 @@ function validateEventProperties(event, properties) {
             }
         });
     }
-    // Check required properties
+    // Check required properties (those without optional: true and no default value)
     event.properties.forEach(prop => {
-        if (!prop.optional && !(prop.name in properties)) {
+        if (!prop.optional && prop.value === undefined && !(prop.name in properties)) {
             throw new ValidationError(`Required property "${prop.name}" is missing`);
         }
     });
@@ -122,7 +122,7 @@ function validateEventProperties(event, properties) {
 function validateGroupProperties(group, properties) {
     if (!group.properties)
         return;
-    // Skip unexpected property validation if passthrough is enabled
+    // Check for unexpected properties only if passthrough is not enabled
     if (!group.passthrough) {
         // Check for unexpected properties
         const expectedProperties = new Set(group.properties.map(p => p.name));
@@ -132,9 +132,9 @@ function validateGroupProperties(group, properties) {
             }
         });
     }
-    // Check required properties
+    // Check required properties (those without optional: true and no default value)
     group.properties.forEach(prop => {
-        if (!prop.optional && !(prop.name in properties)) {
+        if (!prop.optional && prop.value === undefined && !(prop.name in properties)) {
             throw new ValidationError(`Required property "${prop.name}" is missing`);
         }
     });
