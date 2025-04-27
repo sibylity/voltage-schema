@@ -9,9 +9,9 @@ function resolvePropertyValue(value) {
 }
 function resolveProperties(properties) {
     const resolved = {};
-    for (const [key, value] of Object.entries(properties)) {
+    Object.entries(properties).forEach(([key, value]) => {
         resolved[key] = resolvePropertyValue(value);
-    }
+    });
     return resolved;
 }
 function createAnalyticsTracker(context, options) {
@@ -34,11 +34,11 @@ function createAnalyticsTracker(context, options) {
                     const propertiesWithDefaults = {};
                     // Add default values first
                     if (event.properties) {
-                        for (const prop of event.properties) {
+                        event.properties.forEach(prop => {
                             if (prop.value !== undefined) {
                                 propertiesWithDefaults[prop.name] = prop.value;
                             }
-                        }
+                        });
                     }
                     // Override with provided properties
                     if (eventProperties) {
@@ -76,11 +76,11 @@ function createAnalyticsTracker(context, options) {
                     const propertiesWithDefaults = {};
                     // Add default values first
                     if (group.properties) {
-                        for (const prop of group.properties) {
+                        group.properties.forEach(prop => {
                             if (prop.value !== undefined) {
                                 propertiesWithDefaults[prop.name] = prop.value;
                             }
-                        }
+                        });
                     }
                     // Override with provided properties
                     Object.assign(propertiesWithDefaults, properties);
@@ -106,18 +106,18 @@ function validateEventProperties(event, properties) {
     if (!event.passthrough) {
         // Check for unexpected properties
         const expectedProperties = new Set(event.properties.map(p => p.name));
-        for (const key in properties) {
+        Object.keys(properties).forEach(key => {
             if (!expectedProperties.has(key)) {
                 throw new ValidationError(`Unexpected property "${key}". Allowed properties: ${[...expectedProperties].join(", ")}`);
             }
-        }
+        });
     }
     // Check required properties
-    for (const prop of event.properties) {
+    event.properties.forEach(prop => {
         if (!prop.optional && !(prop.name in properties)) {
             throw new ValidationError(`Required property "${prop.name}" is missing`);
         }
-    }
+    });
 }
 function validateGroupProperties(group, properties) {
     if (!group.properties)
@@ -126,18 +126,18 @@ function validateGroupProperties(group, properties) {
     if (!group.passthrough) {
         // Check for unexpected properties
         const expectedProperties = new Set(group.properties.map(p => p.name));
-        for (const key in properties) {
+        Object.keys(properties).forEach(key => {
             if (!expectedProperties.has(key)) {
                 throw new ValidationError(`Unexpected property "${key}". Allowed properties: ${[...expectedProperties].join(", ")}`);
             }
-        }
+        });
     }
     // Check required properties
-    for (const prop of group.properties) {
+    group.properties.forEach(prop => {
         if (!prop.optional && !(prop.name in properties)) {
             throw new ValidationError(`Required property "${prop.name}" is missing`);
         }
-    }
+    });
 }
 class ValidationError extends Error {
     constructor(message) {

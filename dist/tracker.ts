@@ -47,9 +47,9 @@ function resolvePropertyValue(value: PropertyValue): string | number | boolean {
 
 function resolveProperties<T extends Record<string, PropertyValue>>(properties: T): Record<keyof T, string | number | boolean> {
   const resolved: Record<keyof T, string | number | boolean> = {} as Record<keyof T, string | number | boolean>;
-  for (const [key, value] of Object.entries(properties)) {
+  Object.entries(properties).forEach(([key, value]) => {
     resolved[key as keyof T] = resolvePropertyValue(value);
-  }
+  });
   return resolved;
 }
 
@@ -90,11 +90,11 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
           
           // Add default values first
           if (event.properties) {
-            for (const prop of event.properties) {
+            event.properties.forEach(prop => {
               if (prop.value !== undefined) {
                 propertiesWithDefaults[prop.name] = prop.value;
               }
-            }
+            });
           }
           
           // Override with provided properties
@@ -146,11 +146,11 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
           
           // Add default values first
           if (group.properties) {
-            for (const prop of group.properties) {
+            group.properties.forEach(prop => {
               if (prop.value !== undefined) {
                 propertiesWithDefaults[prop.name] = prop.value;
               }
-            }
+            });
           }
           
           // Override with provided properties
@@ -178,19 +178,19 @@ function validateEventProperties(event: RuntimeEvent, properties: Record<string,
   if (!event.passthrough) {
     // Check for unexpected properties
     const expectedProperties = new Set(event.properties.map(p => p.name));
-    for (const key in properties) {
+    Object.keys(properties).forEach(key => {
       if (!expectedProperties.has(key)) {
         throw new ValidationError(`Unexpected property "${key}". Allowed properties: ${[...expectedProperties].join(", ")}`);
       }
-    }
+    });
   }
 
   // Check required properties
-  for (const prop of event.properties) {
+  event.properties.forEach(prop => {
     if (!prop.optional && !(prop.name in properties)) {
       throw new ValidationError(`Required property "${prop.name}" is missing`);
     }
-  }
+  });
 }
 
 function validateGroupProperties(group: RuntimeGroup, properties: Record<string, any>) {
@@ -200,19 +200,19 @@ function validateGroupProperties(group: RuntimeGroup, properties: Record<string,
   if (!group.passthrough) {
     // Check for unexpected properties
     const expectedProperties = new Set(group.properties.map(p => p.name));
-    for (const key in properties) {
+    Object.keys(properties).forEach(key => {
       if (!expectedProperties.has(key)) {
         throw new ValidationError(`Unexpected property "${key}". Allowed properties: ${[...expectedProperties].join(", ")}`);
       }
-    }
+    });
   }
 
   // Check required properties
-  for (const prop of group.properties) {
+  group.properties.forEach(prop => {
     if (!prop.optional && !(prop.name in properties)) {
       throw new ValidationError(`Required property "${prop.name}" is missing`);
     }
-  }
+  });
 }
 
 class ValidationError extends Error {

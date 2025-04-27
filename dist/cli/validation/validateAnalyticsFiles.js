@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateAnalyticsFiles = validateAnalyticsFiles;
+exports.validateAnalyticsFilesWithFs = validateAnalyticsFilesWithFs;
 const path_1 = __importDefault(require("path"));
 const logging_1 = require("./logging");
 const validateAnalyticsConfig_1 = require("./validateAnalyticsConfig");
@@ -11,6 +12,7 @@ const validateAnalyticsEvents_1 = require("./validateAnalyticsEvents");
 const analyticsConfigHelper_1 = require("../utils/analyticsConfigHelper");
 const validateAnalyticsGroups_1 = require("./validateAnalyticsGroups");
 const validateAnalyticsDimensions_1 = require("./validateAnalyticsDimensions");
+const fs_1 = __importDefault(require("fs"));
 function validateAnalyticsFiles() {
     var _a, _b, _c, _d;
     const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
@@ -91,4 +93,37 @@ function validateAnalyticsFiles() {
         }
     }
     return true;
+}
+function validateAnalyticsFilesWithFs() {
+    try {
+        const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
+        // Validate all files exist
+        config.generates.forEach(genConfig => {
+            // Validate events file exists
+            if (!fs_1.default.existsSync(genConfig.events)) {
+                throw new Error(`Events file not found: ${genConfig.events}`);
+            }
+            // Validate group files exist
+            if (genConfig.groups) {
+                genConfig.groups.forEach(groupFile => {
+                    if (!fs_1.default.existsSync(groupFile)) {
+                        throw new Error(`Group file not found: ${groupFile}`);
+                    }
+                });
+            }
+            // Validate dimension files exist
+            if (genConfig.dimensions) {
+                genConfig.dimensions.forEach(dimensionFile => {
+                    if (!fs_1.default.existsSync(dimensionFile)) {
+                        throw new Error(`Dimension file not found: ${dimensionFile}`);
+                    }
+                });
+            }
+        });
+        return true;
+    }
+    catch (error) {
+        console.error(error);
+        return false;
+    }
 }

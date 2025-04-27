@@ -24,7 +24,7 @@ function registerInitCommand(program) {
             { src: defaultAllDimensionsPath, dest: "analytics.all-dimensions.json", name: "all-dimensions" },
             { src: defaultEventsPath, dest: "analytics.events.json", name: "events" }
         ];
-        for (const file of files) {
+        files.forEach(file => {
             if (!fs_1.default.existsSync(file.src)) {
                 console.error(`❌ ${file.name} default file is missing. Please create it.`);
                 process.exit(1);
@@ -32,11 +32,11 @@ function registerInitCommand(program) {
             const destPath = path_1.default.resolve(process.cwd(), file.dest);
             if (fs_1.default.existsSync(destPath) && !options.reset) {
                 console.warn(`⚠️ ${file.dest} already exists. Use --reset to overwrite it.`);
-                continue;
+                return;
             }
             const defaultContent = fs_1.default.readFileSync(file.src, "utf8");
             fs_1.default.writeFileSync(destPath, defaultContent);
             console.log(`✅ ${file.dest} ${options.reset ? "reset" : "created"} successfully!`);
-        }
+        });
     });
 }

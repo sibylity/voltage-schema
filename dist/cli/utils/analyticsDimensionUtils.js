@@ -15,8 +15,46 @@ function initializeDimensionMaps(globals) {
     return { dimensionMap, dimensionEventCounts };
 }
 function processEvent(eventKey, event, dimensionMap, dimensionEventCounts) {
-    if (!event.dimensions)
+    // If event has no dimensions field, include it in all dimensions
+    if (!event.dimensions) {
+        Object.keys(dimensionMap).forEach((dim) => {
+            // Track event count for this dimension
+            dimensionEventCounts[dim][eventKey] = (dimensionEventCounts[dim][eventKey] || 0) + 1;
+            const count = dimensionEventCounts[dim][eventKey];
+            // Add event to dimension map with count if needed
+            const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
+            dimensionMap[dim].events.push(displayName);
+            dimensionMap[dim].eventDetails.push({
+                key: eventKey,
+                name: event.name,
+                description: event.description
+            });
+        });
         return;
+    }
+    // If event has an empty dimensions array, add it to "Ungrouped" dimension
+    if (event.dimensions.length === 0) {
+        if (!dimensionMap["Ungrouped"]) {
+            dimensionMap["Ungrouped"] = {
+                events: [],
+                eventDetails: []
+            };
+            dimensionEventCounts["Ungrouped"] = {};
+        }
+        // Track event count for Ungrouped dimension
+        dimensionEventCounts["Ungrouped"][eventKey] = (dimensionEventCounts["Ungrouped"][eventKey] || 0) + 1;
+        const count = dimensionEventCounts["Ungrouped"][eventKey];
+        // Add event to Ungrouped dimension with count if needed
+        const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
+        dimensionMap["Ungrouped"].events.push(displayName);
+        dimensionMap["Ungrouped"].eventDetails.push({
+            key: eventKey,
+            name: event.name,
+            description: event.description
+        });
+        return;
+    }
+    // Event has explicit dimensions
     event.dimensions.forEach((dim) => {
         if (!dimensionMap[dim]) {
             console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in any dimensions.`);
@@ -54,13 +92,18 @@ function formatDimensionOutput(dimensionMap, globals, includeEventDetails) {
     });
 }
 function getAllDimensions(options = {}) {
+    // If dimensions are provided directly, use those
+    if (options.dimensions) {
+        return options.dimensions;
+    }
+    // Otherwise, use the original implementation
     const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
     let dimensionMap = {};
     let dimensionEventCounts = {};
     let isFirstConfig = true;
     let globals;
     // Process all generation configs
-    for (const genConfig of config.generates) {
+    config.generates.forEach(genConfig => {
         const { globals: currentGlobals, events } = (0, analyticsConfigHelper_1.readGenerationConfigFiles)(genConfig);
         // Store globals from first config
         if (isFirstConfig) {
@@ -75,7 +118,7 @@ function getAllDimensions(options = {}) {
         Object.entries(events.events).forEach(([eventKey, event]) => {
             processEvent(eventKey, event, dimensionMap, dimensionEventCounts);
         });
-    }
+    });
     if (!globals) {
         throw new Error("No globals configuration found");
     }

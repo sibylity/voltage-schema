@@ -12,7 +12,7 @@ export interface EventDimension {
   identifiers: {
     AND?: Array<{
       property: string;
-      contains?: (string | number | boolean);
+      contains?: string;
       equals?: string | number | boolean;
       not?: string | number | boolean;
       in?: (string | number | boolean)[];
@@ -26,7 +26,7 @@ export interface EventDimension {
     }>;
     OR?: Array<{
       property: string;
-      contains?: (string | number | boolean);
+      contains?: string;
       equals?: string | number | boolean;
       not?: string | number | boolean;
       in?: (string | number | boolean)[];
@@ -106,25 +106,47 @@ function processEvent(
     passthrough: event.passthrough
   };
 
-  if (includeDimensions && dimensions && event.dimensions) {
-    output.dimensions = event.dimensions
-      .map(dimName => getDimensionDetails(dimName, dimensions))
-      .filter((dim): dim is EventDimension => dim !== undefined);
+  if (includeDimensions && dimensions) {
+    // If event has no dimensions field, include it in all dimensions
+    if (!event.dimensions) {
+      // Include all actual dimensions
+      output.dimensions = dimensions.map(dim => ({
+        name: dim.name,
+        description: dim.description,
+        identifiers: dim.identifiers || { AND: [], OR: [] }
+      }));
+    } 
+    // If event has an empty dimensions array, add it to "Ungrouped" dimension
+    else if (event.dimensions.length === 0) {
+      // Add a special "Ungrouped" dimension to indicate this event has no dimensions
+      output.dimensions = [
+        {
+          name: "Ungrouped",
+          description: "Events with explicit empty dimensions array",
+          identifiers: { AND: [], OR: [] }
+        }
+      ];
+    } 
+    // If event has explicit dimensions
+    else {
+      output.dimensions = event.dimensions
+        .map(dimName => getDimensionDetails(dimName, dimensions))
+        .filter((dim): dim is EventDimension => dim !== undefined);
+    }
   }
 
   return output;
 }
 
 export function getAllEvents(options: GetAllEventsOptions = {}): EventOutput[] {
-  const { includeGroups = false, includeDimensions = false, verbose = false } = options;
-  const effectiveIncludeGroups = verbose || includeGroups;
-  const effectiveIncludeDimensions = verbose || includeDimensions;
+  const effectiveIncludeGroups = options.includeGroups ?? true;
+  const effectiveIncludeDimensions = options.includeDimensions ?? true;
 
+  // Process all generation configs
   const config = getAnalyticsConfig();
   const events: EventOutput[] = [];
 
-  // Process all generation configs
-  for (const genConfig of config.generates) {
+  config.generates.forEach(genConfig => {
     const { events: eventsData, globals } = readGenerationConfigFiles(genConfig);
 
     // Process each event
@@ -138,7 +160,7 @@ export function getAllEvents(options: GetAllEventsOptions = {}): EventOutput[] {
         globals.dimensions
       ));
     });
-  }
+  });
 
   // Sort events alphabetically by name
   events.sort((a, b) => a.name.localeCompare(b.name));

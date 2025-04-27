@@ -29,27 +29,50 @@ function processEvent(eventKey, event, includeGroups, includeDimensions, groups,
         properties: allProperties,
         passthrough: event.passthrough
     };
-    if (includeDimensions && dimensions && event.dimensions) {
-        output.dimensions = event.dimensions
-            .map(dimName => getDimensionDetails(dimName, dimensions))
-            .filter((dim) => dim !== undefined);
+    if (includeDimensions && dimensions) {
+        // If event has no dimensions field, include it in all dimensions
+        if (!event.dimensions) {
+            // Include all actual dimensions
+            output.dimensions = dimensions.map(dim => ({
+                name: dim.name,
+                description: dim.description,
+                identifiers: dim.identifiers || { AND: [], OR: [] }
+            }));
+        }
+        // If event has an empty dimensions array, add it to "Ungrouped" dimension
+        else if (event.dimensions.length === 0) {
+            // Add a special "Ungrouped" dimension to indicate this event has no dimensions
+            output.dimensions = [
+                {
+                    name: "Ungrouped",
+                    description: "Events with explicit empty dimensions array",
+                    identifiers: { AND: [], OR: [] }
+                }
+            ];
+        }
+        // If event has explicit dimensions
+        else {
+            output.dimensions = event.dimensions
+                .map(dimName => getDimensionDetails(dimName, dimensions))
+                .filter((dim) => dim !== undefined);
+        }
     }
     return output;
 }
 function getAllEvents(options = {}) {
-    const { includeGroups = false, includeDimensions = false, verbose = false } = options;
-    const effectiveIncludeGroups = verbose || includeGroups;
-    const effectiveIncludeDimensions = verbose || includeDimensions;
+    var _a, _b;
+    const effectiveIncludeGroups = (_a = options.includeGroups) !== null && _a !== void 0 ? _a : true;
+    const effectiveIncludeDimensions = (_b = options.includeDimensions) !== null && _b !== void 0 ? _b : true;
+    // Process all generation configs
     const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
     const events = [];
-    // Process all generation configs
-    for (const genConfig of config.generates) {
+    config.generates.forEach(genConfig => {
         const { events: eventsData, globals } = (0, analyticsConfigHelper_1.readGenerationConfigFiles)(genConfig);
         // Process each event
         Object.entries(eventsData.events).forEach(([eventKey, event]) => {
             events.push(processEvent(eventKey, event, effectiveIncludeGroups, effectiveIncludeDimensions, globals.groups, globals.dimensions));
         });
-    }
+    });
     // Sort events alphabetically by name
     events.sort((a, b) => a.name.localeCompare(b.name));
     return events;

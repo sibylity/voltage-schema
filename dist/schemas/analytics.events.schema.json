@@ -11,8 +11,7 @@
           "description": { "type": "string" },
           "dimensions": {
             "type": "array",
-            "items": { "type": "string" },
-            "default": []
+            "items": { "type": "string" }
           },
           "properties": {
             "type": "array",
@@ -31,6 +30,10 @@
                 "optional": {
                   "type": "boolean",
                   "default": false
+                },
+                "value": {
+                  "type": ["string", "number", "boolean", "array", "object"],
+                  "description": "Optional fixed value for the property"
                 }
               },
               "required": ["name", "type"]

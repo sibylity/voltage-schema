@@ -21,7 +21,7 @@
                     "property": { "type": "string" },
                     "group": { "type": "string" },
                     "contains": {
-                      "type": ["string", "number", "boolean"]
+                      "type": "string"
                     },
                     "equals": {
                       "type": ["string", "number", "boolean"]

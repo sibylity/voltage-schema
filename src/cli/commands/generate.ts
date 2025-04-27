@@ -268,76 +268,80 @@ export function registerGenerateCommand(program: Command) {
     .command("generate")
     .description("Generate tracking configs & TypeScript types from analytics files")
     .action(() => {
-      console.log("🔍 Running validation before generating...");
-      if (!validateAnalyticsFiles()) return;
+      try {
+        if (!validateAnalyticsFiles()) return;
 
-      const config = getAnalyticsConfig();
+        const config = getAnalyticsConfig();
 
-      // Process each generation config
-      for (const genConfig of config.generates) {
-        const outputPath = path.resolve(process.cwd(), genConfig.output);
-        const outputDir = path.dirname(outputPath);
-        const outputExt = path.extname(outputPath).toLowerCase();
+        // Process each generation config
+        config.generates.forEach(genConfig => {
+          const outputPath = path.resolve(process.cwd(), genConfig.output);
+          const outputDir = path.dirname(outputPath);
+          const outputExt = path.extname(outputPath).toLowerCase();
 
-        const { events } = readGenerationConfigFiles(genConfig);
+          const { events } = readGenerationConfigFiles(genConfig);
 
-        // Combine groups from all group files
-        const allGroups: Record<string, any> = {};
-        if (genConfig.groups) {
-          for (const groupFile of genConfig.groups) {
-            const groupPath = path.resolve(process.cwd(), groupFile);
-            const groupContent = JSON.parse(fs.readFileSync(groupPath, 'utf-8'));
-            if (groupContent.groups) {
-              Object.assign(allGroups, groupContent.groups);
-            }
+          // Combine groups from all group files
+          const allGroups: Record<string, any> = {};
+          if (genConfig.groups) {
+            genConfig.groups.forEach(groupFile => {
+              const groupPath = path.resolve(process.cwd(), groupFile);
+              const groupContent = JSON.parse(fs.readFileSync(groupPath, 'utf-8'));
+              if (groupContent.groups) {
+                Object.assign(allGroups, groupContent.groups);
+              }
+            });
           }
-        }
 
-        if (!fs.existsSync(outputDir)) {
-          fs.mkdirSync(outputDir, { recursive: true });
-        }
+          if (!fs.existsSync(outputDir)) {
+            fs.mkdirSync(outputDir, { recursive: true });
+          }
 
-        console.log(`📁 Generating files in ${outputDir}...`);
+          console.log(`📁 Generating files in ${outputDir}...`);
 
-        // Generate trackingConfig object without descriptions
-        const trackingConfig: TrackingConfig = {
-          events: Object.fromEntries(
-            Object.entries(events.events).map(([eventKey, event]) => [
-              eventKey,
-              {
-                name: event.name,
-                properties: event.properties?.map((prop: AnalyticsSchemaProperty) => ({
-                  name: prop.name,
-                  type: prop.type,
-                  optional: prop.optional,
-                  value: prop.value
-                })) || []
-              }
-            ])
-          ),
-          groups: Object.fromEntries(
-            Object.entries(allGroups).map(([groupName, group]) => [
-              groupName,
-              {
-                name: group.name,
-                properties: group.properties?.map((prop: AnalyticsSchemaProperty) => ({
-                  name: prop.name,
-                  type: prop.type,
-                  optional: prop.optional,
-                  value: prop.value
-                })) || [],
-                identifiedBy: group.identifiedBy
-              }
-            ])
-          )
-        };
+          // Generate trackingConfig object without descriptions
+          const trackingConfig: TrackingConfig = {
+            events: Object.fromEntries(
+              Object.entries(events.events).map(([eventKey, event]) => [
+                eventKey,
+                {
+                  name: event.name,
+                  properties: event.properties?.map((prop: AnalyticsSchemaProperty) => ({
+                    name: prop.name,
+                    type: prop.type,
+                    optional: prop.optional,
+                    value: prop.value
+                  })) || []
+                }
+              ])
+            ),
+            groups: Object.fromEntries(
+              Object.entries(allGroups).map(([groupName, group]) => [
+                groupName,
+                {
+                  name: group.name,
+                  properties: group.properties?.map((prop: AnalyticsSchemaProperty) => ({
+                    name: prop.name,
+                    type: prop.type,
+                    optional: prop.optional,
+                    value: prop.value
+                  })) || [],
+                  identifiedBy: group.identifiedBy
+                }
+              ])
+            )
+          };
 
-        // Generate output based on file extension
-        if (outputExt === ".ts" || outputExt === ".tsx") {
-          generateTypeScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath, genConfig);
-        } else {
-          generateJavaScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath);
-        }
+          // Generate output based on file extension
+          if (outputExt === ".ts" || outputExt === ".tsx") {
+            generateTypeScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath, genConfig);
+          } else {
+            generateJavaScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath);
+          }
+        });
+      } catch (error) {
+        console.error(error);
+        process.exit(1);
       }
     });
 }
