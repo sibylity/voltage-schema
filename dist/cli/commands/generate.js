@@ -110,7 +110,7 @@ ${groupsConfig}
 function generateTypeDefinitions(events, globals) {
     const eventTypes = Object.entries(events.events).map(([key, event]) => {
         var _a;
-        const properties = ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.length)
+        let properties = ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.length)
             ? `{ ${event.properties.map((prop) => {
                 const type = Array.isArray(prop.type) ? prop.type.map((t) => `'${t}'`).join(' | ') : prop.type;
                 // Make properties with default values optional
@@ -118,6 +118,12 @@ function generateTypeDefinitions(events, globals) {
                 return `'${prop.name}'${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
             }).join('; ')} }`
             : 'Record<string, never>';
+        // Add index signature for passthrough events
+        if (event.passthrough) {
+            properties = properties === 'Record<string, never>'
+                ? '{ [key: string]: any }'
+                : properties.replace(/}$/, '; [key: string]: any }');
+        }
         return `    ${key}: {
       name: '${event.name}';
       properties: ${properties};
@@ -158,31 +164,31 @@ ${groupTypes}
 }
 
 // Base types for type safety
-export type TrackerEvent<T extends TrackerEvents> = ${Object.keys(events.events).map(k => `'${k}'`).join(' | ')};
-export type TrackerGroup<T extends TrackerEvents> = ${globals.groups.map(g => `'${g.name}'`).join(' | ')};
+export type TrackerEvent = ${Object.keys(events.events).map(k => `'${k}'`).join(' | ')};
+export type TrackerGroup = ${globals.groups.map(g => `'${g.name}'`).join(' | ')};
 
-export type EventProperties<T extends TrackerEvents, E extends TrackerEvent<T>> = T['events'][E]['properties'];
-export type GroupProperties<T extends TrackerEvents, G extends TrackerGroup<T>> = T['groups'][G]['properties'];
+export type EventProperties<T extends TrackerEvents, E extends TrackerEvent> = T['events'][E]['properties'];
+export type GroupProperties<T extends TrackerEvents, G extends TrackerGroup> = T['groups'][G]['properties'];
 
 // Helper type to determine if an event has properties
-type HasProperties<T extends TrackerEvents, E extends TrackerEvent<T>> = EventProperties<T, E> extends Record<string, never> ? false : true;
+type HasProperties<T extends TrackerEvents, E extends TrackerEvent> = EventProperties<T, E> extends Record<string, never> ? false : true;
 
 export interface AnalyticsTracker<T extends TrackerEvents> {
-  track: <E extends TrackerEvent<T>>(
+  track: <E extends TrackerEvent>(
     eventKey: E,
     ...args: HasProperties<T, E> extends true ? [eventProperties: EventProperties<T, E>] : []
   ) => void;
-  setProperties: <G extends TrackerGroup<T>>(groupName: G, properties: T['groups'][G]['properties']) => void;
-  getProperties: () => { [K in TrackerGroup<T>]: T['groups'][K]['properties'] };
+  setProperties: <G extends TrackerGroup>(groupName: G, properties: T['groups'][G]['properties']) => void;
+  getProperties: () => { [K in TrackerGroup]: T['groups'][K]['properties'] };
 }
 
 export interface TrackerOptions<T extends TrackerEvents> {
-  onEventTracked: <E extends TrackerEvent<T>>(
+  onEventTracked: <E extends TrackerEvent>(
     eventName: T['events'][E]['name'],
     eventProperties: T['events'][E]['properties'],
-    groupProperties: Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>,
+    groupProperties: Record<TrackerGroup, GroupProperties<T, TrackerGroup>>,
   ) => void;
-  onGroupUpdated: <G extends TrackerGroup<T>>(
+  onGroupUpdated: <G extends TrackerGroup>(
     groupName: T['groups'][G]['name'],
     properties: T['groups'][G]['properties'],
   ) => void;

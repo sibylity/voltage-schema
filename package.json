@@ -1,6 +1,6 @@
 {
   "name": "voltage-schema",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "The analytics schema that evolves with your software.",
   "main": "./dist/cli/index.js",
   "scripts": {
