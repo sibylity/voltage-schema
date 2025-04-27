@@ -21,17 +21,24 @@ function registerAutodocCommand(program) {
     program
         .command("autodoc")
         .description("Start a local server to view analytics documentation")
-        .action(() => __awaiter(this, void 0, void 0, function* () {
+        .option("--output-html", "Output the generated HTML instead of starting a server")
+        .action((options) => __awaiter(this, void 0, void 0, function* () {
         try {
-            console.log("🔍 Running validation before starting documentation server...");
+            console.log("🔍 Running validation before generating documentation...");
             if (!(0, validation_1.validateAnalyticsFiles)()) {
                 process.exit(1);
             }
+            const autodocHtml = (0, autodocUtils_1.generateAutodocHtml)();
+            if (options.outputHtml) {
+                // Output the HTML directly
+                console.log(autodocHtml);
+                return;
+            }
+            // Start server mode
             const app = (0, express_1.default)();
             const port = 5555;
             // Serve static assets
             app.get("/", (req, res) => {
-                const autodocHtml = (0, autodocUtils_1.generateAutodocHtml)();
                 res.send(autodocHtml);
             });
             // Start the server
@@ -52,7 +59,7 @@ function registerAutodocCommand(program) {
             });
         }
         catch (error) {
-            console.error("❌ Error starting documentation server:", error);
+            console.error("❌ Error:", error);
             process.exit(1);
         }
     }));

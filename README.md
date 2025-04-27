@@ -318,7 +318,7 @@ tracker.track('page_view', {
 ```bash
 # Initialize a new analytics schema
 npm voltage init
-npm voltage init --reset
+npm voltage init -- --reset
 
 # Validate your analytics configuration
 npm voltage validate
@@ -328,21 +328,22 @@ npm voltage generate
 
 # List all events and their properties
 npm voltage events
-npm voltage events --include-groups
-npm voltage events --include-dimensions
-npm voltage events --verbose
+npm voltage events -- --include-groups
+npm voltage events -- --include-dimensions
+npm voltage events -- --verbose
 
 # List all properties and their events
 npm voltage properties
-npm voltage properties --verbose
+npm voltage properties -- --verbose
 
 # List all dimensions and their events
 npm voltage dimensions
-npm voltage dimensions --include-event-details
-npm voltage dimensions --verbose
+npm voltage dimensions -- --include-event-details
+npm voltage dimensions -- --verbose
 
-# Start a local documentation server
+# Open the autodoc in your browser, or output it's HTML for CI
 npm voltage autodoc
+npm voltage autodoc -- --output-html  # Output HTML instead of starting server
 ```
 
 
