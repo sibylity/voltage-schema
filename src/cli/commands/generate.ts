@@ -16,11 +16,13 @@ interface TrackingConfig {
   events: Record<string, {
     name: string;
     properties: TrackingConfigProperty[];
+    passthrough?: boolean;
   }>;
   groups: Record<string, {
     name: string;
     properties: TrackingConfigProperty[];
     identifiedBy?: string;
+    passthrough?: boolean;
   }>;
 }
 
@@ -94,7 +96,7 @@ export function generateTrackingConfig(globals: any, events: any): string {
           name: '${prop.name}',
           type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.value !== undefined ? `,\n          value: ${JSON.stringify(prop.value)}` : ''}
         }`).join(',\n        ') : ''}
-      ]
+      ]${event.passthrough ? ',\n      passthrough: true' : ''}
     }`;
     })
     .join(',\n');
@@ -116,7 +118,7 @@ export function generateTrackingConfig(globals: any, events: any): string {
       name: '${group.name}',
       properties: [
 ${propertyEntries}
-      ]${group.identifiedBy ? `,\n      identifiedBy: '${group.identifiedBy}'` : ''}
+      ]${group.identifiedBy ? `,\n      identifiedBy: '${group.identifiedBy}'` : ''}${group.passthrough ? ',\n      passthrough: true' : ''}
     }`;
   }).join(',\n');
 
@@ -158,7 +160,7 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
   }).join('\n\n');
 
   const groupTypes = globals.groups.map((group) => {
-    const properties = group.properties?.length
+    let properties = group.properties?.length
       ? `{ ${group.properties.map((prop) => {
           const type = Array.isArray(prop.type) ? prop.type.map((t: string) => `'${t}'`).join(' | ') : prop.type;
           // Make properties with default values optional
@@ -166,6 +168,13 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
           return `${prop.name}${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
         }).join('; ')} }`
       : 'Record<string, never>';
+
+    // Add index signature for passthrough groups
+    if (group.passthrough) {
+      properties = properties === 'Record<string, never>' 
+        ? '{ [key: string]: any }'
+        : properties.replace(/}$/, '; [key: string]: any }');
+    }
 
     return `    ${group.name}: {
       name: '${group.name}';
@@ -318,7 +327,8 @@ export function registerGenerateCommand(program: Command) {
                     type: prop.type,
                     optional: prop.optional,
                     value: prop.value
-                  })) || []
+                  })) || [],
+                  passthrough: event.passthrough
                 }
               ])
             ),
@@ -333,7 +343,8 @@ export function registerGenerateCommand(program: Command) {
                     optional: prop.optional,
                     value: prop.value
                   })) || [],
-                  identifiedBy: group.identifiedBy
+                  identifiedBy: group.identifiedBy,
+                  passthrough: group.passthrough
                 }
               ])
             )
