@@ -104,7 +104,7 @@ function processEvent(
   }
   
   // If event has an empty dimensions array, add it to "Ungrouped" dimension
-  if (event.dimensions.length === 0) {
+  if (Array.isArray(event.dimensions) && event.dimensions.length === 0) {
     if (!dimensionMap["Ungrouped"]) {
       dimensionMap["Ungrouped"] = {
         events: [],
@@ -128,26 +128,83 @@ function processEvent(
     return;
   }
 
-  // Event has explicit dimensions
-  event.dimensions.forEach((dim) => {
-    if (!dimensionMap[dim]) {
-      console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in any dimensions.`);
-      return;
-    }
-
-    // Track event count for this dimension
-    dimensionEventCounts[dim][eventKey] = (dimensionEventCounts[dim][eventKey] || 0) + 1;
-    const count = dimensionEventCounts[dim][eventKey];
+  // Handle the new dimensions format with inclusive/exclusive arrays
+  if (typeof event.dimensions === 'object' && !Array.isArray(event.dimensions)) {
+    const dimensions = event.dimensions as { inclusive?: string[]; exclusive?: string[] };
+    // Get all available dimensions
+    const allDimensions = Object.keys(dimensionMap);
     
-    // Add event to dimension map with count if needed
-    const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
-    dimensionMap[dim].events.push(displayName);
-    dimensionMap[dim].eventDetails.push({
-      key: eventKey,
-      name: event.name,
-      description: event.description
+    // Handle inclusive dimensions
+    if (dimensions.inclusive && Array.isArray(dimensions.inclusive)) {
+      // Only include the specified dimensions
+      dimensions.inclusive.forEach((dim) => {
+        if (!dimensionMap[dim]) {
+          console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in any dimensions.`);
+          return;
+        }
+
+        // Track event count for this dimension
+        dimensionEventCounts[dim][eventKey] = (dimensionEventCounts[dim][eventKey] || 0) + 1;
+        const count = dimensionEventCounts[dim][eventKey];
+        
+        // Add event to dimension map with count if needed
+        const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
+        dimensionMap[dim].events.push(displayName);
+        dimensionMap[dim].eventDetails.push({
+          key: eventKey,
+          name: event.name,
+          description: event.description
+        });
+      });
+    } 
+    // Handle exclusive dimensions
+    else if (dimensions.exclusive && Array.isArray(dimensions.exclusive)) {
+      // Include all dimensions except the excluded ones
+      allDimensions.forEach((dim) => {
+        if (dimensions.exclusive && dimensions.exclusive.includes(dim)) {
+          return; // Skip excluded dimensions
+        }
+
+        // Track event count for this dimension
+        dimensionEventCounts[dim][eventKey] = (dimensionEventCounts[dim][eventKey] || 0) + 1;
+        const count = dimensionEventCounts[dim][eventKey];
+        
+        // Add event to dimension map with count if needed
+        const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
+        dimensionMap[dim].events.push(displayName);
+        dimensionMap[dim].eventDetails.push({
+          key: eventKey,
+          name: event.name,
+          description: event.description
+        });
+      });
+    }
+    return;
+  }
+
+  // Handle legacy array format for backward compatibility
+  if (Array.isArray(event.dimensions)) {
+    // Event has explicit dimensions
+    event.dimensions.forEach((dim) => {
+      if (!dimensionMap[dim]) {
+        console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in any dimensions.`);
+        return;
+      }
+
+      // Track event count for this dimension
+      dimensionEventCounts[dim][eventKey] = (dimensionEventCounts[dim][eventKey] || 0) + 1;
+      const count = dimensionEventCounts[dim][eventKey];
+      
+      // Add event to dimension map with count if needed
+      const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
+      dimensionMap[dim].events.push(displayName);
+      dimensionMap[dim].eventDetails.push({
+        key: eventKey,
+        name: event.name,
+        description: event.description
+      });
     });
-  });
+  }
 }
 
 function formatDimensionOutput(

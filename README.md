@@ -83,7 +83,7 @@ _Note - in this example, we are generating types & config for unauthed vs. authe
 | --- | --- | --- | --- |
 | name | string | yes | The name of the event. |
 | description | string | no | Describe the context of the event. |
-| dimensions | string[] | no | The dimensions that the event exists in. When dimensions are not set, the event will be auto-associated with each dimension. |
+| dimensions | { inclusive: string[], exclusive: string[] } | no | The dimensions that the event exists in. When dimensions are not set, the event will be auto-associated with each dimension. When inclusive, an event only exists in the supplied dimensions. When exclusive, an event exists in all dimensions except for the supplied dimensions. |
 | passthrough | boolean | no | Allow arbitrary properties to be tracked with the event. |
 | properties | Property[] | no | The properties to track with the event. All properties are required unless marked as optional. Unlisted properties will be disallowed unless passthrough is enabled. |
 

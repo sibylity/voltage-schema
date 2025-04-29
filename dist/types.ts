@@ -96,7 +96,10 @@ export interface AnalyticsEvents {
 export interface Event {
   name: string;
   description: string;
-  dimensions?: string[];
+  dimensions?: string[] | {
+    inclusive?: string[];
+    exclusive?: string[];
+  };
   properties?: Property[];
   passthrough?: boolean;
 }

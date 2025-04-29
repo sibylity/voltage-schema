@@ -3,7 +3,9 @@
     "page_view": {
       "name": "Page View",
       "description": "Triggered when a user views a page.",
-      "dimensions": ["Free", "Paid"],
+      "dimensions": {
+        "inclusive": ["Free", "Paid"]
+      },
       "properties": [
         {
           "name": "Page Name",
@@ -15,7 +17,9 @@
     "add_user": {
       "name": "Add User",
       "description": "Triggered when an admin adds a user to their team. This requires a paid plan.",
-      "dimensions": ["Paid"],
+      "dimensions": {
+        "inclusive": ["Paid"]
+      },
       "properties": [
         {
           "name": "Role",

@@ -36,16 +36,50 @@ function validateEventDimensions(
 ): ValidationResult<void> {
   const errors: string[] = [];
 
-  if (event.dimensions && event.dimensions.length > 0) {
+  if (event.dimensions) {
     if (!globalsExist) {
       console.warn(`⚠️ Event "${eventKey}" specifies dimensions but no globals file exists.`);
     }
     
-    event.dimensions.forEach((dim) => {
-      if (!validDimensions.has(dim)) {
-        errors.push(`Invalid dimension "${dim}" in event "${eventKey}". It is not listed in dimensions.`);
+    // Handle the new dimensions format with inclusive/exclusive arrays
+    if (typeof event.dimensions === 'object' && !Array.isArray(event.dimensions)) {
+      // Check if dimensions has inclusive or exclusive property
+      if ('inclusive' in event.dimensions) {
+        const inclusiveDims = event.dimensions.inclusive as string[];
+        if (Array.isArray(inclusiveDims)) {
+          inclusiveDims.forEach((dim) => {
+            if (!validDimensions.has(dim)) {
+              errors.push(`Invalid dimension "${dim}" in event "${eventKey}". It is not listed in dimensions.`);
+            }
+          });
+        } else {
+          errors.push(`Invalid "inclusive" property in event "${eventKey}". It must be an array of strings.`);
+        }
+      } else if ('exclusive' in event.dimensions) {
+        const exclusiveDims = event.dimensions.exclusive as string[];
+        if (Array.isArray(exclusiveDims)) {
+          exclusiveDims.forEach((dim) => {
+            if (!validDimensions.has(dim)) {
+              errors.push(`Invalid dimension "${dim}" in event "${eventKey}". It is not listed in dimensions.`);
+            }
+          });
+        } else {
+          errors.push(`Invalid "exclusive" property in event "${eventKey}". It must be an array of strings.`);
+        }
+      } else {
+        errors.push(`Event "${eventKey}" has dimensions object but neither "inclusive" nor "exclusive" property is defined.`);
       }
-    });
+    } 
+    // Handle legacy array format for backward compatibility
+    else if (Array.isArray(event.dimensions)) {
+      event.dimensions.forEach((dim) => {
+        if (!validDimensions.has(dim)) {
+          errors.push(`Invalid dimension "${dim}" in event "${eventKey}". It is not listed in dimensions.`);
+        }
+      });
+    } else {
+      errors.push(`Event "${eventKey}" has invalid dimensions format.`);
+    }
   }
 
   return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
