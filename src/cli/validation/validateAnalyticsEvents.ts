@@ -69,14 +69,6 @@ function validateEventDimensions(
       } else {
         errors.push(`Event "${eventKey}" has dimensions object but neither "inclusive" nor "exclusive" property is defined.`);
       }
-    } 
-    // Handle legacy array format for backward compatibility
-    else if (Array.isArray(event.dimensions)) {
-      event.dimensions.forEach((dim) => {
-        if (!validDimensions.has(dim)) {
-          errors.push(`Invalid dimension "${dim}" in event "${eventKey}". It is not listed in dimensions.`);
-        }
-      });
     } else {
       errors.push(`Event "${eventKey}" has invalid dimensions format.`);
     }

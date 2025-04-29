@@ -181,30 +181,6 @@ function processEvent(
     }
     return;
   }
-
-  // Handle legacy array format for backward compatibility
-  if (Array.isArray(event.dimensions)) {
-    // Event has explicit dimensions
-    event.dimensions.forEach((dim) => {
-      if (!dimensionMap[dim]) {
-        console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in any dimensions.`);
-        return;
-      }
-
-      // Track event count for this dimension
-      dimensionEventCounts[dim][eventKey] = (dimensionEventCounts[dim][eventKey] || 0) + 1;
-      const count = dimensionEventCounts[dim][eventKey];
-      
-      // Add event to dimension map with count if needed
-      const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
-      dimensionMap[dim].events.push(displayName);
-      dimensionMap[dim].eventDetails.push({
-        key: eventKey,
-        name: event.name,
-        description: event.description
-      });
-    });
-  }
 }
 
 function formatDimensionOutput(
