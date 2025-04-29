@@ -32,28 +32,6 @@ function processEvent(eventKey, event, dimensionMap, dimensionEventCounts) {
         });
         return;
     }
-    // If event has an empty dimensions array, add it to "Ungrouped" dimension
-    if (Array.isArray(event.dimensions) && event.dimensions.length === 0) {
-        if (!dimensionMap["Ungrouped"]) {
-            dimensionMap["Ungrouped"] = {
-                events: [],
-                eventDetails: []
-            };
-            dimensionEventCounts["Ungrouped"] = {};
-        }
-        // Track event count for Ungrouped dimension
-        dimensionEventCounts["Ungrouped"][eventKey] = (dimensionEventCounts["Ungrouped"][eventKey] || 0) + 1;
-        const count = dimensionEventCounts["Ungrouped"][eventKey];
-        // Add event to Ungrouped dimension with count if needed
-        const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
-        dimensionMap["Ungrouped"].events.push(displayName);
-        dimensionMap["Ungrouped"].eventDetails.push({
-            key: eventKey,
-            name: event.name,
-            description: event.description
-        });
-        return;
-    }
     // Handle the new dimensions format with inclusive/exclusive arrays
     if (typeof event.dimensions === 'object' && !Array.isArray(event.dimensions)) {
         const dimensions = event.dimensions;
@@ -61,6 +39,28 @@ function processEvent(eventKey, event, dimensionMap, dimensionEventCounts) {
         const allDimensions = Object.keys(dimensionMap);
         // Handle inclusive dimensions
         if (dimensions.inclusive && Array.isArray(dimensions.inclusive)) {
+            // If inclusive array is empty, add to "Ungrouped" dimension
+            if (dimensions.inclusive.length === 0) {
+                if (!dimensionMap["Ungrouped"]) {
+                    dimensionMap["Ungrouped"] = {
+                        events: [],
+                        eventDetails: []
+                    };
+                    dimensionEventCounts["Ungrouped"] = {};
+                }
+                // Track event count for Ungrouped dimension
+                dimensionEventCounts["Ungrouped"][eventKey] = (dimensionEventCounts["Ungrouped"][eventKey] || 0) + 1;
+                const count = dimensionEventCounts["Ungrouped"][eventKey];
+                // Add event to Ungrouped dimension with count if needed
+                const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
+                dimensionMap["Ungrouped"].events.push(displayName);
+                dimensionMap["Ungrouped"].eventDetails.push({
+                    key: eventKey,
+                    name: event.name,
+                    description: event.description
+                });
+                return;
+            }
             // Only include the specified dimensions
             dimensions.inclusive.forEach((dim) => {
                 if (!dimensionMap[dim]) {
@@ -105,6 +105,17 @@ function processEvent(eventKey, event, dimensionMap, dimensionEventCounts) {
 }
 function formatDimensionOutput(dimensionMap, globals, includeEventDetails) {
     return Object.entries(dimensionMap).map(([dimension, data]) => {
+        // Special handling for "Ungrouped" dimension
+        if (dimension === "Ungrouped") {
+            return {
+                dimension,
+                description: "Events that are not assigned to any specific dimension.",
+                identifiers: { AND: [], OR: [] },
+                events: data.events,
+                eventDetails: includeEventDetails ? data.eventDetails : undefined
+            };
+        }
+        // Normal handling for other dimensions
         const dimensionConfig = globals.dimensions.find(d => d.name === dimension);
         if (!dimensionConfig) {
             throw new Error(`Dimension "${dimension}" not found in globals`);
