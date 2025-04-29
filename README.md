@@ -69,7 +69,7 @@ Create an `analytics.config.json` file in your project root:
 }
 ```
 
-_Note - in this example, we are generating types & tracking config for unauthed events vs. authed events. This is because authed events are sent with the context of the user & the team that they belong to. Whereas when we track unauthed events, the context of the user & team are unknown._
+_Note - in this example, we are generating types & config for unauthed vs. authed tracking. This is because authed events are sent with the context of the user & the team that they belong to. Whereas when we track unauthed events, this context is unknown._
 
 ### 2. Define Events
 
@@ -83,7 +83,7 @@ _Note - in this example, we are generating types & tracking config for unauthed 
 | --- | --- | --- | --- |
 | name | string | yes | The name of the event. |
 | description | string | no | Describe the context of the event. |
-| dimensions | string[] | no | The dimensions that the event exists in. When dimensions are not set, the event will be auto-associated with each dimension. |
+| dimensions | { inclusive: string[], exclusive: string[] } | no | The dimensions that the event exists in. When dimensions are not set, the event will be auto-associated with each dimension. When inclusive, an event only exists in the supplied dimensions. When exclusive, an event exists in all dimensions except for the supplied dimensions. |
 | passthrough | boolean | no | Allow arbitrary properties to be tracked with the event. |
 | properties | Property[] | no | The properties to track with the event. All properties are required unless marked as optional. Unlisted properties will be disallowed unless passthrough is enabled. |
 
@@ -158,7 +158,7 @@ Create an `events.json` file to define your events:
 
 </details>
 
-Create a `groups.json` file to define your events:
+Create a `groups.json` file to define your groups:
 
 ```json
 {
@@ -235,7 +235,7 @@ Create a `groups.json` file to define your events:
 
 </details>
 
-Create a `groups.json` file to define your events:
+Create a `dimensions.json` file to define your dimensions:
 
 ```json
 {

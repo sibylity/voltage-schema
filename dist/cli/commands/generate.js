@@ -73,7 +73,7 @@ function generateTrackingConfig(globals, events) {
           name: '${prop.name}',
           type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.value !== undefined ? `,\n          value: ${JSON.stringify(prop.value)}` : ''}
         }`).join(',\n        ') : ''}
-      ]
+      ]${event.passthrough ? ',\n      passthrough: true' : ''}
     }`;
     })
         .join(',\n');
@@ -92,7 +92,7 @@ function generateTrackingConfig(globals, events) {
       name: '${group.name}',
       properties: [
 ${propertyEntries}
-      ]${group.identifiedBy ? `,\n      identifiedBy: '${group.identifiedBy}'` : ''}
+      ]${group.identifiedBy ? `,\n      identifiedBy: '${group.identifiedBy}'` : ''}${group.passthrough ? ',\n      passthrough: true' : ''}
     }`;
     }).join(',\n');
     return `export const trackingConfig = {
@@ -131,7 +131,7 @@ function generateTypeDefinitions(events, globals) {
     }).join('\n\n');
     const groupTypes = globals.groups.map((group) => {
         var _a;
-        const properties = ((_a = group.properties) === null || _a === void 0 ? void 0 : _a.length)
+        let properties = ((_a = group.properties) === null || _a === void 0 ? void 0 : _a.length)
             ? `{ ${group.properties.map((prop) => {
                 const type = Array.isArray(prop.type) ? prop.type.map((t) => `'${t}'`).join(' | ') : prop.type;
                 // Make properties with default values optional
@@ -139,6 +139,12 @@ function generateTypeDefinitions(events, globals) {
                 return `${prop.name}${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
             }).join('; ')} }`
             : 'Record<string, never>';
+        // Add index signature for passthrough groups
+        if (group.passthrough) {
+            properties = properties === 'Record<string, never>'
+                ? '{ [key: string]: any }'
+                : properties.replace(/}$/, '; [key: string]: any }');
+        }
         return `    ${group.name}: {
       name: '${group.name}';
       properties: ${properties};${group.identifiedBy ? `\n      identifiedBy: '${group.identifiedBy}';` : ''}
@@ -278,7 +284,8 @@ function registerGenerateCommand(program) {
                                     type: prop.type,
                                     optional: prop.optional,
                                     value: prop.value
-                                }))) || []
+                                }))) || [],
+                                passthrough: event.passthrough
                             }
                         ];
                     })),
@@ -294,7 +301,8 @@ function registerGenerateCommand(program) {
                                     optional: prop.optional,
                                     value: prop.value
                                 }))) || [],
-                                identifiedBy: group.identifiedBy
+                                identifiedBy: group.identifiedBy,
+                                passthrough: group.passthrough
                             }
                         ];
                     }))
