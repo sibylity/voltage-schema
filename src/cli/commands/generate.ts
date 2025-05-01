@@ -9,7 +9,7 @@ interface TrackingConfigProperty {
   name: string;
   type: string | string[];
   optional?: boolean;
-  value?: any;
+  defaultValue?: string | number | boolean;
 }
 
 interface TrackingConfig {
@@ -71,7 +71,7 @@ function generateEventConfigs(trackingConfig: TrackingConfig, events: AnalyticsE
   properties: [
     ${hasProperties ? event.properties.map(prop => `{
       name: '${prop.name}',
-      type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.value !== undefined ? `,\n      value: ${JSON.stringify(prop.value)}` : ''}
+      type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.defaultValue !== undefined ? `,\n      defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
     }`).join(',\n    ') : ''}
   ]
 };`;
@@ -94,7 +94,7 @@ export function generateTrackingConfig(globals: any, events: any): string {
       properties: [
         ${hasProperties ? event.properties.map((prop: any) => `{
           name: '${prop.name}',
-          type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.value !== undefined ? `,\n          value: ${JSON.stringify(prop.value)}` : ''}
+          type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.defaultValue !== undefined ? `,\n          defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
         }`).join(',\n        ') : ''}
       ]${event.passthrough ? ',\n      passthrough: true' : ''}
     }`;
@@ -110,7 +110,7 @@ export function generateTrackingConfig(globals: any, events: any): string {
       const type = Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`;
       return `        {
           name: '${prop.name}',
-          type: ${type}${prop.value !== undefined ? `,\n          value: ${JSON.stringify(prop.value)}` : ''}
+          type: ${type}${prop.defaultValue !== undefined ? `,\n          defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
         }`;
     }).join(',\n') : '';
 
@@ -141,7 +141,7 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
       ? `{ ${event.properties.map((prop) => {
           const type = Array.isArray(prop.type) ? prop.type.map((t: string) => `'${t}'`).join(' | ') : prop.type;
           // Make properties with default values optional
-          const isOptional = prop.optional || prop.value !== undefined;
+          const isOptional = prop.optional || prop.defaultValue !== undefined;
           return `'${prop.name}'${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
         }).join('; ')} }`
       : 'Record<string, never>';
@@ -164,7 +164,7 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
       ? `{ ${group.properties.map((prop) => {
           const type = Array.isArray(prop.type) ? prop.type.map((t: string) => `'${t}'`).join(' | ') : prop.type;
           // Make properties with default values optional
-          const isOptional = prop.optional || prop.value !== undefined;
+          const isOptional = prop.optional || prop.defaultValue !== undefined;
           return `${prop.name}${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
         }).join('; ')} }`
       : 'Record<string, never>';
@@ -326,7 +326,7 @@ export function registerGenerateCommand(program: Command) {
                     name: prop.name,
                     type: prop.type,
                     optional: prop.optional,
-                    value: prop.value
+                    defaultValue: prop.defaultValue
                   })) || [],
                   passthrough: event.passthrough
                 }
@@ -341,7 +341,7 @@ export function registerGenerateCommand(program: Command) {
                     name: prop.name,
                     type: prop.type,
                     optional: prop.optional,
-                    value: prop.value
+                    defaultValue: prop.defaultValue
                   })) || [],
                   identifiedBy: group.identifiedBy,
                   passthrough: group.passthrough

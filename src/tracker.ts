@@ -15,7 +15,7 @@ export interface RuntimeEvent {
     name: string;
     type: string | string[];
     optional?: boolean;
-    value?: any;
+    defaultValue?: any;
   }>;
   passthrough?: boolean;
 }
@@ -26,7 +26,7 @@ export interface RuntimeGroup {
     name: string;
     type: string | string[];
     optional?: boolean;
-    value?: any;
+    defaultValue?: any;
   }>;
   passthrough?: boolean;
 }
@@ -91,8 +91,8 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
           // Add default values first
           if (event.properties) {
             event.properties.forEach(prop => {
-              if (prop.value !== undefined) {
-                propertiesWithDefaults[prop.name] = prop.value;
+              if (prop.defaultValue !== undefined) {
+                propertiesWithDefaults[prop.name] = prop.defaultValue;
               }
             });
           }
@@ -147,8 +147,8 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
           // Add default values first
           if (group.properties) {
             group.properties.forEach(prop => {
-              if (prop.value !== undefined) {
-                propertiesWithDefaults[prop.name] = prop.value;
+              if (prop.defaultValue !== undefined) {
+                propertiesWithDefaults[prop.name] = prop.defaultValue;
               }
             });
           }
@@ -187,7 +187,7 @@ function validateEventProperties(event: RuntimeEvent, properties: Record<string,
 
   // Check required properties (those without optional: true and no default value)
   event.properties.forEach(prop => {
-    if (!prop.optional && prop.value === undefined && !(prop.name in properties)) {
+    if (!prop.optional && prop.defaultValue === undefined && !(prop.name in properties)) {
       throw new ValidationError(`Required property "${prop.name}" is missing`);
     }
   });
@@ -209,7 +209,7 @@ function validateGroupProperties(group: RuntimeGroup, properties: Record<string,
 
   // Check required properties (those without optional: true and no default value)
   group.properties.forEach(prop => {
-    if (!prop.optional && prop.value === undefined && !(prop.name in properties)) {
+    if (!prop.optional && prop.defaultValue === undefined && !(prop.name in properties)) {
       throw new ValidationError(`Required property "${prop.name}" is missing`);
     }
   });

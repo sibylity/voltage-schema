@@ -4,6 +4,7 @@ export interface Property {
   description?: string;
   source: 'event' | 'group';
   groupName?: string;
+  defaultValue?: string | number | boolean;
 }
 
 export interface Dimension {

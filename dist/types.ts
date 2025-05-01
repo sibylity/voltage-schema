@@ -4,7 +4,7 @@ export interface AnalyticsSchemaProperty {
   description: string;
   type: string | string[];
   optional?: boolean;
-  value?: any;
+  defaultValue?: string | number | boolean;
 }
 
 export interface AnalyticsSchemaDimensionIdentifier {
@@ -60,7 +60,7 @@ export interface Property {
   description: string;
   type: string | string[] | 'boolean' | 'number' | 'string' | 'string[]' | 'number[]' | 'boolean[]';
   optional?: boolean;
-  value?: any;
+  defaultValue?: string | number | boolean;
 }
 
 export interface DimensionIdentifier {

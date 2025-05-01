@@ -6,18 +6,21 @@ export interface PropertySource {
   name: string;
   description?: string;
   optional?: boolean;
+  defaultValue?: string | number | boolean;
 }
 
 export interface PropertyData {
   property: string;
   types: (string | string[])[];
   sources: PropertySource[];
+  defaultValue?: string | number | boolean;
 }
 
 interface PropertyMap {
   [propertyName: string]: {
     types: Set<string | string[]>;
     sources: PropertySource[];
+    defaultValue?: string | number | boolean;
   };
 }
 
@@ -31,7 +34,8 @@ function processProperty(
   if (!propertyMap[property.name]) {
     propertyMap[property.name] = {
       types: new Set(),
-      sources: []
+      sources: [],
+      defaultValue: property.defaultValue
     };
   }
 
@@ -42,7 +46,8 @@ function processProperty(
     type: sourceType,
     name: sourceName,
     description: sourceDescription,
-    optional: property.optional
+    optional: property.optional,
+    defaultValue: property.defaultValue
   });
 }
 
@@ -72,7 +77,8 @@ function formatPropertyOutput(propertyMap: PropertyMap): PropertyData[] {
   return Object.entries(propertyMap).map(([property, data]) => ({
     property,
     types: Array.from(data.types),
-    sources: data.sources
+    sources: data.sources,
+    defaultValue: data.defaultValue
   }));
 }
 

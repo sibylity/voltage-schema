@@ -616,6 +616,16 @@ export function generateAutodocHtml(): string {
              border-top: 1px solid var(--border-color);
            }
 
+           .property-default {
+             margin-top: 0.5rem;
+             font-size: 0.8125rem;
+             color: var(--text-secondary);
+             padding: 0.25rem 0.75rem;
+             background: var(--bg-secondary);
+             border-radius: 1rem;
+             display: inline-block;
+           }
+
            .group {
              margin-bottom: 2.5rem;
            }
@@ -902,8 +912,12 @@ export function generateAutodocHtml(): string {
            }
 
            .property-description {
-             margin-top: 1rem;
-             padding-top: 1rem;
+             margin-top: 0.75rem;
+             color: var(--text-secondary);
+             font-size: 0.875rem;
+             line-height: 1.6;
+             padding-top: 0.75rem;
+             border-top: 1px solid var(--border-color);
            }
          </style>
        </head>
@@ -1127,11 +1141,8 @@ export function generateAutodocHtml(): string {
                    return '<div class="property">' +
                      '<div class="property-name">' + source.name + '</div>' +
                      '<div class="property-type">' + source.type + '</div>' +
-                     descriptionHtml +
-                     (eventsHtml ? '<div class="property-events">' +
-                       '<div class="section-title">Events</div>' +
-                       '<div class="event-groups-list">' + eventsHtml + '</div>' +
-                     '</div>' : '') +
+                     (prop.description ? '<div class="property-description">' + prop.description + '</div>' : '') +
+                     (source.defaultValue ? '<div class="property-default">Default: ' + source.defaultValue + '</div>' : '') +
                      '</div>';
                  }).join('');
 
@@ -1252,6 +1263,7 @@ export function generateAutodocHtml(): string {
                      '<div class="property-name">' + prop.name + '</div>' +
                      '<div class="property-type">' + prop.type + '</div>' +
                      descriptionHtml +
+                     (prop.defaultValue ? '<div class="property-default">Default: ' + prop.defaultValue + '</div>' : '') +
                      '</div>';
                  }).join('') +
                '</div>' : '';
@@ -1351,6 +1363,7 @@ export function generateAutodocHtml(): string {
                              '<div class="property-name">' + prop.name + '</div>' +
                              '<div class="property-type">' + prop.type + '</div>' +
                              descriptionHtml +
+                             (prop.defaultValue ? '<div class="property-default">Default: ' + prop.defaultValue + '</div>' : '') +
                              '</div>';
                          }).join('') +
                        '</div>' +
