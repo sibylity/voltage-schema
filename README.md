@@ -1,6 +1,7 @@
 # Voltage Schema
 
 ![Image](https://img.voltage-schema.com/voltage-dark-transparent.png)
+<img src="https://img.voltage-schema.com/voltage-dark-transparent.png" alt="Voltage Schema" width="140" height="100">
 
 Voltage provides type-safe tracking, an auto-doc of analytics data, and AI ready analytics context.
 
