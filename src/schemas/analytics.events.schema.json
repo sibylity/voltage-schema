@@ -50,9 +50,8 @@
                   "type": "boolean",
                   "default": false
                 },
-                "value": {
-                  "type": ["string", "number", "boolean", "array", "object"],
-                  "description": "Optional fixed value for the property"
+                "defaultValue": {
+                  "type": ["string", "number", "boolean"]
                 }
               },
               "required": ["name", "type"]

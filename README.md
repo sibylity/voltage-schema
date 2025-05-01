@@ -1,6 +1,10 @@
 # Voltage Schema
 
-A comprehensive analytics schema & tracker that provides type-safe tracking & auto-documentation of analytics data.
+![Image](https://img.voltage-schema.com/voltage-dark-transparent.png)
+
+Voltage provides type-safe tracking, an auto-doc of analytics data, and AI ready analytics context.
+
+[View Documentation](https://voltage-schema.com/)
 
 ## Features
 
@@ -305,7 +309,7 @@ tracker.setProperties('User', {
   Role: 'admin'
 });
 
-// Track when a user gets added
+// Track when a user views a page
 tracker.track('page_view', {
   "Page Name": 'Home',
 });

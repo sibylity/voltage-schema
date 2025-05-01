@@ -36,11 +36,14 @@ export interface TrackerContext<T extends TrackerEvents> {
   groups: Record<TrackerGroup<T>, RuntimeGroup>;
 }
 
-type PropertyValue = string | number | boolean | (() => string | number | boolean);
+type PropertyValue = string | number | boolean | { defaultValue: string | number | boolean };
 
 function resolvePropertyValue(value: PropertyValue): string | number | boolean {
-  if (typeof value === 'function') {
-    return value();
+  if (typeof value === 'object' && value !== null) {
+    if ('defaultValue' in value) {
+      return value.defaultValue;
+    }
+    throw new Error('Invalid property value format');
   }
   return value;
 }

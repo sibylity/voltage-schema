@@ -6,7 +6,8 @@ function processProperty(property, sourceName, sourceDescription, sourceType, pr
     if (!propertyMap[property.name]) {
         propertyMap[property.name] = {
             types: new Set(),
-            sources: []
+            sources: [],
+            defaultValue: property.defaultValue
         };
     }
     // Add the type to the set of types
@@ -15,7 +16,8 @@ function processProperty(property, sourceName, sourceDescription, sourceType, pr
         type: sourceType,
         name: sourceName,
         description: sourceDescription,
-        optional: property.optional
+        optional: property.optional,
+        defaultValue: property.defaultValue
     });
 }
 function processEvent(eventKey, event, propertyMap) {
@@ -34,7 +36,8 @@ function formatPropertyOutput(propertyMap) {
     return Object.entries(propertyMap).map(([property, data]) => ({
         property,
         types: Array.from(data.types),
-        sources: data.sources
+        sources: data.sources,
+        defaultValue: data.defaultValue
     }));
 }
 function getAllProperties(options = {}) {

@@ -50,7 +50,7 @@ function generateEventConfigs(trackingConfig, events, includeComments) {
   properties: [
     ${hasProperties ? event.properties.map(prop => `{
       name: '${prop.name}',
-      type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.value !== undefined ? `,\n      value: ${JSON.stringify(prop.value)}` : ''}
+      type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.defaultValue !== undefined ? `,\n      defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
     }`).join(',\n    ') : ''}
   ]
 };`;
@@ -71,7 +71,7 @@ function generateTrackingConfig(globals, events) {
       properties: [
         ${hasProperties ? event.properties.map((prop) => `{
           name: '${prop.name}',
-          type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.value !== undefined ? `,\n          value: ${JSON.stringify(prop.value)}` : ''}
+          type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.defaultValue !== undefined ? `,\n          defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
         }`).join(',\n        ') : ''}
       ]${event.passthrough ? ',\n      passthrough: true' : ''}
     }`;
@@ -85,7 +85,7 @@ function generateTrackingConfig(globals, events) {
             const type = Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`;
             return `        {
           name: '${prop.name}',
-          type: ${type}${prop.value !== undefined ? `,\n          value: ${JSON.stringify(prop.value)}` : ''}
+          type: ${type}${prop.defaultValue !== undefined ? `,\n          defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
         }`;
         }).join(',\n') : '';
         return `    '${group.name}': {
@@ -114,7 +114,7 @@ function generateTypeDefinitions(events, globals) {
             ? `{ ${event.properties.map((prop) => {
                 const type = Array.isArray(prop.type) ? prop.type.map((t) => `'${t}'`).join(' | ') : prop.type;
                 // Make properties with default values optional
-                const isOptional = prop.optional || prop.value !== undefined;
+                const isOptional = prop.optional || prop.defaultValue !== undefined;
                 return `'${prop.name}'${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
             }).join('; ')} }`
             : 'Record<string, never>';
@@ -135,7 +135,7 @@ function generateTypeDefinitions(events, globals) {
             ? `{ ${group.properties.map((prop) => {
                 const type = Array.isArray(prop.type) ? prop.type.map((t) => `'${t}'`).join(' | ') : prop.type;
                 // Make properties with default values optional
-                const isOptional = prop.optional || prop.value !== undefined;
+                const isOptional = prop.optional || prop.defaultValue !== undefined;
                 return `${prop.name}${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
             }).join('; ')} }`
             : 'Record<string, never>';
@@ -283,7 +283,7 @@ function registerGenerateCommand(program) {
                                     name: prop.name,
                                     type: prop.type,
                                     optional: prop.optional,
-                                    value: prop.value
+                                    defaultValue: prop.defaultValue
                                 }))) || [],
                                 passthrough: event.passthrough
                             }
@@ -299,7 +299,7 @@ function registerGenerateCommand(program) {
                                     name: prop.name,
                                     type: prop.type,
                                     optional: prop.optional,
-                                    value: prop.value
+                                    defaultValue: prop.defaultValue
                                 }))) || [],
                                 identifiedBy: group.identifiedBy,
                                 passthrough: group.passthrough

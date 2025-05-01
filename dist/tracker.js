@@ -2,8 +2,11 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createAnalyticsTracker = createAnalyticsTracker;
 function resolvePropertyValue(value) {
-    if (typeof value === 'function') {
-        return value();
+    if (typeof value === 'object' && value !== null) {
+        if ('defaultValue' in value) {
+            return value.defaultValue;
+        }
+        throw new Error('Invalid property value format');
     }
     return value;
 }
