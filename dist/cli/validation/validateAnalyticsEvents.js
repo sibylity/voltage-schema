@@ -34,12 +34,12 @@ function validateEventDimensions(event, eventKey, validDimensions, globalsExist)
         errors.push(`Event "${eventKey}" has dimensions but no dimensions file is provided`);
         return { isValid: false, errors };
     }
-    const { inclusive, exclusive } = event.dimensions;
-    if (inclusive && exclusive) {
-        errors.push(`Event "${eventKey}" cannot have both inclusive and exclusive dimensions`);
+    const { included, excluded } = event.dimensions;
+    if (included && excluded) {
+        errors.push(`Event "${eventKey}" cannot have both included and excluded dimensions`);
         return { isValid: false, errors };
     }
-    const dimensions = inclusive || exclusive || [];
+    const dimensions = included || excluded || [];
     for (const dim of dimensions) {
         if (!validDimensions.includes(dim)) {
             errors.push(`Invalid dimension "${dim}" in event "${eventKey}"`);

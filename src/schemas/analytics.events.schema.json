@@ -12,23 +12,23 @@
           "dimensions": {
             "type": "object",
             "properties": {
-              "inclusive": {
+              "included": {
                 "type": "array",
                 "items": { "type": "string" }
               },
-              "exclusive": {
+              "excluded": {
                 "type": "array",
                 "items": { "type": "string" }
               }
             },
             "oneOf": [
-              { 
-                "required": ["inclusive"],
-                "not": { "required": ["exclusive"] }
+              {
+                "required": ["included"],
+                "not": { "required": ["excluded"] }
               },
-              { 
-                "required": ["exclusive"],
-                "not": { "required": ["inclusive"] }
+              {
+                "required": ["excluded"],
+                "not": { "required": ["included"] }
               }
             ]
           },
@@ -67,4 +67,4 @@
     }
   },
   "required": ["events"]
-} 
+}

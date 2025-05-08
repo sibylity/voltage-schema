@@ -56,17 +56,17 @@ function processEvent(eventKey, event, includeGroups, includeDimensions, groups,
                 .map((dimName) => getDimensionDetails(dimName, dimensions))
                 .filter((dim) => dim !== undefined);
         }
-        // Handle the new dimensions format with inclusive/exclusive arrays
+        // Handle the new dimensions format with included/excluded arrays
         else if (typeof event.dimensions === 'object') {
             const dimensionsObj = event.dimensions;
-            if (dimensionsObj.inclusive && Array.isArray(dimensionsObj.inclusive)) {
-                output.dimensions = dimensionsObj.inclusive
+            if (dimensionsObj.included && Array.isArray(dimensionsObj.included)) {
+                output.dimensions = dimensionsObj.included
                     .map((dimName) => getDimensionDetails(dimName, dimensions))
                     .filter((dim) => dim !== undefined);
             }
-            else if (dimensionsObj.exclusive && Array.isArray(dimensionsObj.exclusive)) {
-                // For exclusive dimensions, we need to include all dimensions except the excluded ones
-                const excludedDims = new Set(dimensionsObj.exclusive);
+            else if (dimensionsObj.excluded && Array.isArray(dimensionsObj.excluded)) {
+                // For excluded dimensions, we need to include all dimensions except the excluded ones
+                const excludedDims = new Set(dimensionsObj.excluded);
                 output.dimensions = dimensions
                     .filter(dim => !excludedDims.has(dim.name))
                     .map(dim => ({

@@ -97,8 +97,8 @@ export interface Event {
   name: string;
   description: string;
   dimensions?: string[] | {
-    inclusive?: string[];
-    exclusive?: string[];
+    included?: string[];
+    excluded?: string[];
   };
   properties?: Property[];
   passthrough?: boolean;
