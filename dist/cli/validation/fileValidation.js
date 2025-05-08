@@ -6,8 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateFileExists = validateFileExists;
 exports.validateFileExtension = validateFileExtension;
 exports.parseJsonFile = parseJsonFile;
+exports.parseSchemaFile = parseSchemaFile;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const yamlUtils_1 = require("../utils/yamlUtils");
 function validateFileExists(filePath, isOptional = false) {
     if (!fs_1.default.existsSync(filePath)) {
         if (isOptional) {
@@ -20,16 +22,12 @@ function validateFileExists(filePath, isOptional = false) {
     }
     return { isValid: true };
 }
-function validateFileExtension(filePath, allowedExtensions, context) {
+function validateFileExtension(filePath) {
     const ext = path_1.default.extname(filePath).toLowerCase();
-    if (!allowedExtensions.includes(ext)) {
-        const configMsg = context.configIndex !== undefined ? ` in generation config #${context.configIndex + 1}` : "";
-        return {
-            isValid: false,
-            errors: [`Invalid file extension for ${path_1.default.basename(filePath)}${configMsg}. Expected: ${allowedExtensions.join(", ")}`]
-        };
+    if (ext !== ".json" && ext !== ".volt" && ext !== ".yaml" && ext !== ".yml") {
+        return `Invalid file extension: ${ext}. Expected .json, .volt, .yaml, or .yml`;
     }
-    return { isValid: true };
+    return null;
 }
 function parseJsonFile(filePath) {
     try {
@@ -42,4 +40,17 @@ function parseJsonFile(filePath) {
             errors: [`Failed to parse ${path_1.default.basename(filePath)}: ${error instanceof Error ? error.message : String(error)}`]
         };
     }
+}
+function parseSchemaFile(filePath) {
+    const ext = path_1.default.extname(filePath).toLowerCase();
+    if (ext === ".json") {
+        return parseJsonFile(filePath);
+    }
+    else if (ext === ".volt" || ext === ".yaml" || ext === ".yml") {
+        return (0, yamlUtils_1.parseYamlFile)(filePath);
+    }
+    return {
+        isValid: false,
+        errors: [`Unsupported file extension: ${ext}`]
+    };
 }

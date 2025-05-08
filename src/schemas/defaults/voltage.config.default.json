@@ -1,14 +1,14 @@
 {
   "generates": [
     {
-      "events": "./analytics.events.json",
+      "events": "./analytics.events.volt",
       "dimensions": [
-        "./analytics.all-dimensions.json"
+        "./analytics.all-dimensions.volt"
       ],
       "groups": [
-        "./analytics.all-groups.json"
+        "./analytics.all-groups.volt"
       ],
       "output": "./__analytics_generated__/analytics.ts"
     }
   ]
-} 
+}

@@ -6,9 +6,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerInitCommand = registerInitCommand;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const yamlUtils_1 = require("../utils/yamlUtils");
 // Default paths
-const configPath = path_1.default.resolve(process.cwd(), "analytics.config.json");
-const defaultConfigPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.config.default.json");
+const configPath = path_1.default.resolve(process.cwd(), "voltage.config.json");
+const defaultConfigPath = path_1.default.resolve(__dirname, "../../schemas/defaults/voltage.config.default.json");
 const defaultAllDimensionsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.all-dimensions.default.json");
 const defaultAllGroupsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.all-groups.default.json");
 const defaultEventsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.events.default.json");
@@ -20,9 +21,9 @@ function registerInitCommand(program) {
         .action((options) => {
         const files = [
             { src: defaultConfigPath, dest: configPath, name: "config" },
-            { src: defaultAllGroupsPath, dest: "analytics.all-groups.json", name: "all-groups" },
-            { src: defaultAllDimensionsPath, dest: "analytics.all-dimensions.json", name: "all-dimensions" },
-            { src: defaultEventsPath, dest: "analytics.events.json", name: "events" }
+            { src: defaultAllGroupsPath, dest: "analytics.all-groups.volt", name: "all-groups" },
+            { src: defaultAllDimensionsPath, dest: "analytics.all-dimensions.volt", name: "all-dimensions" },
+            { src: defaultEventsPath, dest: "analytics.events.volt", name: "events" }
         ];
         files.forEach(file => {
             if (!fs_1.default.existsSync(file.src)) {
@@ -35,7 +36,10 @@ function registerInitCommand(program) {
                 return;
             }
             const defaultContent = fs_1.default.readFileSync(file.src, "utf8");
-            fs_1.default.writeFileSync(destPath, defaultContent);
+            const jsonData = JSON.parse(defaultContent);
+            // Convert to YAML for YAML files, keep as JSON for config
+            const outputContent = file.dest.endsWith(".json") ? defaultContent : (0, yamlUtils_1.jsonToYaml)(jsonData);
+            fs_1.default.writeFileSync(destPath, outputContent);
             console.log(`✅ ${file.dest} ${options.reset ? "reset" : "created"} successfully!`);
         });
     });

@@ -9,6 +9,7 @@ const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const validation_1 = require("../validation");
 const analyticsConfigHelper_1 = require("../utils/analyticsConfigHelper");
+const fileValidation_1 = require("../validation/fileValidation");
 /**
  * Normalizes an event key to be safe for use as a variable name.
  * Converts to CamelCase and removes unsafe characters.
@@ -244,12 +245,13 @@ ${generateTrackingConfig(globals, events)}`;
 function registerGenerateCommand(program) {
     program
         .command("generate")
-        .description("Generate tracking configs & TypeScript types from analytics files")
+        .description("Generate TypeScript types & tracking config from your codegen config")
         .action(() => {
+        console.log("🔍 Validating voltage.config.json...");
+        const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
         try {
             if (!(0, validation_1.validateAnalyticsFiles)())
                 return;
-            const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
             // Process each generation config
             config.generates.forEach(genConfig => {
                 const outputPath = path_1.default.resolve(process.cwd(), genConfig.output);
@@ -261,9 +263,13 @@ function registerGenerateCommand(program) {
                 if (genConfig.groups) {
                     genConfig.groups.forEach(groupFile => {
                         const groupPath = path_1.default.resolve(process.cwd(), groupFile);
-                        const groupContent = JSON.parse(fs_1.default.readFileSync(groupPath, 'utf-8'));
-                        if (groupContent.groups) {
-                            Object.assign(allGroups, groupContent.groups);
+                        const groupResult = (0, fileValidation_1.parseSchemaFile)(groupPath);
+                        if (!groupResult.isValid || !groupResult.data) {
+                            console.error(`❌ Failed to parse group file at ${groupPath}:`, groupResult.errors);
+                            process.exit(1);
+                        }
+                        if (groupResult.data.groups) {
+                            Object.assign(allGroups, groupResult.data.groups);
                         }
                     });
                 }

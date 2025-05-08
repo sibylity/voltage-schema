@@ -1,7 +1,7 @@
 import path from "path";
 import { type ValidationResult } from "./types";
 import { createValidator } from "./schemaValidation";
-import { parseJsonFile } from "./fileValidation";
+import { parseSchemaFile } from "./fileValidation";
 import { logValidationErrors } from "./logging";
 import { type AnalyticsSchemaDimension } from "../../types";
 
@@ -26,7 +26,7 @@ export function validateDimensions(
   dimensionPath: string,
   eventsPath: string
 ): ValidationResult<{ dimensions: AnalyticsSchemaDimension[] }> {
-  const result = parseJsonFile<{ dimensions: AnalyticsSchemaDimension[] }>(dimensionPath);
+  const result = parseSchemaFile<{ dimensions: AnalyticsSchemaDimension[] }>(dimensionPath);
   if (!result.isValid || !result.data) {
     logValidationErrors(result.errors || []);
     return result;

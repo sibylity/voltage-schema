@@ -11,66 +11,41 @@ const logging_1 = require("./logging");
 const validateEventsSchema = (0, schemaValidation_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.events.schema.json"));
 function validateEventProperties(event, eventKey) {
     const errors = [];
-    const propertyNames = new Set();
-    if (event.properties) {
-        event.properties.forEach((prop) => {
-            if (!prop.name || !prop.type) {
-                errors.push(`Property in event "${eventKey}" is missing required fields (name, type).`);
-            }
-            else if (propertyNames.has(prop.name)) {
-                errors.push(`Duplicate property name "${prop.name}" found in event "${eventKey}".`);
-            }
-            else {
-                propertyNames.add(prop.name);
-            }
-        });
+    if (!event.properties) {
+        return { isValid: true, data: { events: {} } };
     }
-    return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
+    const propertyNames = new Set();
+    for (const prop of event.properties) {
+        if (propertyNames.has(prop.name)) {
+            errors.push(`Duplicate property name "${prop.name}" in event "${eventKey}"`);
+        }
+        else {
+            propertyNames.add(prop.name);
+        }
+    }
+    return errors.length > 0 ? { isValid: false, errors } : { isValid: true, data: { events: {} } };
 }
 function validateEventDimensions(event, eventKey, validDimensions, globalsExist) {
     const errors = [];
-    if (event.dimensions) {
-        if (!globalsExist) {
-            console.warn(`⚠️ Event "${eventKey}" specifies dimensions but no globals file exists.`);
-        }
-        // Handle the new dimensions format with inclusive/exclusive arrays
-        if (typeof event.dimensions === 'object' && !Array.isArray(event.dimensions)) {
-            // Check if dimensions has inclusive or exclusive property
-            if ('inclusive' in event.dimensions) {
-                const inclusiveDims = event.dimensions.inclusive;
-                if (Array.isArray(inclusiveDims)) {
-                    inclusiveDims.forEach((dim) => {
-                        if (!validDimensions.has(dim)) {
-                            errors.push(`Invalid dimension "${dim}" in event "${eventKey}". It is not listed in dimensions.`);
-                        }
-                    });
-                }
-                else {
-                    errors.push(`Invalid "inclusive" property in event "${eventKey}". It must be an array of strings.`);
-                }
-            }
-            else if ('exclusive' in event.dimensions) {
-                const exclusiveDims = event.dimensions.exclusive;
-                if (Array.isArray(exclusiveDims)) {
-                    exclusiveDims.forEach((dim) => {
-                        if (!validDimensions.has(dim)) {
-                            errors.push(`Invalid dimension "${dim}" in event "${eventKey}". It is not listed in dimensions.`);
-                        }
-                    });
-                }
-                else {
-                    errors.push(`Invalid "exclusive" property in event "${eventKey}". It must be an array of strings.`);
-                }
-            }
-            else {
-                errors.push(`Event "${eventKey}" has dimensions object but neither "inclusive" nor "exclusive" property is defined.`);
-            }
-        }
-        else {
-            errors.push(`Event "${eventKey}" has invalid dimensions format.`);
+    if (!event.dimensions) {
+        return { isValid: true, data: { events: {} } };
+    }
+    if (!globalsExist) {
+        errors.push(`Event "${eventKey}" has dimensions but no dimensions file is provided`);
+        return { isValid: false, errors };
+    }
+    const { inclusive, exclusive } = event.dimensions;
+    if (inclusive && exclusive) {
+        errors.push(`Event "${eventKey}" cannot have both inclusive and exclusive dimensions`);
+        return { isValid: false, errors };
+    }
+    const dimensions = inclusive || exclusive || [];
+    for (const dim of dimensions) {
+        if (!validDimensions.includes(dim)) {
+            errors.push(`Invalid dimension "${dim}" in event "${eventKey}"`);
         }
     }
-    return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
+    return errors.length > 0 ? { isValid: false, errors } : { isValid: true, data: { events: {} } };
 }
 function validateEvents(eventsPath, validDimensions, globalsExist) {
     var _a;
@@ -82,10 +57,10 @@ function validateEvents(eventsPath, validDimensions, globalsExist) {
         if (existsResult.errors) {
             (0, logging_1.logValidationErrors)(existsResult.errors);
         }
-        return existsResult;
+        return { isValid: false, errors: existsResult.errors };
     }
     // Parse events file
-    const parseResult = (0, fileValidation_1.parseJsonFile)(eventsPath);
+    const parseResult = (0, fileValidation_1.parseSchemaFile)(eventsPath);
     if (!parseResult.isValid || !parseResult.data) {
         if (parseResult.errors) {
             (0, logging_1.logValidationErrors)(parseResult.errors);
@@ -117,5 +92,5 @@ function validateEvents(eventsPath, validDimensions, globalsExist) {
         return { isValid: false, errors };
     }
     (0, logging_1.logValidationSuccess)(context);
-    return { isValid: true };
+    return { isValid: true, data: events };
 }

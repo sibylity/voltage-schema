@@ -7,19 +7,14 @@ exports.getAnalyticsConfig = getAnalyticsConfig;
 exports.readGenerationConfigFiles = readGenerationConfigFiles;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
+const fileValidation_1 = require("../validation/fileValidation");
 function getAnalyticsConfig() {
-    const configPath = path_1.default.resolve(process.cwd(), "analytics.config.json");
+    const configPath = path_1.default.resolve(process.cwd(), "voltage.config.json");
     if (!fs_1.default.existsSync(configPath)) {
-        console.error("❌ analytics.config.json file is missing in project root.");
-        process.exit(1);
+        throw new Error("voltage.config.json not found. Run 'npm voltage init' to create it.");
     }
-    try {
-        return JSON.parse(fs_1.default.readFileSync(configPath, "utf8"));
-    }
-    catch (error) {
-        console.error("❌ Failed to parse analytics.config.json:", error);
-        process.exit(1);
-    }
+    const config = JSON.parse(fs_1.default.readFileSync(configPath, "utf8"));
+    return config;
 }
 function readGenerationConfigFiles(genConfig) {
     const eventsPath = path_1.default.resolve(process.cwd(), genConfig.events);
@@ -27,12 +22,9 @@ function readGenerationConfigFiles(genConfig) {
         console.error(`❌ Events file not found: ${eventsPath}`);
         process.exit(1);
     }
-    let events;
-    try {
-        events = JSON.parse(fs_1.default.readFileSync(eventsPath, "utf8"));
-    }
-    catch (error) {
-        console.error(`❌ Failed to parse events file at ${eventsPath}:`, error);
+    const eventsResult = (0, fileValidation_1.parseSchemaFile)(eventsPath);
+    if (!eventsResult.isValid || !eventsResult.data) {
+        console.error(`❌ Failed to parse events file at ${eventsPath}:`, eventsResult.errors);
         process.exit(1);
     }
     // Combine groups and dimensions from all files
@@ -45,15 +37,13 @@ function readGenerationConfigFiles(genConfig) {
         for (const groupFile of genConfig.groups) {
             const groupPath = path_1.default.resolve(process.cwd(), groupFile);
             if (fs_1.default.existsSync(groupPath)) {
-                try {
-                    const groupContent = JSON.parse(fs_1.default.readFileSync(groupPath, "utf8"));
-                    if (groupContent.groups) {
-                        combinedGlobals.groups.push(...groupContent.groups);
-                    }
-                }
-                catch (error) {
-                    console.error(`❌ Failed to parse group file at ${groupPath}:`, error);
+                const groupResult = (0, fileValidation_1.parseSchemaFile)(groupPath);
+                if (!groupResult.isValid || !groupResult.data) {
+                    console.error(`❌ Failed to parse group file at ${groupPath}:`, groupResult.errors);
                     process.exit(1);
+                }
+                if (groupResult.data.groups) {
+                    combinedGlobals.groups.push(...groupResult.data.groups);
                 }
             }
             else {
@@ -66,15 +56,13 @@ function readGenerationConfigFiles(genConfig) {
         for (const dimensionFile of genConfig.dimensions) {
             const dimensionPath = path_1.default.resolve(process.cwd(), dimensionFile);
             if (fs_1.default.existsSync(dimensionPath)) {
-                try {
-                    const dimensionContent = JSON.parse(fs_1.default.readFileSync(dimensionPath, "utf8"));
-                    if (dimensionContent.dimensions) {
-                        combinedGlobals.dimensions.push(...dimensionContent.dimensions);
-                    }
-                }
-                catch (error) {
-                    console.error(`❌ Failed to parse dimension file at ${dimensionPath}:`, error);
+                const dimensionResult = (0, fileValidation_1.parseSchemaFile)(dimensionPath);
+                if (!dimensionResult.isValid || !dimensionResult.data) {
+                    console.error(`❌ Failed to parse dimension file at ${dimensionPath}:`, dimensionResult.errors);
                     process.exit(1);
+                }
+                if (dimensionResult.data.dimensions) {
+                    combinedGlobals.dimensions.push(...dimensionResult.data.dimensions);
                 }
             }
             else {
@@ -82,5 +70,5 @@ function readGenerationConfigFiles(genConfig) {
             }
         }
     }
-    return { globals: combinedGlobals, events };
+    return { globals: combinedGlobals, events: eventsResult.data };
 }

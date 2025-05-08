@@ -16,58 +16,32 @@ exports.defaultGroups = {
     groups: [],
     dimensions: []
 };
-function validateGroupDimensions(dimensions, groups, events) {
+function validateGroupDimensions(dimensions = [], groups = [], events) {
     const errors = [];
-    // Create a map of group names to their properties
-    const groupProperties = new Map();
-    groups.forEach(group => {
-        const properties = new Set(group.properties.map(prop => prop.name));
-        groupProperties.set(group.name, properties);
-    });
-    // Validate each dimension
-    (dimensions || []).forEach(dimension => {
-        // Validate AND identifiers if present
-        if (dimension.identifiers.AND) {
-            dimension.identifiers.AND.forEach(identifier => {
-                // Skip validation if no group is specified
-                if (!identifier.group) {
-                    console.warn(`Dimension "${dimension.name}" has AND identifier with no group specified`);
+    const groupNames = new Set(groups.map(g => g.name));
+    dimensions.forEach(dim => {
+        if (dim.identifiers) {
+            const { AND, OR } = dim.identifiers;
+            const identifiers = AND || OR || [];
+            identifiers.forEach(identifier => {
+                if (!identifier.group || !identifier.property) {
+                    errors.push(`Dimension "${dim.name}" has an identifier missing required fields (group, property)`);
                     return;
                 }
-                // Check that the group exists
-                if (!groupProperties.has(identifier.group)) {
-                    errors.push(`Dimension "${dimension.name}" references non-existent group "${identifier.group}"`);
-                    return;
+                if (!groupNames.has(identifier.group)) {
+                    errors.push(`Dimension "${dim.name}" references non-existent group "${identifier.group}"`);
                 }
-                // Check that the property exists on the specified group
-                const properties = groupProperties.get(identifier.group);
-                if (!properties.has(identifier.property)) {
-                    errors.push(`Dimension "${dimension.name}" references property "${identifier.property}" which does not exist on group "${identifier.group}"`);
-                }
-            });
-        }
-        // Validate OR identifiers if present
-        if (dimension.identifiers.OR) {
-            dimension.identifiers.OR.forEach(identifier => {
-                // Skip validation if no group is specified
-                if (!identifier.group) {
-                    errors.push(`Dimension "${dimension.name}" has OR identifier with no group specified`);
-                    return;
-                }
-                // Check that the group exists
-                if (!groupProperties.has(identifier.group)) {
-                    errors.push(`Dimension "${dimension.name}" references non-existent group "${identifier.group}"`);
-                    return;
-                }
-                // Check that the property exists on the specified group
-                const properties = groupProperties.get(identifier.group);
-                if (!properties.has(identifier.property)) {
-                    errors.push(`Dimension "${dimension.name}" references property "${identifier.property}" which does not exist on group "${identifier.group}"`);
+                const group = groups.find(g => g.name === identifier.group);
+                if (group) {
+                    const propertyNames = new Set(group.properties.map(p => p.name));
+                    if (!propertyNames.has(identifier.property)) {
+                        errors.push(`Dimension "${dim.name}" references non-existent property "${identifier.property}" in group "${identifier.group}"`);
+                    }
                 }
             });
         }
     });
-    return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
+    return errors.length > 0 ? { isValid: false, errors } : { isValid: true, data: { groups, dimensions } };
 }
 function validateGroupIdentifiedBy(group) {
     const errors = [];
@@ -109,7 +83,7 @@ function validateGroups(groupsPath, eventsPath) {
         return { isValid: true, data: exports.defaultGroups };
     }
     // Parse groups file
-    const parseResult = (0, fileValidation_1.parseJsonFile)(groupsPath);
+    const parseResult = (0, fileValidation_1.parseSchemaFile)(groupsPath);
     if (!parseResult.isValid || !parseResult.data) {
         if (parseResult.errors) {
             (0, logging_1.logValidationErrors)(parseResult.errors);
@@ -120,7 +94,7 @@ function validateGroups(groupsPath, eventsPath) {
     // Parse events file
     let events = {};
     if (fs_1.default.existsSync(eventsPath)) {
-        const eventsParseResult = (0, fileValidation_1.parseJsonFile)(eventsPath);
+        const eventsParseResult = (0, fileValidation_1.parseSchemaFile)(eventsPath);
         if (eventsParseResult.isValid && eventsParseResult.data) {
             events = eventsParseResult.data;
         }

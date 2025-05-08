@@ -4,6 +4,7 @@ import { Command } from "commander";
 import { type AnalyticsGlobals, type AnalyticsEvents, type GenerationConfig, type AnalyticsSchemaProperty } from "../../types";
 import { validateAnalyticsFiles } from "../validation";
 import { getAnalyticsConfig, readGenerationConfigFiles } from "../utils/analyticsConfigHelper";
+import { parseSchemaFile } from "../validation/fileValidation";
 
 interface TrackingConfigProperty {
   name: string;
@@ -40,12 +41,12 @@ function normalizeEventKey(key: string): string {
 
   // Split on any non-alphanumeric characters
   const words = key.split(/[^a-zA-Z0-9]+/);
-  
+
   // Convert to CamelCase
   return words.map((word, index) => {
     if (!word) return '';
-    return index === 0 
-      ? word.toLowerCase() 
+    return index === 0
+      ? word.toLowerCase()
       : word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
   }).join('');
 }
@@ -58,14 +59,14 @@ function generateEventConfigs(trackingConfig: TrackingConfig, events: AnalyticsE
     .map(([key, event]) => {
       const normalizedKey = normalizeEventKey(key);
       const originalEvent = events.events[key];
-      const comment = includeComments && originalEvent.description 
-        ? `/** ${originalEvent.description} */\n` 
+      const comment = includeComments && originalEvent.description
+        ? `/** ${originalEvent.description} */\n`
         : '';
-      
+
       // Check if properties array is empty or contains only undefined
-      const hasProperties = event.properties && event.properties.length > 0 && 
+      const hasProperties = event.properties && event.properties.length > 0 &&
         !event.properties.every(prop => prop === undefined);
-      
+
       return `${comment}export const ${normalizedKey}Event = {
   name: '${event.name}',
   properties: [
@@ -86,9 +87,9 @@ export function generateTrackingConfig(globals: any, events: any): string {
   const eventEntries = Object.entries(events.events || {})
     .map(([key, event]: [string, any]) => {
       // Check if properties array is empty or contains only undefined
-      const hasProperties = event.properties && event.properties.length > 0 && 
+      const hasProperties = event.properties && event.properties.length > 0 &&
         !event.properties.every((prop: any) => prop === undefined);
-      
+
       return `    ${key}: {
       name: '${event.name}',
       properties: [
@@ -103,9 +104,9 @@ export function generateTrackingConfig(globals: any, events: any): string {
 
   const groupsConfig = globals.groups.map((group: any) => {
     // Check if properties array is empty or contains only undefined
-    const hasProperties = group.properties && group.properties.length > 0 && 
+    const hasProperties = group.properties && group.properties.length > 0 &&
       !group.properties.every((prop: any) => prop === undefined);
-    
+
     const propertyEntries = hasProperties ? group.properties.map((prop: any) => {
       const type = Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`;
       return `        {
@@ -137,7 +138,7 @@ ${groupsConfig}
  */
 function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlobals): string {
   const eventTypes = Object.entries(events.events).map(([key, event]) => {
-    let properties = event.properties?.length 
+    let properties = event.properties?.length
       ? `{ ${event.properties.map((prop) => {
           const type = Array.isArray(prop.type) ? prop.type.map((t: string) => `'${t}'`).join(' | ') : prop.type;
           // Make properties with default values optional
@@ -148,7 +149,7 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
 
     // Add index signature for passthrough events
     if (event.passthrough) {
-      properties = properties === 'Record<string, never>' 
+      properties = properties === 'Record<string, never>'
         ? '{ [key: string]: any }'
         : properties.replace(/}$/, '; [key: string]: any }');
     }
@@ -171,7 +172,7 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
 
     // Add index signature for passthrough groups
     if (group.passthrough) {
-      properties = properties === 'Record<string, never>' 
+      properties = properties === 'Record<string, never>'
         ? '{ [key: string]: any }'
         : properties.replace(/}$/, '; [key: string]: any }');
     }
@@ -282,12 +283,13 @@ ${generateTrackingConfig(globals, events)}`;
 export function registerGenerateCommand(program: Command) {
   program
     .command("generate")
-    .description("Generate tracking configs & TypeScript types from analytics files")
+    .description("Generate TypeScript types & tracking config from your codegen config")
     .action(() => {
+      console.log("🔍 Validating voltage.config.json...");
+      const config = getAnalyticsConfig();
+
       try {
         if (!validateAnalyticsFiles()) return;
-
-        const config = getAnalyticsConfig();
 
         // Process each generation config
         config.generates.forEach(genConfig => {
@@ -302,9 +304,13 @@ export function registerGenerateCommand(program: Command) {
           if (genConfig.groups) {
             genConfig.groups.forEach(groupFile => {
               const groupPath = path.resolve(process.cwd(), groupFile);
-              const groupContent = JSON.parse(fs.readFileSync(groupPath, 'utf-8'));
-              if (groupContent.groups) {
-                Object.assign(allGroups, groupContent.groups);
+              const groupResult = parseSchemaFile<AnalyticsGlobals>(groupPath);
+              if (!groupResult.isValid || !groupResult.data) {
+                console.error(`❌ Failed to parse group file at ${groupPath}:`, groupResult.errors);
+                process.exit(1);
+              }
+              if (groupResult.data.groups) {
+                Object.assign(allGroups, groupResult.data.groups);
               }
             });
           }

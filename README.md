@@ -46,7 +46,7 @@ Schema files for voltage can be initialized by running ```npm voltage init```.
 
 </details>
 
-Create an `analytics.config.json` file in your project root:
+Create a `voltage.config.json` file in your project root:
 
 ```json
 {
