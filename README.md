@@ -41,6 +41,7 @@ Schema files for voltage can be initialized by running ```npm voltage init```.
 | dimensions | string[] | no | The path to all of the dimension file(s) that exist for the events being tracked. If a dimension is identified by a group, then that group must be included in the codegen config with the dimension. |
 | output | string | yes | The file path to write the generated types & tracking config to. When this file path ends in .ts, typescript types are generated. When it ends in ".js", no types are generated.  |
 | disableComments | boolean | no | By default, event, property, & group descriptions are added as jsDoc style comments on their generated types & tracking configs. |
+| eventKeyPropertyName | string | no | The name of the property that will be auto-generated to store the event key. Defaults to 'Event Key' if not specified. This property will be added to all events with a defaultValue set to the event's key. |
 
 </details>
 

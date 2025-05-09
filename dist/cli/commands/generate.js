@@ -35,7 +35,7 @@ function normalizeEventKey(key) {
 /**
  * Generates event configurations with optional JSDoc comments
  */
-function generateEventConfigs(trackingConfig, events, includeComments) {
+function generateEventConfigs(trackingConfig, events, includeComments, eventKeyPropertyName = 'Event Key') {
     return Object.entries(trackingConfig.events)
         .map(([key, event]) => {
         const normalizedKey = normalizeEventKey(key);
@@ -43,13 +43,15 @@ function generateEventConfigs(trackingConfig, events, includeComments) {
         const comment = includeComments && originalEvent.description
             ? `/** ${originalEvent.description} */\n`
             : '';
-        // Check if properties array is empty or contains only undefined
-        const hasProperties = event.properties && event.properties.length > 0 &&
-            !event.properties.every(prop => prop === undefined);
         return `${comment}export const ${normalizedKey}Event = {
   name: '${event.name}',
   properties: [
-    ${hasProperties ? event.properties.map(prop => `{
+    {
+      name: '${eventKeyPropertyName}',
+      type: 'string',
+      defaultValue: '${key}',
+      description: 'The key that is used to track the "${key}" implementation of the "${event.name}" event.'
+    }${event.properties && event.properties.length > 0 ? ',\n    ' + event.properties.map(prop => `{
       name: '${prop.name}',
       type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.defaultValue !== undefined ? `,\n      defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
     }`).join(',\n    ') : ''}
@@ -61,16 +63,18 @@ function generateEventConfigs(trackingConfig, events, includeComments) {
 /**
  * Generates the tracking config object
  */
-function generateTrackingConfig(globals, events) {
+function generateTrackingConfig(globals, events, eventKeyPropertyName = 'Event Key') {
     const eventEntries = Object.entries(events.events || {})
         .map(([key, event]) => {
-        // Check if properties array is empty or contains only undefined
-        const hasProperties = event.properties && event.properties.length > 0 &&
-            !event.properties.every((prop) => prop === undefined);
         return `    ${key}: {
       name: '${event.name}',
       properties: [
-        ${hasProperties ? event.properties.map((prop) => `{
+        {
+          name: '${eventKeyPropertyName}',
+          type: 'string',
+          defaultValue: '${key}',
+          description: 'The key that is used to track the "${key}" implementation of the "${event.name}" event.'
+        }${event.properties && event.properties.length > 0 ? ',\n        ' + event.properties.map((prop) => `{
           name: '${prop.name}',
           type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.defaultValue !== undefined ? `,\n          defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
         }`).join(',\n        ') : ''}
@@ -216,12 +220,12 @@ function getPropertyType(type) {
     }
     return type;
 }
-function generateJavaScriptOutput(trackingConfig, events, includeComments, outputPath) {
+function generateJavaScriptOutput(trackingConfig, events, includeComments, outputPath, eventKeyPropertyName = 'Event Key') {
     const jsOutput = `
 // 🔹 Event Configurations
-${generateEventConfigs(trackingConfig, events, includeComments)}
+${generateEventConfigs(trackingConfig, events, includeComments, eventKeyPropertyName)}
 
-${generateTrackingConfig({ groups: [], dimensions: [], events: {} }, { groups: [], dimensions: [], events: {} })}
+${generateTrackingConfig({ groups: [], dimensions: [], events: {} }, { groups: [], dimensions: [], events: {} }, eventKeyPropertyName)}
 `;
     fs_1.default.writeFileSync(outputPath, jsOutput);
     console.log(`✅ Generated tracking config in ${outputPath}`);
@@ -231,14 +235,15 @@ function generateTypeScriptOutput(trackingConfig, events, includeComments, outpu
     if (!globals) {
         throw new Error('Failed to read globals configuration');
     }
+    const eventKeyPropertyName = genConfig.eventKeyPropertyName || 'Event Key';
     const analyticsTypes = `// 🔹 Event Types & Configurations
 
-${generateEventConfigs(trackingConfig, events, includeComments)}
+${generateEventConfigs(trackingConfig, events, includeComments, eventKeyPropertyName)}
 
 // 🔹 Generated Types
 ${generateTypeDefinitions(events, globals)}
 
-${generateTrackingConfig(globals, events)}`;
+${generateTrackingConfig(globals, events, eventKeyPropertyName)}`;
     fs_1.default.writeFileSync(outputPath, analyticsTypes.trim() + '\n');
     console.log(`✅ Generated tracking config and TypeScript definitions in ${outputPath}`);
 }
@@ -318,7 +323,7 @@ function registerGenerateCommand(program) {
                     generateTypeScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath, genConfig);
                 }
                 else {
-                    generateJavaScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath);
+                    generateJavaScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath, genConfig.eventKeyPropertyName);
                 }
             });
         }

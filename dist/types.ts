@@ -35,10 +35,11 @@ export interface AnalyticsConfig {
 
 export interface GenerationConfig {
   events: string;
-  dimensions?: string[];
   groups?: string[];
+  dimensions?: string[];
   output: string;
   disableComments?: boolean;
+  eventKeyPropertyName?: string;
 }
 
 // Analytics Globals Types

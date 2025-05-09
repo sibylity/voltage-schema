@@ -10,31 +10,29 @@
           "name": { "type": "string" },
           "description": { "type": "string" },
           "dimensions": {
-            "type": "object",
-            "properties": {
-              "included": {
-                "type": "array",
-                "items": { "type": "string" }
-              },
-              "excluded": {
-                "type": "array",
-                "items": { "type": "string" }
-              }
-            },
             "oneOf": [
               {
-                "required": ["included"],
-                "not": { "required": ["excluded"] }
+                "type": "array",
+                "items": { "type": "string" }
               },
               {
-                "required": ["excluded"],
-                "not": { "required": ["included"] }
+                "type": "object",
+                "properties": {
+                  "included": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  },
+                  "excluded": {
+                    "type": "array",
+                    "items": { "type": "string" }
+                  }
+                },
+                "additionalProperties": false
               }
             ]
           },
           "properties": {
             "type": "array",
-            "default": [],
             "items": {
               "type": "object",
               "properties": {
@@ -42,25 +40,26 @@
                 "description": { "type": "string" },
                 "type": {
                   "oneOf": [
-                    { "enum": ["string", "number", "boolean", "string[]", "number[]", "boolean[]"] },
-                    { "type": "array", "items": { "type": ["string", "number", "boolean"] } }
+                    { "type": "string" },
+                    {
+                      "type": "array",
+                      "items": { "type": "string" }
+                    }
                   ]
                 },
-                "optional": {
-                  "type": "boolean",
-                  "default": false
-                },
                 "defaultValue": {
-                  "type": ["string", "number", "boolean"]
-                }
+                  "oneOf": [
+                    { "type": "string" },
+                    { "type": "number" },
+                    { "type": "boolean" }
+                  ]
+                },
+                "optional": { "type": "boolean" }
               },
               "required": ["name", "type"]
             }
           },
-          "passthrough": {
-            "type": "boolean",
-            "default": false
-          }
+          "passthrough": { "type": "boolean" }
         },
         "required": ["name"]
       }

@@ -1049,11 +1049,11 @@ function generateAutodocHtml() {
                if (window.state.filters.search) {
                const eventProperties = event.properties || [];
                  const searchTerm = window.state.filters.search.toLowerCase();
-                 const searchMatch = 
+                 const searchMatch =
                    event.name.toLowerCase().includes(searchTerm) ||
                    event.key.toLowerCase().includes(searchTerm) ||
                    event.description?.toLowerCase().includes(searchTerm) ||
-                   eventProperties.some(p => 
+                   eventProperties.some(p =>
                      p.name.toLowerCase().includes(searchTerm) ||
                      p.description?.toLowerCase().includes(searchTerm)
                    );
@@ -1072,11 +1072,11 @@ function generateAutodocHtml() {
 
            function filterProperties() {
              if (!window.state.filters.search) return window.state.properties;
-             
+
              const searchTerm = window.state.filters.search.toLowerCase();
-             return window.state.properties.filter(prop => 
+             return window.state.properties.filter(prop =>
                prop.property.toLowerCase().includes(searchTerm) ||
-               prop.sources.some(source => 
+               prop.sources.some(source =>
                  source.name.toLowerCase().includes(searchTerm) ||
                  source.description?.toLowerCase().includes(searchTerm)
                )
@@ -1085,9 +1085,9 @@ function generateAutodocHtml() {
 
            function filterDimensions() {
              if (!window.state.filters.search) return window.state.dimensions;
-             
+
              const searchTerm = window.state.filters.search.toLowerCase();
-             return window.state.dimensions.filter(dim => 
+             return window.state.dimensions.filter(dim =>
                dim.dimension.toLowerCase().includes(searchTerm) ||
                dim.description?.toLowerCase().includes(searchTerm) ||
                dim.events.some(event => event.toLowerCase().includes(searchTerm))
@@ -1112,7 +1112,7 @@ function generateAutodocHtml() {
                  '<div class="event-group-count">' + events.length + ' implementation' + (events.length > 1 ? 's' : '') + '</div>' +
                '</div>' +
                '<div class="event-group-keys">' +
-                 events.map(event => 
+                 events.map(event =>
                    '<div class="event-group-key">' + event.key + '</div>'
                  ).join('') +
                '</div>' +
@@ -1127,7 +1127,7 @@ function generateAutodocHtml() {
              container.innerHTML = filteredProperties
                .map(prop => {
                  const sourcesHtml = prop.sources.map(source => {
-                   const descriptionHtml = source.description 
+                   const descriptionHtml = source.description
                      ? '<div class="property-description">' + source.description + '</div>'
                      : '';
 
@@ -1167,7 +1167,7 @@ function generateAutodocHtml() {
                  '</div>';
                })
                .join('');
-             
+
              updateCounts();
            }
 
@@ -1180,18 +1180,18 @@ function generateAutodocHtml() {
                .map(dim => {
                  // Only combine identifiers if they exist
                  const hasIdentifiers = dim.identifiers && (
-                   (dim.identifiers.OR && dim.identifiers.OR.length > 0) || 
+                   (dim.identifiers.OR && dim.identifiers.OR.length > 0) ||
                    (dim.identifiers.AND && dim.identifiers.AND.length > 0)
                  );
-                 
-                 const combinedIdentifiers = hasIdentifiers ? 
-                   [...(dim.identifiers.OR || []), ...(dim.identifiers.AND || [])] : 
+
+                 const combinedIdentifiers = hasIdentifiers ?
+                   [...(dim.identifiers.OR || []), ...(dim.identifiers.AND || [])] :
                    [];
 
                  const identifiersHtml = combinedIdentifiers.map(identifier => {
                    const entriesHtml = Object.entries(identifier)
                      .filter(([key]) => key !== 'property')
-                     .map(([key, value]) => 
+                     .map(([key, value]) =>
                        '<div class="property-type">' + key + ': ' + JSON.stringify(value) + '</div>'
                      ).join('');
                    return '<div class="property">' +
@@ -1201,7 +1201,7 @@ function generateAutodocHtml() {
                  }).join('');
 
                  // Group events by name for event details
-                 const eventDetailsHtml = dim.eventDetails ? 
+                 const eventDetailsHtml = dim.eventDetails ?
                    '<div class="section-title">Events</div>' +
                    '<div class="property-list">' +
                      Object.entries(groupEventsByName(dim.eventDetails))
@@ -1210,7 +1210,7 @@ function generateAutodocHtml() {
                    '</div>' : '';
 
                  // Only render the Identifiers section if there are actual identifiers
-                 const identifiersSectionHtml = hasIdentifiers 
+                 const identifiersSectionHtml = hasIdentifiers
                    ? '<div class="section-title">Identifiers</div>' +
                      '<div class="property-list">' +
                        identifiersHtml +
@@ -1240,7 +1240,7 @@ function generateAutodocHtml() {
                  '</div>';
                })
                .join('');
-             
+
              updateCounts();
            }
 
@@ -1255,7 +1255,7 @@ function generateAutodocHtml() {
                '<div class="section-title">Event Properties</div>' +
                '<div class="property-list">' +
                  eventProperties.map(prop => {
-                   const descriptionHtml = prop.description 
+                   const descriptionHtml = prop.description
                      ? '<div class="property-description">' + prop.description + '</div>'
                      : '';
                    return '<div class="property">' +
@@ -1271,7 +1271,7 @@ function generateAutodocHtml() {
                '<div class="section-title">Group Properties</div>' +
                '<div class="property-list">' +
                  groupProperties.map(prop => {
-                   const descriptionHtml = prop.description 
+                   const descriptionHtml = prop.description
                      ? '<div class="property-description">' + prop.description + '</div>'
                      : '';
                    return '<div class="property">' +
@@ -1283,11 +1283,11 @@ function generateAutodocHtml() {
                  }).join('') +
                '</div>' : '';
 
-             const descriptionHtml = event.description 
+             const descriptionHtml = event.description
                ? '<p class="event-description">' + event.description + '</p>'
                : '';
 
-             const dimensionsHtml = event.dimensions?.map(d => 
+             const dimensionsHtml = event.dimensions?.map(d =>
                '<span class="event-tag" onclick="filterByDimension(&quot;' + d.name + '&quot;)">' + d.name + '</span>'
              ).join('') || '';
 
@@ -1342,7 +1342,7 @@ function generateAutodocHtml() {
 
              const combinedPropertiesHtml = (allProperties.size > 0 || allGroupProperties.size > 0) ?
                '<div class="combined-properties">' +
-                 (allProperties.size > 0 ? 
+                 (allProperties.size > 0 ?
                    '<div class="collapsible-section">' +
                      '<div class="collapsible-header" onclick="toggleCollapsible(&quot;common-event-props-' + safeId + '&quot;)">' +
                        '<div class="section-title">Properties from Events (' + allProperties.size + ')</div>' +
@@ -1355,7 +1355,7 @@ function generateAutodocHtml() {
                      '<div class="collapsible-content" id="common-event-props-' + safeId + '">' +
                        '<div class="property-list">' +
                          Array.from(allProperties.values()).map(prop => {
-                           const descriptionHtml = prop.description 
+                           const descriptionHtml = prop.description
                              ? '<div class="property-description">' + prop.description + '</div>'
                              : '';
                            return '<div class="property">' +
@@ -1381,7 +1381,7 @@ function generateAutodocHtml() {
                      '<div class="collapsible-content" id="common-group-props-' + safeId + '">' +
                        '<div class="property-list">' +
                          Array.from(allGroupProperties.values()).map(prop => {
-                           const descriptionHtml = prop.description 
+                           const descriptionHtml = prop.description
                              ? '<div class="property-description">' + prop.description + '</div>'
                              : '';
                            return '<div class="property">' +
@@ -1409,7 +1409,7 @@ function generateAutodocHtml() {
                      '<div class="event-key">' + events.length + ' implementation' + (events.length > 1 ? 's' : '') + '</div>' +
                    '</div>' +
                    '<div class="event-dimensions">' +
-                     Array.from(allDimensions).map(d => 
+                     Array.from(allDimensions).map(d =>
                        '<span class="event-tag" onclick="filterByDimension(&quot;' + d + '&quot;)">' + d + '</span>'
                      ).join('') +
                    '</div>' +
@@ -1501,7 +1501,7 @@ function generateAutodocHtml() {
              // If filtering by dimension, only show that dimension group
              if (window.state.filters.dimension) {
                return {
-                 [window.state.filters.dimension]: events.filter(event => 
+                 [window.state.filters.dimension]: events.filter(event =>
                    event.dimensions?.some(d => d.name === window.state.filters.dimension)
                  )
                };
@@ -1556,7 +1556,7 @@ function generateAutodocHtml() {
                    }
                  });
 
-                 const groupHeaderHtml = groupName !== 'All Events' ? 
+                 const groupHeaderHtml = groupName !== 'All Events' ?
                    '<div class="group-header" onclick="toggleGroup(&quot;' + groupName + '&quot;)">' +
                      '<div class="group-header-content">' +
                        '<div class="group-name">' + groupName + '</div>' +
@@ -1667,12 +1667,12 @@ function generateAutodocHtml() {
              const eventsCount = document.getElementById('eventsCount');
              const propertiesCount = document.getElementById('propertiesCount');
              const dimensionsCount = document.getElementById('dimensionsCount');
-             
+
              const filteredEventImplementations = filterEvents(window.state.events) || [];
              const filteredEventNames = new Set(filteredEventImplementations.map(event => event.name));
              const filteredProperties = filterProperties() || [];
              const filteredDimensions = filterDimensions() || [];
-             
+
              if (eventsCount) {
                eventsCount.textContent = filteredEventNames.size + ' events and ' + filteredEventImplementations.length + ' implementations from ' + window.state.schemaFileCount + ' analytics schema files';
              }

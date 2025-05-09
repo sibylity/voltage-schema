@@ -8,20 +8,24 @@
         "type": "object",
         "properties": {
           "events": { "type": "string" },
-          "dimensions": { 
+          "dimensions": {
             "type": "array",
             "items": { "type": "string" }
           },
-          "groups": { 
+          "groups": {
             "type": "array",
             "items": { "type": "string" }
           },
           "output": { "type": "string" },
-          "disableComments": { "type": "boolean", "default": false }
+          "disableComments": { "type": "boolean", "default": false },
+          "eventKeyPropertyName": {
+            "type": "string",
+            "description": "The name of the property that will be auto-generated to store the event key. Defaults to 'Event Key' if not specified."
+          }
         },
         "required": ["events", "output"]
       }
     }
   },
   "required": ["generates"]
-} 
+}
