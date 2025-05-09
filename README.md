@@ -26,6 +26,15 @@ npm install voltage-schema
 
 Schema files for voltage can be initialized by running ```npm voltage init```.
 
+### File Extensions
+
+Voltage supports multiple file extensions for schema files:
+- `.volt` (default, recommended) - YAML format with `.volt` extension
+- `.yaml` or `.yml` - Standard YAML format
+- `.json` - JSON format
+
+The `voltage.config.json` file must use the `.json` extension.
+
 ### 1. Configure Your Analytics Codegen
 
 <details>
@@ -241,8 +250,6 @@ dimensions:
           not: TRIAL
 ```
 
-
-
 ## Using the tracker
 
 ```typescript
@@ -271,8 +278,6 @@ tracker.track('page_view', {
   "Page Name": 'Home',
 });
 ```
-
-
 
 ### 5. CLI Commands
 
@@ -306,7 +311,6 @@ npm voltage dimensions -- --verbose
 npm voltage autodoc
 npm voltage autodoc -- --output-html  # Output HTML instead of starting server
 ```
-
 
 ## License
 
