@@ -112,6 +112,7 @@ _Note - in this example, we are generating types & config for unauthed vs. authe
 Create an `events.volt` file to define your events:
 
 ```yaml
+# .volt uses a YAML syntax
 events:
   page_view:
     name: Page View
@@ -120,6 +121,7 @@ events:
       - name: Page Name
         description: The name of the page that was viewed.
         type: string
+
   add_user:
     name: Add User
     description: Triggered when an admin adds a user to their team. This requires a paid plan.
@@ -162,6 +164,7 @@ events:
 Create a `groups.volt` file to define your groups:
 
 ```yaml
+# .volt uses a YAML syntax
 groups:
   - name: User
     description: The user that triggered the event.
@@ -175,6 +178,7 @@ groups:
         type:
           - admin
           - member
+
   - name: Team
     description: The team of the user that triggered the event.
     identifiedBy: TeamID
@@ -227,6 +231,7 @@ groups:
 Create a `dimensions.volt` file to define your dimensions:
 
 ```yaml
+# .volt uses a YAML syntax
 dimensions:
   - name: Free
     description: Teams without a paid plan.
@@ -238,6 +243,7 @@ dimensions:
         - property: Plan
           group: Team
           equals: TRIAL
+
   - name: Paid
     description: Teams with a paid plan.
     identifiers:
