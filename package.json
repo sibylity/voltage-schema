@@ -1,6 +1,6 @@
 {
   "name": "voltage-schema",
-  "version": "1.4.3",
+  "version": "1.5.0",
   "description": "The analytics schema that evolves with your software.",
   "main": "./dist/cli/index.js",
   "scripts": {
@@ -27,6 +27,7 @@
     "@types/ajv": "^0.0.5",
     "@types/commander": "^2.12.0",
     "@types/express": "^4.17.21",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.13.4",
     "ajv": "^8.17.1",
     "commander": "^13.1.0",
@@ -35,6 +36,7 @@
     "typescript": "^5.7.3"
   },
   "dependencies": {
+    "js-yaml": "^4.1.0",
     "opener": "^1.5.2"
   }
 }

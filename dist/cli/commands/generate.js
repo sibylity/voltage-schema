@@ -9,6 +9,7 @@ const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const validation_1 = require("../validation");
 const analyticsConfigHelper_1 = require("../utils/analyticsConfigHelper");
+const fileValidation_1 = require("../validation/fileValidation");
 /**
  * Normalizes an event key to be safe for use as a variable name.
  * Converts to CamelCase and removes unsafe characters.
@@ -34,7 +35,7 @@ function normalizeEventKey(key) {
 /**
  * Generates event configurations with optional JSDoc comments
  */
-function generateEventConfigs(trackingConfig, events, includeComments) {
+function generateEventConfigs(trackingConfig, events, includeComments, eventKeyPropertyName = 'Event Key') {
     return Object.entries(trackingConfig.events)
         .map(([key, event]) => {
         const normalizedKey = normalizeEventKey(key);
@@ -42,13 +43,15 @@ function generateEventConfigs(trackingConfig, events, includeComments) {
         const comment = includeComments && originalEvent.description
             ? `/** ${originalEvent.description} */\n`
             : '';
-        // Check if properties array is empty or contains only undefined
-        const hasProperties = event.properties && event.properties.length > 0 &&
-            !event.properties.every(prop => prop === undefined);
         return `${comment}export const ${normalizedKey}Event = {
   name: '${event.name}',
   properties: [
-    ${hasProperties ? event.properties.map(prop => `{
+    {
+      name: '${eventKeyPropertyName}',
+      type: 'string',
+      defaultValue: '${key}',
+      description: 'The key that is used to track the "${key}" implementation of the "${event.name}" event.'
+    }${event.properties && event.properties.length > 0 ? ',\n    ' + event.properties.map(prop => `{
       name: '${prop.name}',
       type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.defaultValue !== undefined ? `,\n      defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
     }`).join(',\n    ') : ''}
@@ -60,16 +63,18 @@ function generateEventConfigs(trackingConfig, events, includeComments) {
 /**
  * Generates the tracking config object
  */
-function generateTrackingConfig(globals, events) {
+function generateTrackingConfig(globals, events, eventKeyPropertyName = 'Event Key') {
     const eventEntries = Object.entries(events.events || {})
         .map(([key, event]) => {
-        // Check if properties array is empty or contains only undefined
-        const hasProperties = event.properties && event.properties.length > 0 &&
-            !event.properties.every((prop) => prop === undefined);
         return `    ${key}: {
       name: '${event.name}',
       properties: [
-        ${hasProperties ? event.properties.map((prop) => `{
+        {
+          name: '${eventKeyPropertyName}',
+          type: 'string',
+          defaultValue: '${key}',
+          description: 'The key that is used to track the "${key}" implementation of the "${event.name}" event.'
+        }${event.properties && event.properties.length > 0 ? ',\n        ' + event.properties.map((prop) => `{
           name: '${prop.name}',
           type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.defaultValue !== undefined ? `,\n          defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
         }`).join(',\n        ') : ''}
@@ -215,12 +220,12 @@ function getPropertyType(type) {
     }
     return type;
 }
-function generateJavaScriptOutput(trackingConfig, events, includeComments, outputPath) {
+function generateJavaScriptOutput(trackingConfig, events, includeComments, outputPath, eventKeyPropertyName = 'Event Key') {
     const jsOutput = `
 // 🔹 Event Configurations
-${generateEventConfigs(trackingConfig, events, includeComments)}
+${generateEventConfigs(trackingConfig, events, includeComments, eventKeyPropertyName)}
 
-${generateTrackingConfig({ groups: [], dimensions: [], events: {} }, { groups: [], dimensions: [], events: {} })}
+${generateTrackingConfig({ groups: [], dimensions: [], events: {} }, { groups: [], dimensions: [], events: {} }, eventKeyPropertyName)}
 `;
     fs_1.default.writeFileSync(outputPath, jsOutput);
     console.log(`✅ Generated tracking config in ${outputPath}`);
@@ -230,26 +235,28 @@ function generateTypeScriptOutput(trackingConfig, events, includeComments, outpu
     if (!globals) {
         throw new Error('Failed to read globals configuration');
     }
+    const eventKeyPropertyName = genConfig.eventKeyPropertyName || 'Event Key';
     const analyticsTypes = `// 🔹 Event Types & Configurations
 
-${generateEventConfigs(trackingConfig, events, includeComments)}
+${generateEventConfigs(trackingConfig, events, includeComments, eventKeyPropertyName)}
 
 // 🔹 Generated Types
 ${generateTypeDefinitions(events, globals)}
 
-${generateTrackingConfig(globals, events)}`;
+${generateTrackingConfig(globals, events, eventKeyPropertyName)}`;
     fs_1.default.writeFileSync(outputPath, analyticsTypes.trim() + '\n');
     console.log(`✅ Generated tracking config and TypeScript definitions in ${outputPath}`);
 }
 function registerGenerateCommand(program) {
     program
         .command("generate")
-        .description("Generate tracking configs & TypeScript types from analytics files")
+        .description("Generate TypeScript types & tracking config from your codegen config")
         .action(() => {
+        console.log("🔍 Validating voltage.config.json...");
+        const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
         try {
             if (!(0, validation_1.validateAnalyticsFiles)())
                 return;
-            const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
             // Process each generation config
             config.generates.forEach(genConfig => {
                 const outputPath = path_1.default.resolve(process.cwd(), genConfig.output);
@@ -261,9 +268,13 @@ function registerGenerateCommand(program) {
                 if (genConfig.groups) {
                     genConfig.groups.forEach(groupFile => {
                         const groupPath = path_1.default.resolve(process.cwd(), groupFile);
-                        const groupContent = JSON.parse(fs_1.default.readFileSync(groupPath, 'utf-8'));
-                        if (groupContent.groups) {
-                            Object.assign(allGroups, groupContent.groups);
+                        const groupResult = (0, fileValidation_1.parseSchemaFile)(groupPath);
+                        if (!groupResult.isValid || !groupResult.data) {
+                            console.error(`❌ Failed to parse group file at ${groupPath}:`, groupResult.errors);
+                            process.exit(1);
+                        }
+                        if (groupResult.data.groups) {
+                            Object.assign(allGroups, groupResult.data.groups);
                         }
                     });
                 }
@@ -312,7 +323,7 @@ function registerGenerateCommand(program) {
                     generateTypeScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath, genConfig);
                 }
                 else {
-                    generateJavaScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath);
+                    generateJavaScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath, genConfig.eventKeyPropertyName);
                 }
             });
         }

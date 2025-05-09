@@ -1,128 +1,112 @@
-import fs from "fs";
 import path from "path";
-import type { ErrorObject } from "ajv";
-import { type AnalyticsEvents, type Event } from "../../types";
-import { type ValidationResult, } from "./types";
+import { ErrorObject } from "ajv";
+import { type AnalyticsEvents, type Event, type Dimension } from "../../types";
+import { type ValidationResult } from "./types";
 import { createValidator } from "./schemaValidation";
-import { parseJsonFile, validateFileExists } from "./fileValidation";
-import { logValidationStart, logValidationSuccess, logValidationErrors } from "./logging";
+import { parseSchemaFile } from "./fileValidation";
+import { logValidationErrors } from "./logging";
 
-const validateEventsSchema = createValidator(path.resolve(__dirname, "../../schemas/analytics.events.schema.json"));
+const eventsSchemaValidator = createValidator(path.resolve(__dirname, "../../schemas/analytics.events.schema.json"));
 
-function validateEventProperties(event: Event, eventKey: string): ValidationResult<void> {
+function validateEventProperties(event: Event, eventKey: string): ValidationResult<AnalyticsEvents> {
   const errors: string[] = [];
   const propertyNames = new Set<string>();
 
   if (event.properties) {
-    event.properties.forEach((prop) => {
-      if (!prop.name || !prop.type) {
-        errors.push(`Property in event "${eventKey}" is missing required fields (name, type).`);
-      } else if (propertyNames.has(prop.name)) {
-        errors.push(`Duplicate property name "${prop.name}" found in event "${eventKey}".`);
-      } else {
-        propertyNames.add(prop.name);
+    for (const prop of event.properties) {
+      if (propertyNames.has(prop.name)) {
+        errors.push(`Duplicate property name "${prop.name}" in event "${eventKey}"`);
       }
-    });
+      propertyNames.add(prop.name);
+    }
   }
 
-  return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
+  return {
+    isValid: errors.length === 0,
+    errors,
+    data: errors.length === 0 ? { events: {} } : undefined
+  };
 }
 
-function validateEventDimensions(
-  event: Event,
-  eventKey: string,
-  validDimensions: Set<string>,
-  globalsExist: boolean
-): ValidationResult<void> {
+function validateEventDimensions(event: Event, dimensions: string[]): ValidationResult<AnalyticsEvents> {
   const errors: string[] = [];
+  const dimensionNames = new Set(dimensions);
 
   if (event.dimensions) {
-    if (!globalsExist) {
-      console.warn(`⚠️ Event "${eventKey}" specifies dimensions but no globals file exists.`);
-    }
-    
-    // Handle the new dimensions format with inclusive/exclusive arrays
-    if (typeof event.dimensions === 'object' && !Array.isArray(event.dimensions)) {
-      // Check if dimensions has inclusive or exclusive property
-      if ('inclusive' in event.dimensions) {
-        const inclusiveDims = event.dimensions.inclusive as string[];
-        if (Array.isArray(inclusiveDims)) {
-          inclusiveDims.forEach((dim) => {
-            if (!validDimensions.has(dim)) {
-              errors.push(`Invalid dimension "${dim}" in event "${eventKey}". It is not listed in dimensions.`);
-            }
-          });
-        } else {
-          errors.push(`Invalid "inclusive" property in event "${eventKey}". It must be an array of strings.`);
+    // Handle array format (shorthand for included)
+    if (Array.isArray(event.dimensions)) {
+      for (const dimension of event.dimensions) {
+        if (!dimensionNames.has(dimension)) {
+          errors.push(`Dimension "${dimension}" does not exist`);
         }
-      } else if ('exclusive' in event.dimensions) {
-        const exclusiveDims = event.dimensions.exclusive as string[];
-        if (Array.isArray(exclusiveDims)) {
-          exclusiveDims.forEach((dim) => {
-            if (!validDimensions.has(dim)) {
-              errors.push(`Invalid dimension "${dim}" in event "${eventKey}". It is not listed in dimensions.`);
-            }
-          });
-        } else {
-          errors.push(`Invalid "exclusive" property in event "${eventKey}". It must be an array of strings.`);
-        }
-      } else {
-        errors.push(`Event "${eventKey}" has dimensions object but neither "inclusive" nor "exclusive" property is defined.`);
       }
-    } else {
-      errors.push(`Event "${eventKey}" has invalid dimensions format.`);
+    }
+    // Handle object format
+    else {
+      const { included, excluded } = event.dimensions;
+
+      if (included && excluded) {
+        errors.push('Event cannot have both included and excluded dimensions');
+      }
+
+      if (included) {
+        for (const dimension of included) {
+          if (!dimensionNames.has(dimension)) {
+            errors.push(`Dimension "${dimension}" does not exist`);
+          }
+        }
+      }
+
+      if (excluded) {
+        for (const dimension of excluded) {
+          if (!dimensionNames.has(dimension)) {
+            errors.push(`Dimension "${dimension}" does not exist`);
+          }
+        }
+      }
     }
   }
 
-  return errors.length > 0 ? { isValid: false, errors } : { isValid: true };
+  return {
+    isValid: errors.length === 0,
+    errors,
+    data: errors.length === 0 ? { events: {} } : undefined
+  };
 }
 
-export function validateEvents(
-  eventsPath: string,
-  validDimensions: Set<string>,
-  globalsExist: boolean
-): ValidationResult<void> {
-  const context = { filePath: eventsPath };
-  logValidationStart(context);
+export function validateEvents(eventsPath: string, dimensionNames: string[], globalsExist: boolean): ValidationResult<AnalyticsEvents> {
+  console.log(`🔍 Validating ${eventsPath}...`);
 
-  // Check if events file exists
-  const existsResult = validateFileExists(eventsPath);
-  if (!existsResult.isValid) {
-    if (existsResult.errors) {
-      logValidationErrors(existsResult.errors);
-    }
-    return existsResult;
+  if (!eventsPath) {
+    console.error("❌ No events file provided");
+    return { isValid: false, errors: ["No events file provided"] };
   }
 
-  // Parse events file
-  const parseResult = parseJsonFile<AnalyticsEvents>(eventsPath);
-  if (!parseResult.isValid || !parseResult.data) {
-    if (parseResult.errors) {
-      logValidationErrors(parseResult.errors);
-    }
-    return { isValid: false, errors: parseResult.errors };
+  const eventsResult = parseSchemaFile<AnalyticsEvents>(eventsPath);
+  if (!eventsResult.isValid || !eventsResult.data) {
+    console.error(`❌ Failed to parse events file:`, eventsResult.errors);
+    return eventsResult;
   }
 
-  const events = parseResult.data;
+  const events = eventsResult.data;
+  const errors: string[] = [];
 
   // Validate events schema
-  if (!validateEventsSchema(events)) {
-    const errors = validateEventsSchema.errors?.map((error: ErrorObject) => 
-      `Events schema validation failed: ${error.message || "Unknown error"} at ${error.instancePath}`
-    ) || ["Unknown schema validation error"];
-    logValidationErrors(errors);
-    return { isValid: false, errors };
+  const isValid = eventsSchemaValidator(events);
+  if (!isValid) {
+    const validationErrors = eventsSchemaValidator.errors
+      ?.map((e: ErrorObject) => e.message || `Validation error at ${e.instancePath}`)
+      .filter((msg): msg is string => msg !== undefined) || [];
+    logValidationErrors(validationErrors);
+    return { isValid: false, errors: validationErrors };
   }
-
-  const errors: string[] = [];
 
   // Validate each event
   Object.entries(events.events).forEach(([eventKey, event]) => {
     console.log(`🔍 Validating event: ${eventKey}`);
-    
-    const propertiesResult = validateEventProperties(event as Event, eventKey);
-    const dimensionsResult = validateEventDimensions(event as Event, eventKey, validDimensions, globalsExist);
-    
+    const propertiesResult = validateEventProperties(event, eventKey);
+    const dimensionsResult = validateEventDimensions(event, dimensionNames);
+
     if (!propertiesResult.isValid && propertiesResult.errors) {
       errors.push(...propertiesResult.errors);
     }
@@ -132,10 +116,10 @@ export function validateEvents(
   });
 
   if (errors.length > 0) {
-    logValidationErrors(errors);
+    console.error("❌ Validation errors found:", errors);
     return { isValid: false, errors };
   }
 
-  logValidationSuccess(context);
-  return { isValid: true };
-} 
+  console.log(`✅ ${eventsPath} is valid.`);
+  return { isValid: true, data: events };
+}

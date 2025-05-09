@@ -76,7 +76,7 @@ function processEvent(
   let allProperties = [...eventProperties];
 
   if (includeGroups && groups) {
-    const groupProperties = groups.flatMap(group => 
+    const groupProperties = groups.flatMap(group =>
       (group.properties || []).map(prop => ({
         ...prop,
         source: "group" as const,
@@ -115,7 +115,7 @@ function processEvent(
         description: dim.description,
         identifiers: dim.identifiers || { AND: [], OR: [] }
       }));
-    } 
+    }
     // If event has an empty dimensions array, add it to "Ungrouped" dimension
     else if (Array.isArray(event.dimensions) && event.dimensions.length === 0) {
       // Add a special "Ungrouped" dimension to indicate this event has no dimensions
@@ -126,24 +126,24 @@ function processEvent(
           identifiers: { AND: [], OR: [] }
         }
       ];
-    } 
+    }
     // If event has explicit dimensions
     else if (Array.isArray(event.dimensions)) {
       output.dimensions = event.dimensions
         .map((dimName: string) => getDimensionDetails(dimName, dimensions))
         .filter((dim): dim is EventDimension => dim !== undefined);
     }
-    // Handle the new dimensions format with inclusive/exclusive arrays
+    // Handle the new dimensions format with included/excluded arrays
     else if (typeof event.dimensions === 'object') {
-      const dimensionsObj = event.dimensions as { inclusive?: string[]; exclusive?: string[] };
-      
-      if (dimensionsObj.inclusive && Array.isArray(dimensionsObj.inclusive)) {
-        output.dimensions = dimensionsObj.inclusive
+      const dimensionsObj = event.dimensions as { included?: string[]; excluded?: string[] };
+
+      if (dimensionsObj.included && Array.isArray(dimensionsObj.included)) {
+        output.dimensions = dimensionsObj.included
           .map((dimName: string) => getDimensionDetails(dimName, dimensions))
           .filter((dim): dim is EventDimension => dim !== undefined);
-      } else if (dimensionsObj.exclusive && Array.isArray(dimensionsObj.exclusive)) {
-        // For exclusive dimensions, we need to include all dimensions except the excluded ones
-        const excludedDims = new Set(dimensionsObj.exclusive);
+      } else if (dimensionsObj.excluded && Array.isArray(dimensionsObj.excluded)) {
+        // For excluded dimensions, we need to include all dimensions except the excluded ones
+        const excludedDims = new Set(dimensionsObj.excluded);
         output.dimensions = dimensions
           .filter(dim => !excludedDims.has(dim.name))
           .map(dim => ({
@@ -172,8 +172,8 @@ export function getAllEvents(options: GetAllEventsOptions = {}): EventOutput[] {
     // Process each event
     Object.entries(eventsData.events).forEach(([eventKey, event]) => {
       events.push(processEvent(
-        eventKey, 
-        event, 
+        eventKey,
+        event,
         effectiveIncludeGroups,
         effectiveIncludeDimensions,
         globals.groups,
@@ -186,4 +186,4 @@ export function getAllEvents(options: GetAllEventsOptions = {}): EventOutput[] {
   events.sort((a, b) => a.name.localeCompare(b.name));
 
   return events;
-} 
+}

@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { parseYamlFile } from "../utils/yamlUtils";
 import { type ValidationResult, type ValidationContext } from "./types";
 
 export function validateFileExists(filePath: string, isOptional: boolean = false): ValidationResult<void> {
@@ -15,20 +16,12 @@ export function validateFileExists(filePath: string, isOptional: boolean = false
   return { isValid: true };
 }
 
-export function validateFileExtension(
-  filePath: string,
-  allowedExtensions: string[],
-  context: ValidationContext
-): ValidationResult<void> {
+export function validateFileExtension(filePath: string): string | null {
   const ext = path.extname(filePath).toLowerCase();
-  if (!allowedExtensions.includes(ext)) {
-    const configMsg = context.configIndex !== undefined ? ` in generation config #${context.configIndex + 1}` : "";
-    return {
-      isValid: false,
-      errors: [`Invalid file extension for ${path.basename(filePath)}${configMsg}. Expected: ${allowedExtensions.join(", ")}`]
-    };
+  if (ext !== ".json" && ext !== ".volt" && ext !== ".yaml" && ext !== ".yml") {
+    return `Invalid file extension: ${ext}. Expected .json, .volt, .yaml, or .yml`;
   }
-  return { isValid: true };
+  return null;
 }
 
 export function parseJsonFile<T>(filePath: string): ValidationResult<T> {
@@ -41,4 +34,17 @@ export function parseJsonFile<T>(filePath: string): ValidationResult<T> {
       errors: [`Failed to parse ${path.basename(filePath)}: ${error instanceof Error ? error.message : String(error)}`]
     };
   }
-} 
+}
+
+export function parseSchemaFile<T>(filePath: string): ValidationResult<T> {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".json") {
+    return parseJsonFile<T>(filePath);
+  } else if (ext === ".volt" || ext === ".yaml" || ext === ".yml") {
+    return parseYamlFile<T>(filePath);
+  }
+  return {
+    isValid: false,
+    errors: [`Unsupported file extension: ${ext}`]
+  };
+}

@@ -14,7 +14,7 @@ const validateDimensionsSchema = (0, schemaValidation_1.createValidator)(path_1.
 function validateAnalyticsConfig(configPath, context) {
     var _a, _b, _c;
     (0, logging_1.logValidationStart)(context);
-    const result = (0, fileValidation_1.parseJsonFile)(configPath);
+    const result = (0, fileValidation_1.parseSchemaFile)(configPath);
     if (!result.isValid || !result.data) {
         (0, logging_1.logValidationErrors)(result.errors || []);
         return result;
@@ -30,7 +30,7 @@ function validateAnalyticsConfig(configPath, context) {
         // Validate groups if present
         if (genConfig.groups) {
             for (const groupFile of genConfig.groups) {
-                const groupResult = (0, fileValidation_1.parseJsonFile)(groupFile);
+                const groupResult = (0, fileValidation_1.parseSchemaFile)(groupFile);
                 if (!groupResult.isValid) {
                     (0, logging_1.logValidationErrors)(groupResult.errors || []);
                     return { isValid: false, errors: groupResult.errors };
@@ -46,7 +46,7 @@ function validateAnalyticsConfig(configPath, context) {
         // Validate dimensions if present
         if (genConfig.dimensions) {
             for (const dimensionFile of genConfig.dimensions) {
-                const dimensionResult = (0, fileValidation_1.parseJsonFile)(dimensionFile);
+                const dimensionResult = (0, fileValidation_1.parseSchemaFile)(dimensionFile);
                 if (!dimensionResult.isValid) {
                     (0, logging_1.logValidationErrors)(dimensionResult.errors || []);
                     return { isValid: false, errors: dimensionResult.errors };
@@ -61,5 +61,5 @@ function validateAnalyticsConfig(configPath, context) {
         }
     }
     (0, logging_1.logValidationSuccess)(context);
-    return result;
+    return { isValid: true, data: result.data };
 }

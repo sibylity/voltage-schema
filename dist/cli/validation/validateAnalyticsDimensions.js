@@ -24,7 +24,7 @@ function validateDimensionNames(dimensions) {
 }
 function validateDimensions(dimensionPath, eventsPath) {
     var _a;
-    const result = (0, fileValidation_1.parseJsonFile)(dimensionPath);
+    const result = (0, fileValidation_1.parseSchemaFile)(dimensionPath);
     if (!result.isValid || !result.data) {
         (0, logging_1.logValidationErrors)(result.errors || []);
         return result;

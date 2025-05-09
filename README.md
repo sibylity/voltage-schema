@@ -1,6 +1,4 @@
-<img src="https://img.voltage-schema.com/voltage-dark-transparent.png" alt="Voltage Schema" width="140" height="100">
-
-Voltage provides type-safe tracking, an auto-doc of analytics data, and AI ready analytics context.
+Voltage provides type-safe vendor agnostic tracking, an auto-doc of analytics data, and AI ready analytics context.
 
 [View Documentation](https://voltage-schema.com/)
 
@@ -28,6 +26,15 @@ npm install voltage-schema
 
 Schema files for voltage can be initialized by running ```npm voltage init```.
 
+### File Extensions
+
+Voltage supports multiple file extensions for schema files:
+- `.volt` (default, recommended) - YAML format with `.volt` extension
+- `.yaml` or `.yml` - Standard YAML format
+- `.json` - JSON format
+
+The `voltage.config.json` file must use the `.json` extension.
+
 ### 1. Configure Your Analytics Codegen
 
 <details>
@@ -43,27 +50,28 @@ Schema files for voltage can be initialized by running ```npm voltage init```.
 | dimensions | string[] | no | The path to all of the dimension file(s) that exist for the events being tracked. If a dimension is identified by a group, then that group must be included in the codegen config with the dimension. |
 | output | string | yes | The file path to write the generated types & tracking config to. When this file path ends in .ts, typescript types are generated. When it ends in ".js", no types are generated.  |
 | disableComments | boolean | no | By default, event, property, & group descriptions are added as jsDoc style comments on their generated types & tracking configs. |
+| eventKeyPropertyName | string | no | The name of the property that will be auto-generated to store the event key. Defaults to 'Event Key' if not specified. This property will be added to all events with a defaultValue set to the event's key. |
 
 </details>
 
-Create an `analytics.config.json` file in your project root:
+Create a `voltage.config.json` file in your project root:
 
 ```json
 {
   "generates": [
     {
-      "events": "./analytics/events/unauthed-events.json",
+      "events": "./analytics/events/unauthed-events.volt",
       "output": "/__analytics_generated__/unauthed-analytics.ts"
     },
     {
-      "events": "./analytics/events/authed-events.json",
+      "events": "./analytics/events/authed-events.volt",
       "groups": [
-        "./analytics/groups/user-group.json",
-        "./analytics/groups/team-group.json"
+        "./analytics/groups/user-group.volt",
+        "./analytics/groups/team-group.volt"
       ],
       "dimensions": [
-        "./analytics/dimensions/user-role-dimensions.json",
-        "./analytics/dimensions/team-plan-dimensions.json"
+        "./analytics/dimensions/user-role-dimensions.volt",
+        "./analytics/dimensions/team-plan-dimensions.volt"
       ],
       "output": "/__analytics_generated__/authed-analytics.ts"
     }
@@ -85,7 +93,7 @@ _Note - in this example, we are generating types & config for unauthed vs. authe
 | --- | --- | --- | --- |
 | name | string | yes | The name of the event. |
 | description | string | no | Describe the context of the event. |
-| dimensions | { inclusive: string[], exclusive: string[] } | no | The dimensions that the event exists in. When dimensions are not set, the event will be auto-associated with each dimension. When inclusive, an event only exists in the supplied dimensions. When exclusive, an event exists in all dimensions except for the supplied dimensions. |
+| dimensions | { included: string[], excluded: string[] } | no | The dimensions that the event exists in. When dimensions are not set, the event will be auto-associated with each dimension. When included, an event only exists in the supplied dimensions. When excluded, an event exists in all dimensions except for the supplied dimensions. |
 | passthrough | boolean | no | Allow arbitrary properties to be tracked with the event. |
 | properties | Property[] | no | The properties to track with the event. All properties are required unless marked as optional. Unlisted properties will be disallowed unless passthrough is enabled. |
 
@@ -96,40 +104,31 @@ _Note - in this example, we are generating types & config for unauthed vs. authe
 | name | string | yes | The name of the property. |
 | description | string | no | Describe the context of the property. |
 | type | string, string[], boolean, Boolean[], number, number[], oneOf | yes | The expected typescript type for the property value. |
-| value | any | no | The static property value to be tracked with the event. |
+| defaultValue | any | no | The static property value to be tracked with the event. |
 | optional | boolean | no | Mark the property as optional when tracking the event. Note that properties are required by default. |
 
 </details>
 
-Create an `events.json` file to define your events:
+Create an `events.volt` file to define your events:
 
-```json
-{
-  "events": {
-    "page_view": {
-      "name": "Page View",
-      "description": "Triggered when a user views a page.",
-      "properties": [
-        {
-          "name": "Page Name",
-          "description": "The name of the page that was viewed.",
-          "type": "string"
-        }
-      ]
-    },
-    "add_user": {
-      "name": "Add User",
-      "description": "Triggered when an admin adds a user to their team. This requires a paid plan.",
-      "properties": [
-        {
-          "name": "Role",
-          "description": "The role of the user that was added.",
-          "type": ["admin", "member"]
-        }
-      ]
-    }
-  }
-}
+```yaml
+events:
+  page_view:
+    name: Page View
+    description: Triggered when a user views a page.
+    properties:
+      - name: Page Name
+        description: The name of the page that was viewed.
+        type: string
+  add_user:
+    name: Add User
+    description: Triggered when an admin adds a user to their team. This requires a paid plan.
+    properties:
+      - name: Role
+        description: The role of the user that was added.
+        type:
+          - admin
+          - member
 ```
 
 ### 3. Define Groups
@@ -155,52 +154,40 @@ Create an `events.json` file to define your events:
 | name | string | yes | The name of the property. |
 | description | string | no | Describe the context of the property. |
 | type | string, string[], boolean, Boolean[], number, number[], oneOf | yes | The expected typescript type for the property value. |
-| value | any | no | The static property value to be tracked with the event. |
+| defaultValue | any | no | The static property value to be tracked with the event. |
 | optional | boolean | no | Mark the property as optional when tracking the event. Note that properties are required by default. |
 
 </details>
 
-Create a `groups.json` file to define your groups:
+Create a `groups.volt` file to define your groups:
 
-```json
-{
-  "groups": [
-    {
-      "name": "User",
-      "description": "The user that triggered the event.",
-      "identifiedBy": "UserID",
-      "properties": [
-        {
-          "name": "UserID",
-          "description": "The ID of the user that triggered the event.",
-          "type": "number"
-        },
-        {
-          "name": "Role",
-          "description": "The role of the user that triggered the event.",
-          "type": ["admin", "member"]
-        }
-      ]
-    },
-    {
-      "name": "Team",
-      "description": "The team of the user that triggered the event.",
-      "identifiedBy": "TeamID",
-      "properties": [
-        {
-          "name": "TeamID",
-          "description": "The ID of the team of the user that triggered the event.",
-          "type": "number"
-        },
-        {
-          "name": "Plan",
-          "description": "The plan of the team of the user that triggered the event.",
-          "type": ["FREE", "TRIAL", "PAID"]
-        }
-      ]
-    }
-  ]
-}
+```yaml
+groups:
+  - name: User
+    description: The user that triggered the event.
+    identifiedBy: UserID
+    properties:
+      - name: UserID
+        description: The ID of the user that triggered the event.
+        type: number
+      - name: Role
+        description: The role of the user that triggered the event.
+        type:
+          - admin
+          - member
+  - name: Team
+    description: The team of the user that triggered the event.
+    identifiedBy: TeamID
+    properties:
+      - name: TeamID
+        description: The ID of the team of the user that triggered the event.
+        type: number
+      - name: Plan
+        description: The plan of the team of the user that triggered the event.
+        type:
+          - FREE
+          - TRIAL
+          - PAID
 ```
 
 ### 4. Dimensions
@@ -237,52 +224,31 @@ Create a `groups.json` file to define your groups:
 
 </details>
 
-Create a `dimensions.json` file to define your dimensions:
+Create a `dimensions.volt` file to define your dimensions:
 
-```json
-{
-  "dimensions": [
-    {
-      "name": "Free",
-      "description": "Teams without a paid plan.",
-      "identifiers": {
-        "OR": [
-          {
-            "property": "Plan",
-            "group": "Team",
-            "equals": "FREE"
-          },
-          {
-            "property": "Plan",
-            "group": "Team",
-            "equals": "TRIAL"
-          }
-        ]
-      }
-    },
-    {
-      "name": "Paid",
-      "description": "Teams with a paid plan.",
-      "identifiers": {
-        "AND": [
-          {
-            "property": "Plan",
-            "group": "Team",
-            "not": "FREE"
-          },
-          {
-            "property": "Plan",
-            "group": "Team",
-            "not": "TRIAL"
-          }
-        ]
-      }
-    }
-  ]
-}
+```yaml
+dimensions:
+  - name: Free
+    description: Teams without a paid plan.
+    identifiers:
+      OR:
+        - property: Plan
+          group: Team
+          equals: FREE
+        - property: Plan
+          group: Team
+          equals: TRIAL
+  - name: Paid
+    description: Teams with a paid plan.
+    identifiers:
+      AND:
+        - property: Plan
+          group: Team
+          not: FREE
+        - property: Plan
+          group: Team
+          not: TRIAL
 ```
-
-
 
 ## Using the tracker
 
@@ -312,8 +278,6 @@ tracker.track('page_view', {
   "Page Name": 'Home',
 });
 ```
-
-
 
 ### 5. CLI Commands
 
@@ -347,7 +311,6 @@ npm voltage dimensions -- --verbose
 npm voltage autodoc
 npm voltage autodoc -- --output-html  # Output HTML instead of starting server
 ```
-
 
 ## License
 

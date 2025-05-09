@@ -90,7 +90,7 @@ function processEvent(
       // Track event count for this dimension
       dimensionEventCounts[dim][eventKey] = (dimensionEventCounts[dim][eventKey] || 0) + 1;
       const count = dimensionEventCounts[dim][eventKey];
-      
+
       // Add event to dimension map with count if needed
       const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
       dimensionMap[dim].events.push(displayName);
@@ -102,17 +102,17 @@ function processEvent(
     });
     return;
   }
-  
-  // Handle the new dimensions format with inclusive/exclusive arrays
+
+  // Handle the new dimensions format with included/excluded arrays
   if (typeof event.dimensions === 'object' && !Array.isArray(event.dimensions)) {
-    const dimensions = event.dimensions as { inclusive?: string[]; exclusive?: string[] };
+    const dimensions = event.dimensions as { included?: string[]; excluded?: string[] };
     // Get all available dimensions
     const allDimensions = Object.keys(dimensionMap);
-    
-    // Handle inclusive dimensions
-    if (dimensions.inclusive && Array.isArray(dimensions.inclusive)) {
-      // If inclusive array is empty, add to "Ungrouped" dimension
-      if (dimensions.inclusive.length === 0) {
+
+    // Handle included dimensions
+    if (dimensions.included && Array.isArray(dimensions.included)) {
+      // If included array is empty, add to "Ungrouped" dimension
+      if (dimensions.included.length === 0) {
         if (!dimensionMap["Ungrouped"]) {
           dimensionMap["Ungrouped"] = {
             events: [],
@@ -120,11 +120,11 @@ function processEvent(
           };
           dimensionEventCounts["Ungrouped"] = {};
         }
-        
+
         // Track event count for Ungrouped dimension
         dimensionEventCounts["Ungrouped"][eventKey] = (dimensionEventCounts["Ungrouped"][eventKey] || 0) + 1;
         const count = dimensionEventCounts["Ungrouped"][eventKey];
-        
+
         // Add event to Ungrouped dimension with count if needed
         const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
         dimensionMap["Ungrouped"].events.push(displayName);
@@ -135,9 +135,9 @@ function processEvent(
         });
         return;
       }
-      
+
       // Only include the specified dimensions
-      dimensions.inclusive.forEach((dim) => {
+      dimensions.included.forEach((dim) => {
         if (!dimensionMap[dim]) {
           console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in any dimensions.`);
           return;
@@ -146,7 +146,7 @@ function processEvent(
         // Track event count for this dimension
         dimensionEventCounts[dim][eventKey] = (dimensionEventCounts[dim][eventKey] || 0) + 1;
         const count = dimensionEventCounts[dim][eventKey];
-        
+
         // Add event to dimension map with count if needed
         const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
         dimensionMap[dim].events.push(displayName);
@@ -156,19 +156,19 @@ function processEvent(
           description: event.description
         });
       });
-    } 
-    // Handle exclusive dimensions
-    else if (dimensions.exclusive && Array.isArray(dimensions.exclusive)) {
+    }
+    // Handle excluded dimensions
+    else if (dimensions.excluded && Array.isArray(dimensions.excluded)) {
       // Include all dimensions except the excluded ones
       allDimensions.forEach((dim) => {
-        if (dimensions.exclusive && dimensions.exclusive.includes(dim)) {
+        if (dimensions.excluded && dimensions.excluded.includes(dim)) {
           return; // Skip excluded dimensions
         }
 
         // Track event count for this dimension
         dimensionEventCounts[dim][eventKey] = (dimensionEventCounts[dim][eventKey] || 0) + 1;
         const count = dimensionEventCounts[dim][eventKey];
-        
+
         // Add event to dimension map with count if needed
         const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
         dimensionMap[dim].events.push(displayName);
@@ -290,4 +290,4 @@ export function getAllDimensions(options: GetAllDimensionsOptions = {}): Dimensi
   }
 
   return formatDimensionOutput(dimensionMap, globals, options.includeEventDetails || options.verbose || false);
-} 
+}
