@@ -48,6 +48,7 @@ export interface EventOutput {
   dimensions?: EventDimension[];
   properties: EventProperty[];
   passthrough?: boolean;
+  meta?: any;
 }
 
 interface GetAllEventsOptions {
@@ -76,26 +77,16 @@ function processEvent(
   let allProperties = [...eventProperties];
 
   if (includeGroups && groups) {
-    const groupProperties = groups.flatMap(group =>
-      (group.properties || []).map(prop => ({
-        ...prop,
-        source: "group" as const,
-        groupName: group.name
-      }))
-    ) as EventProperty[];
-
-    // Merge properties, keeping event properties if there's a name conflict
-    const propertyMap = new Map<string, EventProperty>();
-    groupProperties.forEach(prop => {
-      if (!propertyMap.has(prop.name)) {
-        propertyMap.set(prop.name, prop);
+    groups.forEach(group => {
+      if (group.properties) {
+        const groupProperties = group.properties.map(prop => ({
+          ...prop,
+          source: "group" as const,
+          groupName: group.name
+        })) as EventProperty[];
+        allProperties = [...allProperties, ...groupProperties];
       }
     });
-    eventProperties.forEach(prop => {
-      propertyMap.set(prop.name, prop);
-    });
-
-    allProperties = Array.from(propertyMap.values());
   }
 
   const output: EventOutput = {
@@ -103,7 +94,8 @@ function processEvent(
     name: event.name,
     description: event.description,
     properties: allProperties,
-    passthrough: event.passthrough
+    passthrough: event.passthrough,
+    meta: event.meta
   };
 
   if (includeDimensions && dimensions) {
