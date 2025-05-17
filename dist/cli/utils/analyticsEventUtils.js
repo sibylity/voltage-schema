@@ -9,12 +9,18 @@ function processEvent(eventKey, event, includeGroups, includeDimensions, groups,
     const eventProperties = (event.properties || []).map(prop => (Object.assign(Object.assign({}, prop), { source: "event" })));
     let allProperties = [...eventProperties];
     if (includeGroups && groups) {
-        groups.forEach(group => {
-            if (group.properties) {
-                const groupProperties = group.properties.map(prop => (Object.assign(Object.assign({}, prop), { source: "group", groupName: group.name })));
-                allProperties = [...allProperties, ...groupProperties];
+        const groupProperties = groups.flatMap(group => (group.properties || []).map(prop => (Object.assign(Object.assign({}, prop), { source: "group", groupName: group.name }))));
+        // Merge properties, keeping event properties if there's a name conflict
+        const propertyMap = new Map();
+        groupProperties.forEach(prop => {
+            if (!propertyMap.has(prop.name)) {
+                propertyMap.set(prop.name, prop);
             }
         });
+        eventProperties.forEach(prop => {
+            propertyMap.set(prop.name, prop);
+        });
+        allProperties = Array.from(propertyMap.values());
     }
     const output = {
         key: eventKey,

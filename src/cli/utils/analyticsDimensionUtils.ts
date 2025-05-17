@@ -84,7 +84,7 @@ function processEvent(
   dimensionMap: DimensionEventMap,
   dimensionEventCounts: DimensionEventCounts
 ): void {
-  // If event has no dimensions field, include it in all dimensions
+  // If event has no dimensions field, auto-apply to all dimensions
   if (!event.dimensions) {
     Object.keys(dimensionMap).forEach((dim) => {
       // Track event count for this dimension
@@ -181,6 +181,29 @@ function processEvent(
     }
     return;
   }
+
+  // Handle the shorthand for event dimensions (array of dimensions)
+  if (Array.isArray(event.dimensions)) {
+    event.dimensions.forEach((dim) => {
+      if (!dimensionMap[dim]) {
+        console.warn(`⚠️  Dimension "${dim}" in event "${eventKey}" is not listed in any dimensions.`);
+        return;
+      }
+
+      // Track event count for this dimension
+      dimensionEventCounts[dim][eventKey] = (dimensionEventCounts[dim][eventKey] || 0) + 1;
+      const count = dimensionEventCounts[dim][eventKey];
+
+      // Add event to dimension map with count if needed
+      const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
+      dimensionMap[dim].events.push(displayName);
+      dimensionMap[dim].eventDetails.push({
+        key: eventKey,
+        name: event.name,
+        description: event.description
+      });
+    });
+  }
 }
 
 function formatDimensionOutput(
@@ -259,35 +282,23 @@ export function getAllDimensions(options: GetAllDimensionsOptions = {}): Dimensi
 
   // Otherwise, use the original implementation
   const config = getAnalyticsConfig();
-  let dimensionMap: DimensionEventMap = {};
-  let dimensionEventCounts: DimensionEventCounts = {};
-  let isFirstConfig = true;
-  let globals: AnalyticsGlobals | undefined;
+  const allFormattedOutputs: DimensionData[] = [];
 
-  // Process all generation configs
+  // Process each generation config separately
   config.generates.forEach(genConfig => {
     const { globals: currentGlobals, events } = readGenerationConfigFiles(genConfig);
-
-    // Store globals from first config
-    if (isFirstConfig) {
-      globals = currentGlobals;
-    }
-
-    // Initialize maps only from the first config that has dimensions
-    if (isFirstConfig || Object.keys(dimensionMap).length === 0) {
-      ({ dimensionMap, dimensionEventCounts } = initializeDimensionMaps(currentGlobals));
-      isFirstConfig = false;
-    }
+    const { dimensionMap, dimensionEventCounts } = initializeDimensionMaps(currentGlobals);
 
     // Process each event in the current config
     Object.entries(events.events).forEach(([eventKey, event]) => {
       processEvent(eventKey, event, dimensionMap, dimensionEventCounts);
     });
+
+    // Format the output for the current config
+    const formattedOutput = formatDimensionOutput(dimensionMap, currentGlobals, options.includeEventDetails || options.verbose || false);
+    allFormattedOutputs.push(...formattedOutput);
   });
 
-  if (!globals) {
-    throw new Error("No globals configuration found");
-  }
-
-  return formatDimensionOutput(dimensionMap, globals, options.includeEventDetails || options.verbose || false);
+  // Combine the formatted outputs from all configs
+  return allFormattedOutputs;
 }
