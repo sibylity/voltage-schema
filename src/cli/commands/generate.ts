@@ -11,6 +11,7 @@ interface TrackingConfigProperty {
   type: string | string[];
   optional?: boolean;
   defaultValue?: string | number | boolean;
+  description?: string;
 }
 
 interface TrackingConfig {
@@ -18,6 +19,7 @@ interface TrackingConfig {
     name: string;
     properties: TrackingConfigProperty[];
     passthrough?: boolean;
+    meta?: Record<string, string | number | boolean>;
   }>;
   groups: Record<string, {
     name: string;
@@ -63,19 +65,26 @@ function generateEventConfigs(trackingConfig: TrackingConfig, events: AnalyticsE
         ? `/** ${originalEvent.description} */\n`
         : '';
 
+      // Create a map of property descriptions from the original event
+      const propertyDescriptions = new Map(
+        originalEvent.properties?.map(prop => [prop.name, prop.description]) || []
+      );
+
       return `${comment}export const ${normalizedKey}Event = {
   name: '${event.name}',
   properties: [
-    {
+    ${includeComments ? `/** The key that is used to track the "${key}" implementation of the "${event.name}" event. */\n    ` : ''}{
       name: '${eventKeyPropertyName}',
       type: 'string',
-      defaultValue: '${key}',
-      description: 'The key that is used to track the "${key}" implementation of the "${event.name}" event.'
-    }${event.properties && event.properties.length > 0 ? ',\n    ' + event.properties.map(prop => `{
+      defaultValue: '${key}'
+    }${event.properties && event.properties.length > 0 ? ',\n    ' + event.properties.map(prop => {
+      const propComment = includeComments && propertyDescriptions.get(prop.name) ? `/** ${propertyDescriptions.get(prop.name)} */\n    ` : '';
+      return `${propComment}{
       name: '${prop.name}',
       type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.defaultValue !== undefined ? `,\n      defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
-    }`).join(',\n    ') : ''}
-  ]
+    }`;
+    }).join(',\n    ') : ''}
+  ]${event.meta ? `,\n  meta: ${JSON.stringify(event.meta)}` : ''}
 };`;
     })
     .join('\n\n');
@@ -84,40 +93,55 @@ function generateEventConfigs(trackingConfig: TrackingConfig, events: AnalyticsE
 /**
  * Generates the tracking config object
  */
-export function generateTrackingConfig(globals: any, events: any, eventKeyPropertyName: string = 'Event Key'): string {
+export function generateTrackingConfig(globals: any, events: any, includeComments: boolean, eventKeyPropertyName: string = 'Event Key'): string {
   const eventEntries = Object.entries(events.events || {})
     .map(([key, event]: [string, any]) => {
-      return `    ${key}: {
+      const eventComment = includeComments && event.description && event.description.length > 0 ? `    /** ${event.description} */\n` : '';
+
+      // Create a map of property descriptions from the original event
+      const propertyDescriptions = new Map(
+        event.properties?.map((prop: any) => [prop.name, prop.description]) || []
+      );
+
+      return `${eventComment}    ${key}: {
       name: '${event.name}',
       properties: [
-        {
+        ${includeComments ? `/** The key that is used to track the "${key}" implementation of the "${event.name}" event. */\n        ` : ''}{
           name: '${eventKeyPropertyName}',
           type: 'string',
-          defaultValue: '${key}',
-          description: 'The key that is used to track the "${key}" implementation of the "${event.name}" event.'
-        }${event.properties && event.properties.length > 0 ? ',\n        ' + event.properties.map((prop: any) => `{
+          defaultValue: '${key}'
+        }${event.properties && event.properties.length > 0 ? ',\n        ' + event.properties.map((prop: any) => {
+          const propComment = includeComments && propertyDescriptions.get(prop.name) ? `/** ${propertyDescriptions.get(prop.name)} */\n        ` : '';
+          return `${propComment}{
           name: '${prop.name}',
           type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.defaultValue !== undefined ? `,\n          defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
-        }`).join(',\n        ') : ''}
-      ]${event.passthrough ? ',\n      passthrough: true' : ''}
+        }`;
+        }).join(',\n        ') : ''}
+      ]${event.passthrough ? ',\n      passthrough: true' : ''}${event.meta ? `,\n      meta: ${JSON.stringify(event.meta)}` : ''}
     }`;
     })
     .join(',\n');
 
   const groupsConfig = globals.groups.map((group: any) => {
-    // Check if properties array is empty or contains only undefined
+    const groupComment = includeComments && group.description && group.description.length > 0 ? `    /** ${group.description} */\n` : '';
     const hasProperties = group.properties && group.properties.length > 0 &&
       !group.properties.every((prop: any) => prop === undefined);
 
+    // Create a map of property descriptions from the original group
+    const propertyDescriptions = new Map(
+      group.properties?.map((prop: any) => [prop.name, prop.description]) || []
+    );
+
     const propertyEntries = hasProperties ? group.properties.map((prop: any) => {
+      const propComment = includeComments && propertyDescriptions.get(prop.name) ? `/** ${propertyDescriptions.get(prop.name)} */\n        ` : '';
       const type = Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`;
-      return `        {
+      return `${propComment}{
           name: '${prop.name}',
           type: ${type}${prop.defaultValue !== undefined ? `,\n          defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
         }`;
     }).join(',\n') : '';
 
-    return `    '${group.name}': {
+    return `${groupComment}    '${group.name}': {
       name: '${group.name}',
       properties: [
 ${propertyEntries}
@@ -156,9 +180,12 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
         : properties.replace(/}$/, '; [key: string]: any }');
     }
 
+    // Always add meta as optional Record type
+    const metaType = '\n      meta?: Record<string, string | number | boolean>;' ;
+
     return `    ${key}: {
       name: '${event.name}';
-      properties: ${properties};
+      properties: ${properties};${metaType}
     };`;
   }).join('\n\n');
 
@@ -192,6 +219,7 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
     type: string | string[];
     optional?: boolean;
   }>;
+  meta?: Record<string, string | number | boolean>;
   passthrough?: boolean;
 }
 
@@ -209,6 +237,7 @@ export type TrackerEvent = ${Object.keys(events.events).map(k => `'${k}'`).join(
 export type TrackerGroup = ${globals.groups.map(g => `'${g.name}'`).join(' | ')};
 
 export type EventProperties<T extends TrackerEvents, E extends TrackerEvent> = T['events'][E]['properties'];
+export type EventMeta<T extends TrackerEvents, E extends TrackerEvent> = T['events'][E]['meta'];
 export type GroupProperties<T extends TrackerEvents, G extends TrackerGroup> = T['groups'][G]['properties'];
 
 // Helper type to determine if an event has properties
@@ -226,30 +255,18 @@ export interface AnalyticsTracker<T extends TrackerEvents> {
 export interface TrackerOptions<T extends TrackerEvents> {
   onEventTracked: <E extends TrackerEvent>(
     eventName: T['events'][E]['name'],
-    eventProperties: T['events'][E]['properties'],
-    groupProperties: Record<TrackerGroup, GroupProperties<T, TrackerGroup>>,
+    eventData: {
+      properties: T['events'][E]['properties'];
+      meta?: T['events'][E]['meta'];
+      groups: Record<TrackerGroup, GroupProperties<T, TrackerGroup>>;
+    }
   ) => void;
   onGroupUpdated: <G extends TrackerGroup>(
     groupName: T['groups'][G]['name'],
-    properties: T['groups'][G]['properties'],
+    properties: T['groups'][G]['properties']
   ) => void;
   onError?: (error: Error) => void;
 }`;
-}
-
-function getPropertyType(type: string | string[]): string {
-  if (Array.isArray(type)) {
-    return type.map(t => {
-      if (typeof t === 'string' && !['string', 'number', 'boolean', 'string[]', 'number[]', 'boolean[]'].includes(t)) {
-        return `'${t}'`;
-      }
-      return t;
-    }).join(' | ');
-  }
-  if (typeof type === 'string' && !['string', 'number', 'boolean', 'string[]', 'number[]', 'boolean[]'].includes(type)) {
-    return `'${type}'`;
-  }
-  return type;
 }
 
 function generateJavaScriptOutput(trackingConfig: TrackingConfig, events: AnalyticsEvents, includeComments: boolean, outputPath: string, eventKeyPropertyName: string = 'Event Key') {
@@ -257,7 +274,7 @@ function generateJavaScriptOutput(trackingConfig: TrackingConfig, events: Analyt
 // 🔹 Event Configurations
 ${generateEventConfigs(trackingConfig, events, includeComments, eventKeyPropertyName)}
 
-${generateTrackingConfig({ groups: [], dimensions: [], events: {} }, { groups: [], dimensions: [], events: {} }, eventKeyPropertyName)}
+${generateTrackingConfig({ groups: [], dimensions: [], events: {} }, { groups: [], dimensions: [], events: {} }, includeComments, eventKeyPropertyName)}
 `;
 
   fs.writeFileSync(outputPath, jsOutput);
@@ -279,7 +296,7 @@ ${generateEventConfigs(trackingConfig, events, includeComments, eventKeyProperty
 // 🔹 Generated Types
 ${generateTypeDefinitions(events, globals)}
 
-${generateTrackingConfig(globals, events, eventKeyPropertyName)}`;
+${generateTrackingConfig(globals, events, includeComments, eventKeyPropertyName)}`;
   fs.writeFileSync(outputPath, analyticsTypes.trim() + '\n');
   console.log(`✅ Generated tracking config and TypeScript definitions in ${outputPath}`);
 }
@@ -338,7 +355,8 @@ export function registerGenerateCommand(program: Command) {
                     optional: prop.optional,
                     defaultValue: prop.defaultValue
                   })) || [],
-                  passthrough: event.passthrough
+                  passthrough: event.passthrough,
+                  meta: event.meta
                 }
               ])
             ),

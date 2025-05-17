@@ -11,8 +11,9 @@ const logging_1 = require("./logging");
 const validateConfigSchema = (0, schemaValidation_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.config.schema.json"));
 const validateGroupsSchema = (0, schemaValidation_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.groups.schema.json"));
 const validateDimensionsSchema = (0, schemaValidation_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.dimensions.schema.json"));
+const validateMetaSchema = (0, schemaValidation_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.meta.schema.json"));
 function validateAnalyticsConfig(configPath, context) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     (0, logging_1.logValidationStart)(context);
     const result = (0, fileValidation_1.parseSchemaFile)(configPath);
     if (!result.isValid || !result.data) {
@@ -57,6 +58,20 @@ function validateAnalyticsConfig(configPath, context) {
                     (0, logging_1.logValidationErrors)(errors);
                     return { isValid: false, errors };
                 }
+            }
+        }
+        // Validate meta if present
+        if (genConfig.meta) {
+            const metaResult = (0, fileValidation_1.parseSchemaFile)(genConfig.meta);
+            if (!metaResult.isValid) {
+                (0, logging_1.logValidationErrors)(metaResult.errors || []);
+                return { isValid: false, errors: metaResult.errors };
+            }
+            const isMetaValid = validateMetaSchema(metaResult.data);
+            if (!isMetaValid) {
+                const errors = ((_d = validateMetaSchema.errors) === null || _d === void 0 ? void 0 : _d.map((error) => `Invalid meta file ${genConfig.meta}: ${error.message || "Unknown error"}`)) || [];
+                (0, logging_1.logValidationErrors)(errors);
+                return { isValid: false, errors };
             }
         }
     }

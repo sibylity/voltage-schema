@@ -1,6 +1,6 @@
 import path from "path";
 import { ErrorObject } from "ajv";
-import { type AnalyticsEvents, type Event, type Dimension } from "../../types";
+import { type AnalyticsEvents, type Event, type Dimension, type AnalyticsSchemaMetaRule } from "../../types";
 import { type ValidationResult } from "./types";
 import { createValidator } from "./schemaValidation";
 import { parseSchemaFile } from "./fileValidation";
@@ -18,6 +18,55 @@ function validateEventProperties(event: Event, eventKey: string): ValidationResu
         errors.push(`Duplicate property name "${prop.name}" in event "${eventKey}"`);
       }
       propertyNames.add(prop.name);
+    }
+  }
+
+  return {
+    isValid: errors.length === 0,
+    errors,
+    data: errors.length === 0 ? { events: {} } : undefined
+  };
+}
+
+function validateEventMeta(event: Event, eventKey: string, metaRules: AnalyticsSchemaMetaRule[]): ValidationResult<AnalyticsEvents> {
+  const errors: string[] = [];
+  const metaRuleMap = new Map(metaRules.map(rule => [rule.name, rule]));
+
+  if (event.meta) {
+    // Check for unknown meta fields
+    for (const [key, value] of Object.entries(event.meta)) {
+      const rule = metaRuleMap.get(key);
+      if (!rule) {
+        errors.push(`Unknown meta field "${key}" in event "${eventKey}"`);
+        continue;
+      }
+
+      // Validate value type
+      if (Array.isArray(rule.type)) {
+        if (!rule.type.includes(value as string)) {
+          errors.push(`Invalid value "${value}" for meta field "${key}" in event "${eventKey}". Expected one of: ${rule.type.join(", ")}`);
+        }
+      } else if (rule.type === "string" && typeof value !== "string") {
+        errors.push(`Invalid value type for meta field "${key}" in event "${eventKey}". Expected string, got ${typeof value}`);
+      } else if (rule.type === "number" && typeof value !== "number") {
+        errors.push(`Invalid value type for meta field "${key}" in event "${eventKey}". Expected number, got ${typeof value}`);
+      } else if (rule.type === "boolean" && typeof value !== "boolean") {
+        errors.push(`Invalid value type for meta field "${key}" in event "${eventKey}". Expected boolean, got ${typeof value}`);
+      }
+    }
+
+    // Check for missing required meta fields
+    for (const rule of metaRules) {
+      if (!rule.optional && !(rule.name in event.meta)) {
+        errors.push(`Missing required meta field "${rule.name}" in event "${eventKey}"`);
+      }
+    }
+  } else {
+    // Check if any required meta fields are missing
+    for (const rule of metaRules) {
+      if (!rule.optional) {
+        errors.push(`Missing required meta field "${rule.name}" in event "${eventKey}"`);
+      }
     }
   }
 
@@ -74,7 +123,7 @@ function validateEventDimensions(event: Event, dimensions: string[]): Validation
   };
 }
 
-export function validateEvents(eventsPath: string, dimensionNames: string[], globalsExist: boolean): ValidationResult<AnalyticsEvents> {
+export function validateEvents(eventsPath: string, dimensionNames: string[], globalsExist: boolean, metaRules?: AnalyticsSchemaMetaRule[]): ValidationResult<AnalyticsEvents> {
   console.log(`🔍 Validating ${eventsPath}...`);
 
   if (!eventsPath) {
@@ -106,12 +155,16 @@ export function validateEvents(eventsPath: string, dimensionNames: string[], glo
     console.log(`🔍 Validating event: ${eventKey}`);
     const propertiesResult = validateEventProperties(event, eventKey);
     const dimensionsResult = validateEventDimensions(event, dimensionNames);
+    const metaResult = metaRules ? validateEventMeta(event, eventKey, metaRules) : { isValid: true };
 
     if (!propertiesResult.isValid && propertiesResult.errors) {
       errors.push(...propertiesResult.errors);
     }
     if (!dimensionsResult.isValid && dimensionsResult.errors) {
       errors.push(...dimensionsResult.errors);
+    }
+    if (!metaResult.isValid && metaResult.errors) {
+      errors.push(...metaResult.errors);
     }
   });
 

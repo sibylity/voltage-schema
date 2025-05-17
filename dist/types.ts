@@ -7,6 +7,15 @@ export interface AnalyticsSchemaProperty {
   defaultValue?: string | number | boolean;
 }
 
+export interface AnalyticsSchemaMetaRule {
+  name: string;
+  description: string;
+  type: string | string[];
+  optional?: boolean;
+  defaultValue?: string | number | boolean;
+  private?: boolean;
+}
+
 export interface AnalyticsSchemaDimensionIdentifier {
   property: string;
   contains?: string;
@@ -37,6 +46,7 @@ export interface GenerationConfig {
   events: string;
   groups?: string[];
   dimensions?: string[];
+  meta?: string;
   output: string;
   disableComments?: boolean;
   eventKeyPropertyName?: string;
@@ -46,6 +56,7 @@ export interface GenerationConfig {
 export interface AnalyticsGlobals {
   groups: Group[];
   dimensions: Dimension[];
+  meta?: AnalyticsSchemaMetaRule[];
 }
 
 export interface Group {
@@ -102,6 +113,7 @@ export interface Event {
     excluded?: string[];
   };
   properties?: Property[];
+  meta?: Record<string, string | number | boolean>;
   passthrough?: boolean;
 }
 
@@ -111,6 +123,7 @@ export interface TrackerEvents {
     [K: string]: {
       name: string;
       properties: Record<string, any>;
+      meta?: Record<string, any>;
       passthrough?: boolean;
     };
   };
@@ -128,6 +141,7 @@ export type TrackerEvent<T extends TrackerEvents> = keyof T["events"];
 export type TrackerGroup<T extends TrackerEvents> = keyof T["groups"];
 
 export type EventProperties<T extends TrackerEvents, E extends TrackerEvent<T>> = T["events"][E]["properties"];
+export type EventMeta<T extends TrackerEvents, E extends TrackerEvent<T>> = T["events"][E]["meta"];
 export type GroupProperties<T extends TrackerEvents, G extends TrackerGroup<T>> = T["groups"][G]["properties"];
 
 // Helper type to determine if an event has properties
@@ -146,14 +160,17 @@ export interface AnalyticsTracker<T extends TrackerEvents> {
 }
 
 export interface TrackerOptions<T extends TrackerEvents> {
-  onEventTracked: (
-    eventName: T["events"][TrackerEvent<T>]["name"],
-    eventProperties: T["events"][TrackerEvent<T>]["properties"],
-    groupProperties: { [K in TrackerGroup<T>]: T["groups"][K]["properties"] }
-  ) => void;
-  onGroupUpdated: (
-    groupName: T["groups"][TrackerGroup<T>]["name"],
-    properties: T["groups"][TrackerGroup<T>]["properties"]
-  ) => void;
+  onEventTracked: <E extends TrackerEvent<T>>(
+    eventName: T["events"][E]["name"],
+    eventData: {
+      properties: { [K in keyof T["events"][E]["properties"]]: T["events"][E]["properties"][K] };
+      meta?: T["events"][E]["meta"];
+      groups: { [K in TrackerGroup<T>]: T["groups"][K]["properties"] };
+    }
+  ) => void | Promise<void>;
+  onGroupUpdated: <G extends TrackerGroup<T>>(
+    groupName: T["groups"][G]["name"],
+    properties: T["groups"][G]["properties"]
+  ) => void | Promise<void>;
   onError?: (error: Error) => void;
 }

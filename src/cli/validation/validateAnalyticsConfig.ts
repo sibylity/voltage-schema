@@ -9,6 +9,7 @@ import { logValidationStart, logValidationSuccess, logValidationErrors } from ".
 const validateConfigSchema = createValidator(path.resolve(__dirname, "../../schemas/analytics.config.schema.json"));
 const validateGroupsSchema = createValidator(path.resolve(__dirname, "../../schemas/analytics.groups.schema.json"));
 const validateDimensionsSchema = createValidator(path.resolve(__dirname, "../../schemas/analytics.dimensions.schema.json"));
+const validateMetaSchema = createValidator(path.resolve(__dirname, "../../schemas/analytics.meta.schema.json"));
 
 export function validateAnalyticsConfig(
   configPath: string,
@@ -69,8 +70,25 @@ export function validateAnalyticsConfig(
         }
       }
     }
+
+    // Validate meta if present
+    if (genConfig.meta) {
+      const metaResult = parseSchemaFile(genConfig.meta);
+      if (!metaResult.isValid) {
+        logValidationErrors(metaResult.errors || []);
+        return { isValid: false, errors: metaResult.errors };
+      }
+      const isMetaValid = validateMetaSchema(metaResult.data);
+      if (!isMetaValid) {
+        const errors = validateMetaSchema.errors?.map((error: ErrorObject) =>
+          `Invalid meta file ${genConfig.meta}: ${error.message || "Unknown error"}`
+        ) || [];
+        logValidationErrors(errors);
+        return { isValid: false, errors };
+      }
+    }
   }
 
   logValidationSuccess(context);
   return { isValid: true, data: result.data };
-} 
+}

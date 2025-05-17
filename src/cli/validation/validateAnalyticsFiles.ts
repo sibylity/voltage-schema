@@ -5,6 +5,7 @@ import { validateEvents } from "./validateAnalyticsEvents";
 import { getAnalyticsConfig } from "../utils/analyticsConfigHelper";
 import { validateGroups } from "./validateAnalyticsGroups";
 import { validateDimensions } from "./validateAnalyticsDimensions";
+import { validateMeta } from "./validateAnalyticsMeta";
 import fs from "fs";
 import { type AnalyticsConfig } from "../../types";
 
@@ -95,11 +96,22 @@ export function validateAnalyticsFiles(): boolean {
         hasValidDimensions = false;
       }
 
+      // Validate meta if present
+      let metaRules;
+      if (genConfig.meta) {
+        const metaPath = path.resolve(process.cwd(), genConfig.meta);
+        const metaResult = validateMeta(metaPath);
+        if (!metaResult.isValid) {
+          return false;
+        }
+        metaRules = metaResult.data?.meta;
+      }
+
       if (!hasValidGroups || !hasValidDimensions) {
         return false;
       }
 
-      const eventsResult = validateEvents(eventsPath, Array.from(dimensionNames), true);
+      const eventsResult = validateEvents(eventsPath, Array.from(dimensionNames), true, metaRules);
       if (!eventsResult.isValid) {
         return false;
       }
@@ -139,6 +151,11 @@ export function validateAnalyticsFilesWithFs(): boolean {
             throw new Error(`Dimension file not found: ${dimensionFile}`);
           }
         });
+      }
+
+      // Validate meta file exists
+      if (genConfig.meta && !fs.existsSync(genConfig.meta)) {
+        throw new Error(`Meta file not found: ${genConfig.meta}`);
       }
     });
 
