@@ -1,13 +1,26 @@
 {
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
+    "target": "ES2020",
     "module": "CommonJS",
-    "target": "ES6",
+    "lib": ["ES2020"],
+    "declaration": true,
     "strict": true,
     "esModuleInterop": true,
-    "noEmit": false
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true
   },
-  "include": ["src"],
-  "exclude": ["node_modules", "dist"]
+  "exclude": [
+    "node_modules",
+    "packages/voltage-schema/node_modules",
+    "packages/voltage-schema/dist",
+    "packages/voltage-autodoc/node_modules",
+    "packages/voltage-autodoc/dist"
+  ]
 }

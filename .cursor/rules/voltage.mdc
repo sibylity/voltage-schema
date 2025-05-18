@@ -1,0 +1,139 @@
+---
+description: 
+globs: .ts,.json,.md
+alwaysApply: false
+---
+# Voltage Analytics Schema System
+
+## Project Overview
+Voltage is a comprehensive analytics schema system that serves three main purposes:
+
+1. **Type-Safe Analytics**: Generates strongly-typed TypeScript configurations from JSON schema definitions to ensure type safety in analytics tracking.
+
+2. **Analytics Documentation**: Provides an autodoc system that generates human-readable documentation of all analytics events, properties, and dimensions. This documentation helps teams understand what data is being tracked and why.
+
+3. **Schema Evolution Tracking**: Systems listening for changes to schema files can maintain a historical record of how analytics schemas change over time. This evolution tracking is specifically designed to provide context to AI agents for:
+   - Understanding what data was tracked at different points in time
+   - Analyzing how tracking requirements have evolved
+   - Making informed decisions when analyzing historical analytics data
+   - Identifying patterns and changes in tracking behavior
+
+## Key Components
+
+### Schema Structure
+- Events: Define trackable user actions with properties and dimensions
+- Groups: Define reusable property groups that can be attached to events
+- Dimensions: Define ways to segment and filter analytics data
+- Schema History: Track changes and evolution of analytics definitions
+
+### Documentation Generation
+- Generates comprehensive HTML documentation
+- Includes descriptions and context for all events and properties
+- Maintains historical versions of schema documentation
+- Provides machine-readable format for AI consumption
+
+### Type Generation
+- Generates TypeScript types for events, groups, and their properties
+- Handles enum types as string literal unions (e.g., `'admin' | 'member'`)
+- Supports function types for dynamic values (e.g., `() => 'admin' | 'member'`)
+- Maintains optional properties with `| null | undefined` union types
+
+### Schema Evolution
+- Tracks additions, modifications, and deprecations of events and properties
+- Maintains context about why changes were made
+- Records relationships between different versions of the schema
+- Provides AI-readable format for understanding schema evolution
+
+### File Organization
+- Source schemas in JSON format under `analytics/` directory
+- Generated output in `__analytics_generated__/` directory
+- Core TypeScript source in `src/` directory
+- Schema history and evolution tracking in version control
+
+## Development Rules
+
+### Schema Documentation
+1. Always include clear descriptions for events, properties, and dimensions
+2. Document the purpose and context of schema changes
+3. Maintain backwards compatibility when possible
+4. Include relevant business context for AI analysis
+
+### Type Generation
+1. Always maintain both direct value and function return types for properties
+   - Example: `'admin' | 'member' | (() => 'admin' | 'member')`
+2. Preserve string literals for enum types instead of converting to `string`
+3. Handle optional properties consistently with `| null | undefined` unions
+
+### Schema Validation
+1. Validate all analytics files before generation
+2. Check for required fields: name, type, description for properties
+3. Validate group dimensions against defined dimension schemas
+4. Ensure event and group references are valid
+5. Verify schema evolution maintains data consistency
+
+### Code Generation
+1. Generate clean, formatted TypeScript/JavaScript output
+2. Include JSDoc comments when `disableComments` is false
+3. Normalize event keys to safe variable names
+4. Maintain consistent indentation in generated files
+5. Generate AI-readable documentation formats
+
+### Testing
+1. Verify generated types match schema definitions
+2. Test both TypeScript and JavaScript output formats
+3. Validate enum type generation for properties
+4. Check optional property handling
+5. Verify schema evolution tracking
+
+## Common Operations
+
+### Adding New Events
+1. Define event in JSON schema under `analytics/events.json`
+2. Include required fields: name, description, properties
+3. Document the purpose and context of the new event
+4. Run validation and generation: `npm run build && npm run generate`
+5. Verify generated types and documentation
+
+### Modifying Groups
+1. Update group definition in appropriate group JSON file
+2. Ensure group properties follow schema requirements
+3. Document reasons for modifications
+4. Update any event references to the group
+5. Regenerate types and validate changes
+
+### Handling Enum Types
+1. Define as array of string literals in schema
+2. Document the meaning and purpose of each enum value
+3. Verify generated types include both direct and function variants
+4. Ensure TypeScript recognizes the union type correctly
+
+### Tracking Schema Evolution
+1. Document reasons for schema changes
+2. Maintain historical context in commit messages
+3. Update documentation to reflect changes
+4. Ensure AI-readable format is maintained
+
+## Common Issues
+
+### Type Generation
+- Watch for incorrect enum type generation (string vs string literal)
+- Check function type wrapping for properties
+- Verify optional property handling
+
+### Schema Validation
+- Validate all required fields are present
+- Check for valid dimension references
+- Ensure group identifiers are unique
+- Verify schema evolution consistency
+
+### Documentation
+- Ensure all events and properties are well-documented
+- Maintain clear evolution history
+- Provide sufficient context for AI analysis
+- Keep documentation in sync with schema
+
+### Build Process
+- Always run both build and generate commands
+- Check for TypeScript compilation errors
+- Verify generated file formatting
+- Validate documentation generation

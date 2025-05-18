@@ -1,0 +1,59 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["events"],
+  "properties": {
+    "events": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["name", "properties"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The display name of the event"
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of what the event represents"
+          },
+          "properties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "type"],
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "description": "The name of the property"
+                },
+                "type": {
+                  "type": "string",
+                  "description": "The type of the property (string, number, boolean, etc.)"
+                },
+                "description": {
+                  "type": "string",
+                  "description": "A description of what the property represents"
+                }
+              }
+            }
+          },
+          "dimensions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of dimension names that apply to this event"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "List of group names that apply to this event"
+          }
+        }
+      }
+    }
+  }
+}

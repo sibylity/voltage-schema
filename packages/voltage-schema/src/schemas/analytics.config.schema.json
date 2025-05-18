@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["version", "generates"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "The version of the analytics config schema"
+    },
+    "generates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["events", "output"],
+        "properties": {
+          "events": {
+            "type": "string",
+            "description": "Path to the events schema file"
+          },
+          "dimensions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Paths to dimension schema files"
+          },
+          "groups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Paths to group schema files"
+          },
+          "output": {
+            "type": "string",
+            "description": "Path where the generated files will be output"
+          }
+        }
+      }
+    }
+  }
+}

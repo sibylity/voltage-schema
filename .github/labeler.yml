@@ -1,0 +1,43 @@
+voltage-schema:
+  - packages/voltage-schema/**/*
+  - '!packages/voltage-schema/node_modules/**/*'
+
+voltage-autodoc:
+  - packages/voltage-autodoc/**/*
+  - '!packages/voltage-autodoc/node_modules/**/*'
+
+documentation:
+  - '**/*.md'
+  - '**/*.mdx'
+  - '**/*.rst'
+  - '**/*.txt'
+
+typescript:
+  - '**/*.ts'
+  - '**/*.tsx'
+  - '!**/*.d.ts'
+
+javascript:
+  - '**/*.js'
+  - '**/*.jsx'
+  - '**/*.mjs'
+  - '**/*.cjs'
+
+dependencies:
+  - '**/package.json'
+  - '**/package-lock.json'
+  - '**/yarn.lock'
+  - '**/pnpm-lock.yaml'
+
+workflow:
+  - '.github/workflows/**/*'
+
+config:
+  - '**/.eslintrc.js'
+  - '**/.prettierrc'
+  - '**/.editorconfig'
+  - '**/tsconfig.json'
+  - '**/.npmrc'
+  - '**/.gitignore'
+  - '**/.npmignore'
+  - '**/.gitattributes'

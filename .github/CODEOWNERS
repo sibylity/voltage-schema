@@ -1,0 +1,14 @@
+# These owners will be the default owners for everything in the repo.
+# Unless a later match takes precedence, they will be requested for review when someone opens a pull request.
+* @mattrheault
+
+# Package-specific owners
+/packages/voltage-schema/ @mattrheault
+/packages/voltage-autodoc/ @mattrheault
+
+# Documentation owners
+*.md @mattrheault
+/docs/ @mattrheault
+
+# GitHub workflow owners
+/.github/ @mattrheault

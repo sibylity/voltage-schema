@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["dimensions"],
+  "properties": {
+    "dimensions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "description", "identifiers"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The name of the dimension"
+          },
+          "description": {
+            "type": "string",
+            "description": "A description of what the dimension represents"
+          },
+          "identifiers": {
+            "type": "object",
+            "required": ["OR", "AND"],
+            "properties": {
+              "OR": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["property", "group"],
+                  "properties": {
+                    "property": {
+                      "type": "string",
+                      "description": "The name of the property to check"
+                    },
+                    "group": {
+                      "type": "string",
+                      "description": "The name of the group containing the property"
+                    },
+                    "equals": {
+                      "type": "string",
+                      "description": "The value to compare against"
+                    },
+                    "not": {
+                      "type": "string",
+                      "description": "The value to compare against (inverse)"
+                    }
+                  }
+                }
+              },
+              "AND": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["property", "group"],
+                  "properties": {
+                    "property": {
+                      "type": "string",
+                      "description": "The name of the property to check"
+                    },
+                    "group": {
+                      "type": "string",
+                      "description": "The name of the group containing the property"
+                    },
+                    "equals": {
+                      "type": "string",
+                      "description": "The value to compare against"
+                    },
+                    "not": {
+                      "type": "string",
+                      "description": "The value to compare against (inverse)"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

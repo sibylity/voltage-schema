@@ -1,0 +1,22 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'voltage-schema@*'
+      - 'voltage-autodoc@*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
