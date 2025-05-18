@@ -1,9 +1,7 @@
 import fs from "fs";
 import path from "path";
-import { Command } from "commander";
 import { type AnalyticsGlobals, type AnalyticsEvents, type GenerationConfig, type AnalyticsSchemaProperty } from "../../types";
-import { validateAnalyticsFiles } from "../validation";
-import { getAnalyticsConfig, readGenerationConfigFiles } from "../utils/analyticsConfigHelper";
+import { readGenerationConfigFiles } from "../utils/analyticsConfigHelper";
 import { parseSchemaFile } from "../validation/fileValidation";
 
 interface TrackingConfigProperty {
@@ -301,93 +299,82 @@ ${generateTrackingConfig(globals, events, includeComments, eventKeyPropertyName)
   console.log(`✅ Generated tracking config and TypeScript definitions in ${outputPath}`);
 }
 
-export function registerGenerateCommand(program: Command) {
-  program
-    .command("generate")
-    .description("Generate TypeScript types & tracking config from your codegen config")
-    .action(() => {
-      console.log("🔍 Validating voltage.config.json...");
-      const config = getAnalyticsConfig();
+export function runGenerate(generates: GenerationConfig[]) {
+  try {
+    generates.forEach(genConfig => {
+      const outputPath = path.resolve(process.cwd(), genConfig.output);
+      const outputDir = path.dirname(outputPath);
+      const outputExt = path.extname(outputPath).toLowerCase();
 
-      try {
-        if (!validateAnalyticsFiles()) return;
+      const { events } = readGenerationConfigFiles(genConfig);
 
-        // Process each generation config
-        config.generates.forEach(genConfig => {
-          const outputPath = path.resolve(process.cwd(), genConfig.output);
-          const outputDir = path.dirname(outputPath);
-          const outputExt = path.extname(outputPath).toLowerCase();
-
-          const { events } = readGenerationConfigFiles(genConfig);
-
-          // Combine groups from all group files
-          const allGroups: Record<string, any> = {};
-          if (genConfig.groups) {
-            genConfig.groups.forEach(groupFile => {
-              const groupPath = path.resolve(process.cwd(), groupFile);
-              const groupResult = parseSchemaFile<AnalyticsGlobals>(groupPath);
-              if (!groupResult.isValid || !groupResult.data) {
-                console.error(`❌ Failed to parse group file at ${groupPath}:`, groupResult.errors);
-                process.exit(1);
-              }
-              if (groupResult.data.groups) {
-                Object.assign(allGroups, groupResult.data.groups);
-              }
-            });
+      // Combine groups from all group files
+      const allGroups: Record<string, any> = {};
+      if (genConfig.groups) {
+        genConfig.groups.forEach(groupFile => {
+          const groupPath = path.resolve(process.cwd(), groupFile);
+          const groupResult = parseSchemaFile<{ groups: any[] }>(groupPath);
+          if (!groupResult.isValid || !groupResult.data) {
+            console.error(`❌ Failed to parse group file at ${groupPath}:`, groupResult.errors);
+            process.exit(1);
           }
-
-          if (!fs.existsSync(outputDir)) {
-            fs.mkdirSync(outputDir, { recursive: true });
-          }
-
-          console.log(`📁 Generating files in ${outputDir}...`);
-
-          // Generate trackingConfig object without descriptions
-          const trackingConfig: TrackingConfig = {
-            events: Object.fromEntries(
-              Object.entries(events.events).map(([eventKey, event]) => [
-                eventKey,
-                {
-                  name: event.name,
-                  properties: event.properties?.map((prop: AnalyticsSchemaProperty) => ({
-                    name: prop.name,
-                    type: prop.type,
-                    optional: prop.optional,
-                    defaultValue: prop.defaultValue
-                  })) || [],
-                  passthrough: event.passthrough,
-                  meta: event.meta
-                }
-              ])
-            ),
-            groups: Object.fromEntries(
-              Object.entries(allGroups).map(([groupName, group]) => [
-                groupName,
-                {
-                  name: group.name,
-                  properties: group.properties?.map((prop: AnalyticsSchemaProperty) => ({
-                    name: prop.name,
-                    type: prop.type,
-                    optional: prop.optional,
-                    defaultValue: prop.defaultValue
-                  })) || [],
-                  identifiedBy: group.identifiedBy,
-                  passthrough: group.passthrough
-                }
-              ])
-            )
-          };
-
-          // Generate output based on file extension
-          if (outputExt === ".ts" || outputExt === ".tsx") {
-            generateTypeScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath, genConfig);
-          } else {
-            generateJavaScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath, genConfig.eventKeyPropertyName);
+          if (groupResult.data.groups) {
+            Object.assign(allGroups, groupResult.data.groups);
           }
         });
-      } catch (error) {
-        console.error(error);
-        process.exit(1);
+      }
+
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+
+      console.log(`📁 Generating files in ${outputDir}...`);
+
+      // Generate trackingConfig object without descriptions
+      const trackingConfig: TrackingConfig = {
+        events: Object.fromEntries(
+          Object.entries(events.events).map(([eventKey, event]) => [
+            eventKey,
+            {
+              name: event.name,
+              properties: event.properties?.map((prop: AnalyticsSchemaProperty) => ({
+                name: prop.name,
+                type: prop.type,
+                optional: prop.optional,
+                defaultValue: prop.defaultValue
+              })) || [],
+              passthrough: event.passthrough,
+              meta: event.meta
+            }
+          ])
+        ),
+        groups: Object.fromEntries(
+          Object.entries(allGroups).map(([groupName, group]) => [
+            groupName,
+            {
+              name: group.name,
+              properties: group.properties?.map((prop: AnalyticsSchemaProperty) => ({
+                name: prop.name,
+                type: prop.type,
+                optional: prop.optional,
+                defaultValue: prop.defaultValue
+              })) || [],
+              identifiedBy: group.identifiedBy,
+              passthrough: group.passthrough
+            }
+          ])
+        )
+      };
+
+      // Generate output based on file extension
+      if (outputExt === ".ts" || outputExt === ".tsx") {
+        generateTypeScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath, genConfig);
+      } else {
+        generateJavaScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath, genConfig.eventKeyPropertyName);
       }
     });
+  } catch (error) {
+    console.error(error);
+    process.exit(1);
+  }
 }

@@ -1,47 +1,46 @@
-import fs from "fs";
-import path from "path";
-import { Command } from "commander";
-import { jsonToYaml } from "../utils/yamlUtils";
+import { writeFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
-// Default paths
-const configPath = path.resolve(process.cwd(), "voltage.config.json");
-const defaultConfigPath = path.resolve(__dirname, "../../schemas/defaults/voltage.config.default.json");
-const defaultAllDimensionsPath = path.resolve(__dirname, "../../schemas/defaults/analytics.all-dimensions.default.json");
-const defaultAllGroupsPath = path.resolve(__dirname, "../../schemas/defaults/analytics.all-groups.default.json");
-const defaultEventsPath = path.resolve(__dirname, "../../schemas/defaults/analytics.events.default.json");
+export function init() {
+  const configPath = join(process.cwd(), 'analytics.config.json');
+  if (existsSync(configPath)) {
+    console.error('analytics.config.json already exists');
+    process.exit(1);
+  }
 
-export function registerInitCommand(program: Command) {
-  program
-    .command("init")
-    .description("Create default analytics configuration files")
-    .option("--reset", "Replace existing analytics files")
-    .action((options) => {
-      const files = [
-        { src: defaultConfigPath, dest: configPath, name: "config" },
-        { src: defaultAllGroupsPath, dest: "analytics.all-groups.volt", name: "all-groups" },
-        { src: defaultAllDimensionsPath, dest: "analytics.all-dimensions.volt", name: "all-dimensions" },
-        { src: defaultEventsPath, dest: "analytics.events.volt", name: "events" }
-      ];
+  const defaultConfig = {
+    version: '1.0.0',
+    generates: [
+      {
+        events: './analytics.events.json',
+        dimensions: ['./analytics.all-dimensions.json'],
+        groups: ['./analytics.all-groups.json'],
+        output: './__analytics_generated__/analytics.ts'
+      }
+    ]
+  };
 
-      files.forEach(file => {
-        if (!fs.existsSync(file.src)) {
-          console.error(`❌ ${file.name} default file is missing. Please create it.`);
-          process.exit(1);
-        }
+  writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
+  console.log('Created analytics.config.json');
 
-        const destPath = path.resolve(process.cwd(), file.dest);
-        if (fs.existsSync(destPath) && !options.reset) {
-          console.warn(`⚠️ ${file.dest} already exists. Use --reset to overwrite it.`);
-          return;
-        }
+  // Create empty events file
+  const eventsPath = join(process.cwd(), 'analytics.events.json');
+  if (!existsSync(eventsPath)) {
+    writeFileSync(eventsPath, JSON.stringify({ events: {} }, null, 2));
+    console.log('Created analytics.events.json');
+  }
 
-        const defaultContent = fs.readFileSync(file.src, "utf8");
-        const jsonData = JSON.parse(defaultContent);
+  // Create empty dimensions file
+  const dimensionsPath = join(process.cwd(), 'analytics.all-dimensions.json');
+  if (!existsSync(dimensionsPath)) {
+    writeFileSync(dimensionsPath, JSON.stringify({ dimensions: [] }, null, 2));
+    console.log('Created analytics.all-dimensions.json');
+  }
 
-        // Convert to YAML for YAML files, keep as JSON for config
-        const outputContent = file.dest.endsWith(".json") ? defaultContent : jsonToYaml(jsonData);
-        fs.writeFileSync(destPath, outputContent);
-        console.log(`✅ ${file.dest} ${options.reset ? "reset" : "created"} successfully!`);
-      });
-    });
+  // Create empty groups file
+  const groupsPath = join(process.cwd(), 'analytics.all-groups.json');
+  if (!existsSync(groupsPath)) {
+    writeFileSync(groupsPath, JSON.stringify({ groups: [] }, null, 2));
+    console.log('Created analytics.all-groups.json');
+  }
 }

@@ -1,18 +1,11 @@
-import { Command } from "commander";
 import { getAllProperties } from "../utils/analyticsPropertyUtils";
 
-export function registerPropertiesCommand(program: Command) {
-  program
-    .command("properties")
-    .description("List all properties across groups and events")
-    .option("--verbose", "Include all available information")
-    .action((options) => {
-      try {
-        const properties = getAllProperties({ verbose: options.verbose });
-        console.log(JSON.stringify(properties, null, 2));
-      } catch (error) {
-        console.error("❌ Error processing properties:", error);
-        process.exit(1);
-      }
-    });
+export function runPropertiesCommand(options: { verbose?: boolean }) {
+  try {
+    const properties = getAllProperties({ verbose: options.verbose });
+    console.log(JSON.stringify(properties, null, 2));
+  } catch (error) {
+    console.error("❌ Error processing properties:", error);
+    process.exit(1);
+  }
 }
