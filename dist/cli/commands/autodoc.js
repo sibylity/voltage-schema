@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerAutodocCommand = registerAutodocCommand;
+exports.registerAutodocCommand = void 0;
 const validation_1 = require("../validation");
 const autodocUtils_1 = require("../utils/autodocUtils");
 function registerAutodocCommand(cli) {
@@ -27,3 +27,4 @@ function registerAutodocCommand(cli) {
         }
     });
 }
+exports.registerAutodocCommand = registerAutodocCommand;

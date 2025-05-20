@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerEventsCommand = registerEventsCommand;
+exports.registerEventsCommand = void 0;
 const validation_1 = require("../validation");
 const analyticsEventUtils_1 = require("../utils/analyticsEventUtils");
 function registerEventsCommand(cli) {
@@ -28,3 +28,4 @@ function registerEventsCommand(cli) {
         }
     });
 }
+exports.registerEventsCommand = registerEventsCommand;

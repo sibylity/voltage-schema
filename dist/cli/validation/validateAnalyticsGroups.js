@@ -3,8 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.defaultGroups = void 0;
-exports.validateGroups = validateGroups;
+exports.validateGroups = exports.defaultGroups = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const schemaValidation_1 = require("./schemaValidation");
@@ -130,3 +129,4 @@ function validateGroups(groupsPath, eventsPath) {
     (0, logging_1.logValidationSuccess)(context);
     return { isValid: true, data: groups };
 }
+exports.validateGroups = validateGroups;

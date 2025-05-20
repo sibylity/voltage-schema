@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.readGenerationConfigFiles = readGenerationConfigFiles;
+exports.readGenerationConfigFiles = void 0;
 const fileValidation_1 = require("../validation/fileValidation");
 function readGenerationConfigFiles(genConfig) {
     // Read events file
@@ -48,3 +48,4 @@ function readGenerationConfigFiles(genConfig) {
         }
     };
 }
+exports.readGenerationConfigFiles = readGenerationConfigFiles;

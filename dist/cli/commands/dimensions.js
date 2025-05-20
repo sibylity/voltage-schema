@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerDimensionsCommand = registerDimensionsCommand;
+exports.registerDimensionsCommand = void 0;
 const validation_1 = require("../validation");
 const analyticsDimensionUtils_1 = require("../utils/analyticsDimensionUtils");
 function registerDimensionsCommand(cli) {
@@ -26,3 +26,4 @@ function registerDimensionsCommand(cli) {
         }
     });
 }
+exports.registerDimensionsCommand = registerDimensionsCommand;

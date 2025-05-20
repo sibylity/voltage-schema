@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerGenerateCommand = registerGenerateCommand;
+exports.registerGenerateCommand = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const validation_1 = require("../validation");
@@ -310,3 +310,4 @@ function registerGenerateCommand(cli) {
         }
     });
 }
+exports.registerGenerateCommand = registerGenerateCommand;

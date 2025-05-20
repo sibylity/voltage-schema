@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerValidateCommand = registerValidateCommand;
+exports.registerValidateCommand = void 0;
 const validation_1 = require("../validation");
 function registerValidateCommand(cli) {
     cli
@@ -9,3 +9,4 @@ function registerValidateCommand(cli) {
         (0, validation_1.validateAnalyticsFiles)();
     });
 }
+exports.registerValidateCommand = registerValidateCommand;

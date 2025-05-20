@@ -3,10 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateFileExists = validateFileExists;
-exports.validateFileExtension = validateFileExtension;
-exports.parseJsonFile = parseJsonFile;
-exports.parseSchemaFile = parseSchemaFile;
+exports.parseSchemaFile = exports.parseJsonFile = exports.validateFileExtension = exports.validateFileExists = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const yamlUtils_1 = require("../utils/yamlUtils");
@@ -22,6 +19,7 @@ function validateFileExists(filePath, isOptional = false) {
     }
     return { isValid: true };
 }
+exports.validateFileExists = validateFileExists;
 function validateFileExtension(filePath) {
     const ext = path_1.default.extname(filePath).toLowerCase();
     if (ext !== ".json" && ext !== ".volt" && ext !== ".yaml" && ext !== ".yml") {
@@ -29,6 +27,7 @@ function validateFileExtension(filePath) {
     }
     return null;
 }
+exports.validateFileExtension = validateFileExtension;
 function parseJsonFile(filePath) {
     try {
         const data = JSON.parse(fs_1.default.readFileSync(filePath, "utf8"));
@@ -41,6 +40,7 @@ function parseJsonFile(filePath) {
         };
     }
 }
+exports.parseJsonFile = parseJsonFile;
 function parseSchemaFile(filePath) {
     const ext = path_1.default.extname(filePath).toLowerCase();
     if (ext === ".json") {
@@ -54,3 +54,4 @@ function parseSchemaFile(filePath) {
         errors: [`Unsupported file extension: ${ext}`]
     };
 }
+exports.parseSchemaFile = parseSchemaFile;

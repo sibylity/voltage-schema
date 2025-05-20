@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerPropertiesCommand = registerPropertiesCommand;
+exports.registerPropertiesCommand = void 0;
 const validation_1 = require("../validation");
 const analyticsPropertyUtils_1 = require("../utils/analyticsPropertyUtils");
 function registerPropertiesCommand(cli) {
@@ -22,3 +22,4 @@ function registerPropertiesCommand(cli) {
         }
     });
 }
+exports.registerPropertiesCommand = registerPropertiesCommand;
