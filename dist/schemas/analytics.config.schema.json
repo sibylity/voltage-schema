@@ -7,6 +7,7 @@
       "items": {
         "type": "object",
         "properties": {
+          "meta": { "type": "string" },
           "events": { "type": "string" },
           "dimensions": {
             "type": "array",

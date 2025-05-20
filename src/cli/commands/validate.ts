@@ -1,11 +1,10 @@
-import { Command } from "commander";
+import { CLI } from "../cli";
 import { validateAnalyticsFiles } from "../validation";
 
-export function registerValidateCommand(program: Command) {
-  program
-    .command("validate")
-    .description("Validate the analytics configuration files and check event structure")
-    .action(() => {
+export function registerValidateCommand(cli: CLI) {
+  cli
+    .command("validate", "Validate the analytics configuration files and check event structure")
+    .action((options: Record<string, boolean>) => {
       validateAnalyticsFiles();
     });
-} 
+}

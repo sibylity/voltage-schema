@@ -1206,7 +1206,7 @@ export function generateAutodocHtml(): string {
                    '<div class="section-title">Events</div>' +
                    '<div class="property-list">' +
                      Object.entries(groupEventsByName(dim.eventDetails))
-                       .map(([eventName, events]) => renderEventGroup(eventName, events, dim.dimension))
+                       .map(([eventName, events]) => renderEventGroup(eventName, events, dim.dimension, true))
                        .join('') +
                    '</div>' : '';
 
@@ -1245,14 +1245,15 @@ export function generateAutodocHtml(): string {
              updateCounts();
            }
 
-           function renderEventCard(event, dimensionName) {
+           function renderEventCard(event, dimensionName, suppressProperties = false) {
              const eventProperties = event.properties ? event.properties.filter(p => p.source === 'event') : [];
              const groupProperties = event.properties ? event.properties.filter(p => p.source === 'group') : [];
              const allProperties = [...eventProperties, ...groupProperties];
              const uniqueId = dimensionName + '-' + event.key;
              const safeId = uniqueId.replace(/[^a-zA-Z0-9-]/g, '-');
 
-             const eventPropertiesHtml = eventProperties.length > 0 ?
+             // Only render properties if not suppressed
+             const eventPropertiesHtml = (!suppressProperties && eventProperties.length > 0) ?
                '<div class="section-title">Event Properties</div>' +
                '<div class="property-list">' +
                  eventProperties.map(prop => {
@@ -1268,7 +1269,7 @@ export function generateAutodocHtml(): string {
                  }).join('') +
                '</div>' : '';
 
-             const groupPropertiesHtml = groupProperties.length > 0 ?
+             const groupPropertiesHtml = (!suppressProperties && groupProperties.length > 0) ?
                '<div class="section-title">Group Properties</div>' +
                '<div class="property-list">' +
                  groupProperties.map(prop => {
@@ -1283,6 +1284,22 @@ export function generateAutodocHtml(): string {
                      '</div>';
                  }).join('') +
                '</div>' : '';
+
+             // --- Meta Fields Section ---
+             let metaFieldsHtml = '';
+             if (event.meta && typeof event.meta === 'object' && Object.keys(event.meta).length > 0) {
+               metaFieldsHtml =
+                 '<div class="section-title">Meta Fields</div>' +
+                 '<div class="property-list">' +
+                   Object.entries(event.meta).map(([key, value]) => {
+                     return '<div class="property">' +
+                       '<div class="property-name">' + key + '</div>' +
+                       '<div class="property-type">' + JSON.stringify(value) + '</div>' +
+                       '</div>';
+                   }).join('') +
+                 '</div>';
+             }
+             // --- End Meta Fields Section ---
 
              const descriptionHtml = event.description
                ? '<p class="event-description">' + event.description + '</p>'
@@ -1303,7 +1320,7 @@ export function generateAutodocHtml(): string {
                    '</div>' +
                  '</div>' +
                  '<div class="event-stat">' +
-                   '<span>' + allProperties.length + '</span>' +
+                   '<span>' + (suppressProperties ? 0 : allProperties.length) + '</span>' +
                    '<span>properties</span>' +
                  '</div>' +
                '</div>' +
@@ -1311,11 +1328,12 @@ export function generateAutodocHtml(): string {
                  descriptionHtml +
                  eventPropertiesHtml +
                  groupPropertiesHtml +
+                 metaFieldsHtml +
                '</div>' +
              '</div>';
            }
 
-           function renderEventGroup(groupName, events, dimensionName) {
+           function renderEventGroup(groupName, events, dimensionName, suppressProperties = false) {
              const allProperties = new Map();
              const allGroupProperties = new Map();
              const allDimensions = new Set();
@@ -1341,7 +1359,8 @@ export function generateAutodocHtml(): string {
                });
              });
 
-             const combinedPropertiesHtml = (allProperties.size > 0 || allGroupProperties.size > 0) ?
+             // Only render combinedPropertiesHtml if not suppressed
+             const combinedPropertiesHtml = (!suppressProperties && (allProperties.size > 0 || allGroupProperties.size > 0)) ?
                '<div class="combined-properties">' +
                  (allProperties.size > 0 ?
                    '<div class="collapsible-section">' +
@@ -1397,8 +1416,8 @@ export function generateAutodocHtml(): string {
                    '</div>' : '') +
                '</div>' : '';
 
-             const implementations = events.map(event => renderEventCard(event, dimensionName)).join('');
-             const totalProperties = new Set(
+             const implementations = events.map(event => renderEventCard(event, dimensionName, suppressProperties)).join('');
+             const totalProperties = suppressProperties ? 0 : new Set(
                events.flatMap(e => e.properties?.map(p => p.name) || [])
              ).size;
 
@@ -1421,8 +1440,7 @@ export function generateAutodocHtml(): string {
                  '</div>' +
                '</div>' +
                '<div class="event-details" id="event-details-' + safeId + '">' +
-                 '<div class="section-title implementations-title">Properties</div>' +
-                 combinedPropertiesHtml +
+                 (suppressProperties ? '' : '<div class="section-title implementations-title">Properties</div>' + combinedPropertiesHtml) +
                  '<div class="section-title implementations-title">Implementations</div>' +
                  '<div class="implementations-list">' +
                    implementations +

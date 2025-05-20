@@ -3,8 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateAnalyticsFiles = validateAnalyticsFiles;
-exports.validateAnalyticsFilesWithFs = validateAnalyticsFilesWithFs;
+exports.validateAnalyticsFilesWithFs = exports.validateAnalyticsFiles = void 0;
 const path_1 = __importDefault(require("path"));
 const logging_1 = require("./logging");
 const validateAnalyticsConfig_1 = require("./validateAnalyticsConfig");
@@ -12,9 +11,10 @@ const validateAnalyticsEvents_1 = require("./validateAnalyticsEvents");
 const analyticsConfigHelper_1 = require("../utils/analyticsConfigHelper");
 const validateAnalyticsGroups_1 = require("./validateAnalyticsGroups");
 const validateAnalyticsDimensions_1 = require("./validateAnalyticsDimensions");
+const validateAnalyticsMeta_1 = require("./validateAnalyticsMeta");
 const fs_1 = __importDefault(require("fs"));
 function validateAnalyticsFiles() {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e;
     console.log("🔍 Validating voltage.config.json...");
     const configPath = path_1.default.resolve(process.cwd(), "voltage.config.json");
     if (!fs_1.default.existsSync(configPath)) {
@@ -90,10 +90,20 @@ function validateAnalyticsFiles() {
                 (0, logging_1.logValidationErrors)([errorMessage]);
                 hasValidDimensions = false;
             }
+            // Validate meta if present
+            let metaRules;
+            if (genConfig.meta) {
+                const metaPath = path_1.default.resolve(process.cwd(), genConfig.meta);
+                const metaResult = (0, validateAnalyticsMeta_1.validateMeta)(metaPath);
+                if (!metaResult.isValid) {
+                    return false;
+                }
+                metaRules = (_e = metaResult.data) === null || _e === void 0 ? void 0 : _e.meta;
+            }
             if (!hasValidGroups || !hasValidDimensions) {
                 return false;
             }
-            const eventsResult = (0, validateAnalyticsEvents_1.validateEvents)(eventsPath, Array.from(dimensionNames), true);
+            const eventsResult = (0, validateAnalyticsEvents_1.validateEvents)(eventsPath, Array.from(dimensionNames), true, metaRules);
             if (!eventsResult.isValid) {
                 return false;
             }
@@ -105,6 +115,7 @@ function validateAnalyticsFiles() {
         return false;
     }
 }
+exports.validateAnalyticsFiles = validateAnalyticsFiles;
 function validateAnalyticsFilesWithFs() {
     try {
         const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
@@ -130,6 +141,10 @@ function validateAnalyticsFilesWithFs() {
                     }
                 });
             }
+            // Validate meta file exists
+            if (genConfig.meta && !fs_1.default.existsSync(genConfig.meta)) {
+                throw new Error(`Meta file not found: ${genConfig.meta}`);
+            }
         });
         return true;
     }
@@ -138,3 +153,4 @@ function validateAnalyticsFilesWithFs() {
         return false;
     }
 }
+exports.validateAnalyticsFilesWithFs = validateAnalyticsFilesWithFs;

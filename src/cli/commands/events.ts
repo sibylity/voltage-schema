@@ -1,15 +1,14 @@
-import { Command } from "commander";
+import { CLI } from "../cli";
 import { validateAnalyticsFiles } from "../validation";
 import { getAllEvents } from "../utils/analyticsEventUtils";
 
-export function registerEventsCommand(program: Command) {
-  program
-    .command("events")
-    .description("List all events with their properties and dimensions")
+export function registerEventsCommand(cli: CLI) {
+  cli
+    .command("events", "List all events with their properties and dimensions")
     .option("--include-groups", "Include properties from all groups")
     .option("--include-dimensions", "Include detailed dimension information")
     .option("--verbose", "Include all available information (equivalent to --include-groups --include-dimensions)")
-    .action((options) => {
+    .action((options: Record<string, boolean>) => {
       try {
         console.log("🔍 Running validation before listing events...");
         if (!validateAnalyticsFiles()) {
@@ -17,8 +16,8 @@ export function registerEventsCommand(program: Command) {
         }
 
         const events = getAllEvents({
-          includeGroups: options.includeGroups,
-          includeDimensions: options.includeDimensions,
+          includeGroups: options["include-groups"],
+          includeDimensions: options["include-dimensions"],
           verbose: options.verbose
         });
         console.log(JSON.stringify(events, null, 2));
@@ -27,4 +26,4 @@ export function registerEventsCommand(program: Command) {
         process.exit(1);
       }
     });
-} 
+}

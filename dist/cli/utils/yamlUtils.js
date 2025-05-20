@@ -3,9 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.parseYamlFile = parseYamlFile;
-exports.yamlToJson = yamlToJson;
-exports.jsonToYaml = jsonToYaml;
+exports.jsonToYaml = exports.yamlToJson = exports.parseYamlFile = void 0;
 const fs_1 = __importDefault(require("fs"));
 const js_yaml_1 = __importDefault(require("js-yaml"));
 const path_1 = __importDefault(require("path"));
@@ -22,6 +20,7 @@ function parseYamlFile(filePath) {
         };
     }
 }
+exports.parseYamlFile = parseYamlFile;
 function yamlToJson(yamlContent) {
     try {
         const data = js_yaml_1.default.load(yamlContent);
@@ -34,6 +33,8 @@ function yamlToJson(yamlContent) {
         };
     }
 }
+exports.yamlToJson = yamlToJson;
 function jsonToYaml(jsonContent) {
     return js_yaml_1.default.dump(jsonContent);
 }
+exports.jsonToYaml = jsonToYaml;

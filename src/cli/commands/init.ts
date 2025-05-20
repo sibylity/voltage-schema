@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { Command } from "commander";
+import { CLI } from "../cli";
 import { jsonToYaml } from "../utils/yamlUtils";
 
 // Default paths
@@ -10,12 +10,11 @@ const defaultAllDimensionsPath = path.resolve(__dirname, "../../schemas/defaults
 const defaultAllGroupsPath = path.resolve(__dirname, "../../schemas/defaults/analytics.all-groups.default.json");
 const defaultEventsPath = path.resolve(__dirname, "../../schemas/defaults/analytics.events.default.json");
 
-export function registerInitCommand(program: Command) {
-  program
-    .command("init")
-    .description("Create default analytics configuration files")
+export function registerInitCommand(cli: CLI) {
+  cli
+    .command("init", "Create default analytics configuration files")
     .option("--reset", "Replace existing analytics files")
-    .action((options) => {
+    .action((options: Record<string, boolean>) => {
       const files = [
         { src: defaultConfigPath, dest: configPath, name: "config" },
         { src: defaultAllGroupsPath, dest: "analytics.all-groups.volt", name: "all-groups" },

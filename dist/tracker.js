@@ -1,18 +1,68 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createAnalyticsTracker = createAnalyticsTracker;
-function resolvePropertyValue(value) {
-    if (typeof value === 'function') {
-        return value();
+exports.createAnalyticsTracker = exports.ValidationError = void 0;
+class ValidationError extends Error {
+    constructor(message) {
+        super(message);
+        this.name = 'ValidationError';
     }
-    return value;
 }
+exports.ValidationError = ValidationError;
 function resolveProperties(properties) {
-    const resolved = {};
-    Object.entries(properties).forEach(([key, value]) => {
-        resolved[key] = resolvePropertyValue(value);
-    });
-    return resolved;
+    return Object.fromEntries(Object.entries(properties).map(([key, value]) => [
+        key,
+        typeof value === 'function' ? value() : value
+    ]));
+}
+function validateEventProperties(event, properties) {
+    if (!event.properties) {
+        return;
+    }
+    for (const prop of event.properties) {
+        if (!prop.optional && !(prop.name in properties) && prop.defaultValue === undefined) {
+            throw new ValidationError(`Required property "${prop.name}" is missing`);
+        }
+        if (prop.name in properties) {
+            const value = properties[prop.name];
+            const type = Array.isArray(prop.type) ? prop.type : [prop.type];
+            if (!type.some(t => {
+                if (t === 'string')
+                    return typeof value === 'string';
+                if (t === 'number')
+                    return typeof value === 'number';
+                if (t === 'boolean')
+                    return typeof value === 'boolean';
+                return value === t;
+            })) {
+                throw new ValidationError(`Property "${prop.name}" has invalid type. Expected ${type.join(' | ')}, got ${typeof value}`);
+            }
+        }
+    }
+}
+function validateGroupProperties(group, properties) {
+    if (!group.properties) {
+        return;
+    }
+    for (const prop of group.properties) {
+        if (!prop.optional && !(prop.name in properties) && prop.defaultValue === undefined) {
+            throw new ValidationError(`Required property "${prop.name}" is missing`);
+        }
+        if (prop.name in properties) {
+            const value = properties[prop.name];
+            const type = Array.isArray(prop.type) ? prop.type : [prop.type];
+            if (!type.some(t => {
+                if (t === 'string')
+                    return typeof value === 'string';
+                if (t === 'number')
+                    return typeof value === 'number';
+                if (t === 'boolean')
+                    return typeof value === 'boolean';
+                return value === t;
+            })) {
+                throw new ValidationError(`Property "${prop.name}" has invalid type. Expected ${type.join(' | ')}, got ${typeof value}`);
+            }
+        }
+    }
 }
 function createAnalyticsTracker(context, options) {
     const { onEventTracked, onGroupUpdated, onError = console.error } = options;
@@ -34,7 +84,7 @@ function createAnalyticsTracker(context, options) {
                     const propertiesWithDefaults = {};
                     // Add default values first
                     if (event.properties) {
-                        event.properties.forEach(prop => {
+                        event.properties.forEach((prop) => {
                             if (prop.defaultValue !== undefined) {
                                 propertiesWithDefaults[prop.name] = prop.defaultValue;
                             }
@@ -49,7 +99,11 @@ function createAnalyticsTracker(context, options) {
                         key,
                         resolveProperties(props)
                     ]));
-                    onEventTracked(eventName, resolvedEventProperties, resolvedGroupProperties);
+                    onEventTracked(eventName, {
+                        properties: resolvedEventProperties,
+                        meta: event.meta,
+                        groups: resolvedGroupProperties
+                    });
                 }
                 catch (error) {
                     onError(new Error(`Failed to send event: ${error instanceof Error ? error.message : String(error)}`));
@@ -76,7 +130,7 @@ function createAnalyticsTracker(context, options) {
                     const propertiesWithDefaults = {};
                     // Add default values first
                     if (group.properties) {
-                        group.properties.forEach(prop => {
+                        group.properties.forEach((prop) => {
                             if (prop.defaultValue !== undefined) {
                                 propertiesWithDefaults[prop.name] = prop.defaultValue;
                             }
@@ -98,50 +152,4 @@ function createAnalyticsTracker(context, options) {
         getProperties: () => groupProperties
     };
 }
-// Helper functions for validation
-function validateEventProperties(event, properties) {
-    if (!event.properties)
-        return;
-    // Check for unexpected properties only if passthrough is not enabled
-    if (!event.passthrough) {
-        // Check for unexpected properties
-        const expectedProperties = new Set(event.properties.map(p => p.name));
-        Object.keys(properties).forEach(key => {
-            if (!expectedProperties.has(key)) {
-                throw new ValidationError(`Unexpected property "${key}". Allowed properties: ${[...expectedProperties].join(", ")}`);
-            }
-        });
-    }
-    // Check required properties (those without optional: true and no default value)
-    event.properties.forEach(prop => {
-        if (!prop.optional && prop.defaultValue === undefined && !(prop.name in properties)) {
-            throw new ValidationError(`Required property "${prop.name}" is missing`);
-        }
-    });
-}
-function validateGroupProperties(group, properties) {
-    if (!group.properties)
-        return;
-    // Check for unexpected properties only if passthrough is not enabled
-    if (!group.passthrough) {
-        // Check for unexpected properties
-        const expectedProperties = new Set(group.properties.map(p => p.name));
-        Object.keys(properties).forEach(key => {
-            if (!expectedProperties.has(key)) {
-                throw new ValidationError(`Unexpected property "${key}". Allowed properties: ${[...expectedProperties].join(", ")}`);
-            }
-        });
-    }
-    // Check required properties (those without optional: true and no default value)
-    group.properties.forEach(prop => {
-        if (!prop.optional && prop.defaultValue === undefined && !(prop.name in properties)) {
-            throw new ValidationError(`Required property "${prop.name}" is missing`);
-        }
-    });
-}
-class ValidationError extends Error {
-    constructor(message) {
-        super(message);
-        this.name = 'ValidationError';
-    }
-}
+exports.createAnalyticsTracker = createAnalyticsTracker;

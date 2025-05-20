@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateDimensions = validateDimensions;
+exports.validateDimensions = void 0;
 const path_1 = __importDefault(require("path"));
 const schemaValidation_1 = require("./schemaValidation");
 const fileValidation_1 = require("./fileValidation");
@@ -43,3 +43,4 @@ function validateDimensions(dimensionPath, eventsPath) {
     }
     return result;
 }
+exports.validateDimensions = validateDimensions;

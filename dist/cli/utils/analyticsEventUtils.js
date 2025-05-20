@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllEvents = getAllEvents;
+exports.getAllEvents = void 0;
 const analyticsConfigHelper_1 = require("./analyticsConfigHelper");
 function getDimensionDetails(dimensionName, dimensions) {
     return dimensions.find(dim => dim.name === dimensionName);
@@ -27,7 +27,8 @@ function processEvent(eventKey, event, includeGroups, includeDimensions, groups,
         name: event.name,
         description: event.description,
         properties: allProperties,
-        passthrough: event.passthrough
+        passthrough: event.passthrough,
+        meta: event.meta
     };
     if (includeDimensions && dimensions) {
         // If event has no dimensions field, include it in all dimensions
@@ -97,3 +98,4 @@ function getAllEvents(options = {}) {
     events.sort((a, b) => a.name.localeCompare(b.name));
     return events;
 }
+exports.getAllEvents = getAllEvents;

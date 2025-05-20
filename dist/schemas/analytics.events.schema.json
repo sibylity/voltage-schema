@@ -59,6 +59,16 @@
               "required": ["name", "type"]
             }
           },
+          "meta": {
+            "type": "object",
+            "additionalProperties": {
+              "oneOf": [
+                { "type": "string" },
+                { "type": "number" },
+                { "type": "boolean" }
+              ]
+            }
+          },
           "passthrough": { "type": "boolean" }
         },
         "required": ["name"]

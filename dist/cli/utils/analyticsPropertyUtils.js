@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllProperties = getAllProperties;
+exports.getAllProperties = void 0;
 const analyticsConfigHelper_1 = require("./analyticsConfigHelper");
 function processProperty(property, sourceName, sourceDescription, sourceType, propertyMap) {
     if (!propertyMap[property.name]) {
@@ -57,3 +57,4 @@ function getAllProperties(options = {}) {
     }
     return formatPropertyOutput(propertyMap);
 }
+exports.getAllProperties = getAllProperties;

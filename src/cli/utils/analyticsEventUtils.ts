@@ -48,6 +48,7 @@ export interface EventOutput {
   dimensions?: EventDimension[];
   properties: EventProperty[];
   passthrough?: boolean;
+  meta?: Record<string, string | number | boolean>;
 }
 
 interface GetAllEventsOptions {
@@ -103,7 +104,8 @@ function processEvent(
     name: event.name,
     description: event.description,
     properties: allProperties,
-    passthrough: event.passthrough
+    passthrough: event.passthrough,
+    meta: event.meta
   };
 
   if (includeDimensions && dimensions) {

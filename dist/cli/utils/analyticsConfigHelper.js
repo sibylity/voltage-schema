@@ -3,8 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAnalyticsConfig = getAnalyticsConfig;
-exports.readGenerationConfigFiles = readGenerationConfigFiles;
+exports.readGenerationConfigFiles = exports.getAnalyticsConfig = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const fileValidation_1 = require("../validation/fileValidation");
@@ -16,6 +15,7 @@ function getAnalyticsConfig() {
     const config = JSON.parse(fs_1.default.readFileSync(configPath, "utf8"));
     return config;
 }
+exports.getAnalyticsConfig = getAnalyticsConfig;
 function readGenerationConfigFiles(genConfig) {
     const eventsPath = path_1.default.resolve(process.cwd(), genConfig.events);
     if (!fs_1.default.existsSync(eventsPath)) {
@@ -72,3 +72,4 @@ function readGenerationConfigFiles(genConfig) {
     }
     return { globals: combinedGlobals, events: eventsResult.data };
 }
+exports.readGenerationConfigFiles = readGenerationConfigFiles;
