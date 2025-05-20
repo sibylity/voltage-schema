@@ -1,12 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerPropertiesCommand = registerPropertiesCommand;
+exports.registerPropertiesCommand = void 0;
 const validation_1 = require("../validation");
 const analyticsPropertyUtils_1 = require("../utils/analyticsPropertyUtils");
-function registerPropertiesCommand(program) {
-    program
-        .command("properties")
-        .description("List all properties across groups and events")
+function registerPropertiesCommand(cli) {
+    cli
+        .command("properties", "List all properties across groups and events")
         .option("--verbose", "Include all available information")
         .action((options) => {
         try {
@@ -23,3 +22,4 @@ function registerPropertiesCommand(program) {
         }
     });
 }
+exports.registerPropertiesCommand = registerPropertiesCommand;

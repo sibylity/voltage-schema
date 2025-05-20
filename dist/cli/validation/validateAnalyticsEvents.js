@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateEvents = validateEvents;
+exports.validateEvents = void 0;
 const path_1 = __importDefault(require("path"));
 const schemaValidation_1 = require("./schemaValidation");
 const fileValidation_1 = require("./fileValidation");
@@ -158,3 +158,4 @@ function validateEvents(eventsPath, dimensionNames, globalsExist, metaRules) {
     console.log(`✅ ${eventsPath} is valid.`);
     return { isValid: true, data: events };
 }
+exports.validateEvents = validateEvents;

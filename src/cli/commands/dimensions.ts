@@ -1,14 +1,13 @@
-import { Command } from "commander";
+import { CLI } from "../cli";
 import { validateAnalyticsFiles } from "../validation";
 import { getAllDimensions } from "../utils/analyticsDimensionUtils";
 
-export function registerDimensionsCommand(program: Command) {
-  program
-    .command("dimensions")
-    .description("List all events grouped by dimension")
+export function registerDimensionsCommand(cli: CLI) {
+  cli
+    .command("dimensions", "List all events grouped by dimension")
     .option("--include-event-details", "Include event names and descriptions in the output")
     .option("--verbose", "Include all available information")
-    .action((options) => {
+    .action((options: Record<string, boolean>) => {
       try {
         console.log("🔍 Running validation before listing dimensions...");
         if (!validateAnalyticsFiles()) {
@@ -16,7 +15,7 @@ export function registerDimensionsCommand(program: Command) {
         }
 
         const dimensions = getAllDimensions({
-          includeEventDetails: options.includeEventDetails,
+          includeEventDetails: options["include-event-details"],
           verbose: options.verbose
         });
         console.log(JSON.stringify(dimensions, null, 2));
@@ -25,4 +24,4 @@ export function registerDimensionsCommand(program: Command) {
         process.exit(1);
       }
     });
-} 
+}

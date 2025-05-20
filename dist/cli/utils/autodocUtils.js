@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateAutodocHtml = generateAutodocHtml;
+exports.generateAutodocHtml = void 0;
 const analyticsConfigHelper_1 = require("./analyticsConfigHelper");
 const analyticsDimensionUtils_1 = require("./analyticsDimensionUtils");
 const analyticsEventUtils_1 = require("./analyticsEventUtils");
@@ -1720,3 +1720,4 @@ function generateAutodocHtml() {
      </html>
    `;
 }
+exports.generateAutodocHtml = generateAutodocHtml;

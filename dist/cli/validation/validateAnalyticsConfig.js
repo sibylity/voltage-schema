@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateAnalyticsConfig = validateAnalyticsConfig;
+exports.validateAnalyticsConfig = void 0;
 const path_1 = __importDefault(require("path"));
 const schemaValidation_1 = require("./schemaValidation");
 const fileValidation_1 = require("./fileValidation");
@@ -78,3 +78,4 @@ function validateAnalyticsConfig(configPath, context) {
     (0, logging_1.logValidationSuccess)(context);
     return { isValid: true, data: result.data };
 }
+exports.validateAnalyticsConfig = validateAnalyticsConfig;

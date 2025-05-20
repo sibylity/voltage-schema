@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllEvents = getAllEvents;
+exports.getAllEvents = void 0;
 const analyticsConfigHelper_1 = require("./analyticsConfigHelper");
 function getDimensionDetails(dimensionName, dimensions) {
     return dimensions.find(dim => dim.name === dimensionName);
@@ -98,3 +98,4 @@ function getAllEvents(options = {}) {
     events.sort((a, b) => a.name.localeCompare(b.name));
     return events;
 }
+exports.getAllEvents = getAllEvents;

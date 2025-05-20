@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerInitCommand = registerInitCommand;
+exports.registerInitCommand = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const yamlUtils_1 = require("../utils/yamlUtils");
@@ -13,10 +13,9 @@ const defaultConfigPath = path_1.default.resolve(__dirname, "../../schemas/defau
 const defaultAllDimensionsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.all-dimensions.default.json");
 const defaultAllGroupsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.all-groups.default.json");
 const defaultEventsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.events.default.json");
-function registerInitCommand(program) {
-    program
-        .command("init")
-        .description("Create default analytics configuration files")
+function registerInitCommand(cli) {
+    cli
+        .command("init", "Create default analytics configuration files")
         .option("--reset", "Replace existing analytics files")
         .action((options) => {
         const files = [
@@ -44,3 +43,4 @@ function registerInitCommand(program) {
         });
     });
 }
+exports.registerInitCommand = registerInitCommand;

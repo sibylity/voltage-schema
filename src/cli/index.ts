@@ -1,4 +1,4 @@
-import { program } from "commander";
+import { CLI } from "./cli";
 import { registerInitCommand } from "./commands/init";
 import { registerValidateCommand } from "./commands/validate";
 import { registerDimensionsCommand } from "./commands/dimensions";
@@ -7,14 +7,16 @@ import { registerEventsCommand } from "./commands/events";
 import { registerGenerateCommand } from "./commands/generate";
 import { registerAutodocCommand } from "./commands/autodoc";
 
+const cli = new CLI();
+
 // Register all commands
-registerInitCommand(program);
-registerValidateCommand(program);
-registerDimensionsCommand(program);
-registerPropertiesCommand(program);
-registerEventsCommand(program);
-registerGenerateCommand(program);
-registerAutodocCommand(program);
+registerInitCommand(cli);
+registerValidateCommand(cli);
+registerDimensionsCommand(cli);
+registerPropertiesCommand(cli);
+registerEventsCommand(cli);
+registerGenerateCommand(cli);
+registerAutodocCommand(cli);
 
 // Parse command line arguments
-program.parse(process.argv);
+cli.parse(process.argv);

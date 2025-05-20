@@ -1,12 +1,11 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.registerDimensionsCommand = registerDimensionsCommand;
+exports.registerDimensionsCommand = void 0;
 const validation_1 = require("../validation");
 const analyticsDimensionUtils_1 = require("../utils/analyticsDimensionUtils");
-function registerDimensionsCommand(program) {
-    program
-        .command("dimensions")
-        .description("List all events grouped by dimension")
+function registerDimensionsCommand(cli) {
+    cli
+        .command("dimensions", "List all events grouped by dimension")
         .option("--include-event-details", "Include event names and descriptions in the output")
         .option("--verbose", "Include all available information")
         .action((options) => {
@@ -16,7 +15,7 @@ function registerDimensionsCommand(program) {
                 process.exit(1);
             }
             const dimensions = (0, analyticsDimensionUtils_1.getAllDimensions)({
-                includeEventDetails: options.includeEventDetails,
+                includeEventDetails: options["include-event-details"],
                 verbose: options.verbose
             });
             console.log(JSON.stringify(dimensions, null, 2));
@@ -27,3 +26,4 @@ function registerDimensionsCommand(program) {
         }
     });
 }
+exports.registerDimensionsCommand = registerDimensionsCommand;

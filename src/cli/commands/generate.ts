@@ -1,9 +1,9 @@
 import fs from "fs";
 import path from "path";
-import { Command } from "commander";
+import { CLI } from "../cli";
 import { type AnalyticsGlobals, type AnalyticsEvents, type GenerationConfig, type AnalyticsSchemaProperty } from "../../types";
 import { validateAnalyticsFiles } from "../validation";
-import { getAnalyticsConfig, readGenerationConfigFiles } from "../utils/analyticsConfigHelper";
+import { getAnalyticsConfig } from "../utils/analyticsConfigHelper";
 import { parseSchemaFile } from "../validation/fileValidation";
 
 interface TrackingConfigProperty {
@@ -93,25 +93,36 @@ function generateEventConfigs(trackingConfig: TrackingConfig, events: AnalyticsE
 /**
  * Generates the tracking config object
  */
-export function generateTrackingConfig(globals: any, events: any, includeComments: boolean, eventKeyPropertyName: string = 'Event Key'): string {
-  const eventEntries = Object.entries(events.events || {})
+function generateTrackingConfig(eventsData: any, groupsData: any[], dimensionsData: any[], disableComments?: boolean, eventKeyPropertyName: string = 'Event Key'): string {
+  if (!eventsData || !eventsData.events || typeof eventsData.events !== 'object') {
+    throw new Error('Invalid events data structure. Expected an object with an "events" property.');
+  }
+
+  const eventEntries = Object.entries(eventsData.events || {})
     .map(([key, event]: [string, any]) => {
-      const eventComment = includeComments && event.description && event.description.length > 0 ? `    /** ${event.description} */\n` : '';
+      if (!event || typeof event !== 'object') {
+        throw new Error(`Invalid event data for key "${key}". Expected an object.`);
+      }
+
+      const eventComment = !disableComments && event.description && event.description.length > 0 ? `    /** ${event.description} */\n` : '';
 
       // Create a map of property descriptions from the original event
       const propertyDescriptions = new Map(
-        event.properties?.map((prop: any) => [prop.name, prop.description]) || []
+        (event.properties || []).map((prop: any) => [prop.name, prop.description])
       );
 
       return `${eventComment}    ${key}: {
       name: '${event.name}',
       properties: [
-        ${includeComments ? `/** The key that is used to track the "${key}" implementation of the "${event.name}" event. */\n        ` : ''}{
+        ${!disableComments ? `/** The key that is used to track the "${key}" implementation of the "${event.name}" event. */\n        ` : ''}{
           name: '${eventKeyPropertyName}',
           type: 'string',
           defaultValue: '${key}'
         }${event.properties && event.properties.length > 0 ? ',\n        ' + event.properties.map((prop: any) => {
-          const propComment = includeComments && propertyDescriptions.get(prop.name) ? `/** ${propertyDescriptions.get(prop.name)} */\n        ` : '';
+          if (!prop || typeof prop !== 'object') {
+            throw new Error(`Invalid property data in event "${key}". Expected an object.`);
+          }
+          const propComment = !disableComments && propertyDescriptions.get(prop.name) ? `/** ${propertyDescriptions.get(prop.name)} */\n        ` : '';
           return `${propComment}{
           name: '${prop.name}',
           type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.defaultValue !== undefined ? `,\n          defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
@@ -122,18 +133,25 @@ export function generateTrackingConfig(globals: any, events: any, includeComment
     })
     .join(',\n');
 
-  const groupsConfig = globals.groups.map((group: any) => {
-    const groupComment = includeComments && group.description && group.description.length > 0 ? `    /** ${group.description} */\n` : '';
+  const groupsConfig = (groupsData || []).map((group: any) => {
+    if (!group || typeof group !== 'object') {
+      throw new Error(`Invalid group data. Expected an object.`);
+    }
+
+    const groupComment = !disableComments && group.description && group.description.length > 0 ? `    /** ${group.description} */\n` : '';
     const hasProperties = group.properties && group.properties.length > 0 &&
       !group.properties.every((prop: any) => prop === undefined);
 
     // Create a map of property descriptions from the original group
     const propertyDescriptions = new Map(
-      group.properties?.map((prop: any) => [prop.name, prop.description]) || []
+      (group.properties || []).map((prop: any) => [prop.name, prop.description])
     );
 
     const propertyEntries = hasProperties ? group.properties.map((prop: any) => {
-      const propComment = includeComments && propertyDescriptions.get(prop.name) ? `/** ${propertyDescriptions.get(prop.name)} */\n        ` : '';
+      if (!prop || typeof prop !== 'object') {
+        throw new Error(`Invalid property data in group "${group.name}". Expected an object.`);
+      }
+      const propComment = !disableComments && propertyDescriptions.get(prop.name) ? `/** ${propertyDescriptions.get(prop.name)} */\n        ` : '';
       const type = Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`;
       return `${propComment}{
           name: '${prop.name}',
@@ -162,10 +180,21 @@ ${groupsConfig}
 /**
  * Generates TypeScript interface definitions
  */
-function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlobals): string {
-  const eventTypes = Object.entries(events.events).map(([key, event]) => {
+function generateTypes(eventsData: any, groupsData: any[], dimensionsData: any[], disableComments?: boolean, eventKeyPropertyName?: string): string {
+  if (!eventsData || !eventsData.events || typeof eventsData.events !== 'object') {
+    throw new Error('Invalid events data structure. Expected an object with an "events" property.');
+  }
+
+  const eventTypes = Object.entries(eventsData.events).map(([key, event]: [string, any]) => {
+    if (!event || typeof event !== 'object') {
+      throw new Error(`Invalid event data for key "${key}". Expected an object.`);
+    }
+
     let properties = event.properties?.length
-      ? `{ ${event.properties.map((prop) => {
+      ? `{ ${event.properties.map((prop: any) => {
+          if (!prop || typeof prop !== 'object') {
+            throw new Error(`Invalid property data in event "${key}". Expected an object.`);
+          }
           const type = Array.isArray(prop.type) ? prop.type.map((t: string) => `'${t}'`).join(' | ') : prop.type;
           // Make properties with default values optional
           const isOptional = prop.optional || prop.defaultValue !== undefined;
@@ -189,9 +218,16 @@ function generateTypeDefinitions(events: AnalyticsEvents, globals: AnalyticsGlob
     };`;
   }).join('\n\n');
 
-  const groupTypes = globals.groups.map((group) => {
+  const groupTypes = (groupsData || []).map((group: any) => {
+    if (!group || typeof group !== 'object') {
+      throw new Error(`Invalid group data. Expected an object.`);
+    }
+
     let properties = group.properties?.length
-      ? `{ ${group.properties.map((prop) => {
+      ? `{ ${group.properties.map((prop: any) => {
+          if (!prop || typeof prop !== 'object') {
+            throw new Error(`Invalid property data in group "${group.name}". Expected an object.`);
+          }
           const type = Array.isArray(prop.type) ? prop.type.map((t: string) => `'${t}'`).join(' | ') : prop.type;
           // Make properties with default values optional
           const isOptional = prop.optional || prop.defaultValue !== undefined;
@@ -233,8 +269,8 @@ ${groupTypes}
 }
 
 // Base types for type safety
-export type TrackerEvent = ${Object.keys(events.events).map(k => `'${k}'`).join(' | ')};
-export type TrackerGroup = ${globals.groups.map(g => `'${g.name}'`).join(' | ')};
+export type TrackerEvent = ${Object.keys(eventsData.events).map(k => `'${k}'`).join(' | ')};
+export type TrackerGroup = ${groupsData.map(g => `'${g.name}'`).join(' | ')};
 
 export type EventProperties<T extends TrackerEvents, E extends TrackerEvent> = T['events'][E]['properties'];
 export type EventMeta<T extends TrackerEvents, E extends TrackerEvent> = T['events'][E]['meta'];
@@ -248,145 +284,86 @@ export interface AnalyticsTracker<T extends TrackerEvents> {
     eventKey: E,
     ...args: HasProperties<T, E> extends true ? [eventProperties: EventProperties<T, E>] : []
   ) => void;
-  setProperties: <G extends TrackerGroup>(groupName: G, properties: T['groups'][G]['properties']) => void;
-  getProperties: () => { [K in TrackerGroup]: T['groups'][K]['properties'] };
-}
-
-export interface TrackerOptions<T extends TrackerEvents> {
-  onEventTracked: <E extends TrackerEvent>(
-    eventName: T['events'][E]['name'],
-    eventData: {
-      properties: T['events'][E]['properties'];
-      meta?: T['events'][E]['meta'];
-      groups: Record<TrackerGroup, GroupProperties<T, TrackerGroup>>;
-    }
+  setProperties: <G extends TrackerGroup>(
+    groupName: G,
+    properties: GroupProperties<T, G>
   ) => void;
-  onGroupUpdated: <G extends TrackerGroup>(
-    groupName: T['groups'][G]['name'],
-    properties: T['groups'][G]['properties']
-  ) => void;
-  onError?: (error: Error) => void;
 }`;
 }
 
-function generateJavaScriptOutput(trackingConfig: TrackingConfig, events: AnalyticsEvents, includeComments: boolean, outputPath: string, eventKeyPropertyName: string = 'Event Key') {
-  const jsOutput = `
-// 🔹 Event Configurations
-${generateEventConfigs(trackingConfig, events, includeComments, eventKeyPropertyName)}
-
-${generateTrackingConfig({ groups: [], dimensions: [], events: {} }, { groups: [], dimensions: [], events: {} }, includeComments, eventKeyPropertyName)}
-`;
-
-  fs.writeFileSync(outputPath, jsOutput);
-  console.log(`✅ Generated tracking config in ${outputPath}`);
-}
-
-function generateTypeScriptOutput(trackingConfig: TrackingConfig, events: AnalyticsEvents, includeComments: boolean, outputPath: string, genConfig: GenerationConfig) {
-  const { globals } = readGenerationConfigFiles(genConfig);
-  if (!globals) {
-    throw new Error('Failed to read globals configuration');
-  }
-
-  const eventKeyPropertyName = genConfig.eventKeyPropertyName || 'Event Key';
-
-  const analyticsTypes = `// 🔹 Event Types & Configurations
-
-${generateEventConfigs(trackingConfig, events, includeComments, eventKeyPropertyName)}
-
-// 🔹 Generated Types
-${generateTypeDefinitions(events, globals)}
-
-${generateTrackingConfig(globals, events, includeComments, eventKeyPropertyName)}`;
-  fs.writeFileSync(outputPath, analyticsTypes.trim() + '\n');
-  console.log(`✅ Generated tracking config and TypeScript definitions in ${outputPath}`);
-}
-
-export function registerGenerateCommand(program: Command) {
-  program
-    .command("generate")
-    .description("Generate TypeScript types & tracking config from your codegen config")
-    .action(() => {
-      console.log("🔍 Validating voltage.config.json...");
-      const config = getAnalyticsConfig();
-
+export function registerGenerateCommand(cli: CLI) {
+  cli
+    .command("generate", "Generate TypeScript types & tracking config from your codegen config")
+    .action((options: Record<string, boolean>) => {
       try {
-        if (!validateAnalyticsFiles()) return;
+        console.log("🔍 Running validation before generating types...");
+        if (!validateAnalyticsFiles()) {
+          process.exit(1);
+        }
 
-        // Process each generation config
-        config.generates.forEach(genConfig => {
-          const outputPath = path.resolve(process.cwd(), genConfig.output);
-          const outputDir = path.dirname(outputPath);
-          const outputExt = path.extname(outputPath).toLowerCase();
+        const config = getAnalyticsConfig();
+        const generationConfigs = config.generates;
 
-          const { events } = readGenerationConfigFiles(genConfig);
+        generationConfigs.forEach((generationConfig: GenerationConfig) => {
+          const { events, groups, dimensions, output, disableComments, eventKeyPropertyName } = generationConfig;
 
-          // Combine groups from all group files
-          const allGroups: Record<string, any> = {};
-          if (genConfig.groups) {
-            genConfig.groups.forEach(groupFile => {
-              const groupPath = path.resolve(process.cwd(), groupFile);
-              const groupResult = parseSchemaFile<AnalyticsGlobals>(groupPath);
-              if (!groupResult.isValid || !groupResult.data) {
-                console.error(`❌ Failed to parse group file at ${groupPath}:`, groupResult.errors);
-                process.exit(1);
-              }
-              if (groupResult.data.groups) {
-                Object.assign(allGroups, groupResult.data.groups);
-              }
-            });
+          // Parse events file
+          const eventsResult = parseSchemaFile(events);
+          if (!eventsResult.isValid || !eventsResult.data) {
+            console.error(`❌ Failed to parse events file: ${events}`);
+            if (eventsResult.errors) {
+              console.error(eventsResult.errors.join('\n'));
+            }
+            process.exit(1);
           }
+          const eventsData = eventsResult.data;
 
+          // Parse groups files if provided
+          const groupsData = groups?.map((group: string) => {
+            const result = parseSchemaFile(group);
+            if (!result.isValid || !result.data) {
+              console.error(`❌ Failed to parse group file: ${group}`);
+              if (result.errors) {
+                console.error(result.errors.join('\n'));
+              }
+              process.exit(1);
+            }
+            return result.data;
+          }) || [];
+
+          // Parse dimensions files if provided
+          const dimensionsData = dimensions?.map((dimension: string) => {
+            const result = parseSchemaFile(dimension);
+            if (!result.isValid || !result.data) {
+              console.error(`❌ Failed to parse dimension file: ${dimension}`);
+              if (result.errors) {
+                console.error(result.errors.join('\n'));
+              }
+              process.exit(1);
+            }
+            return result.data;
+          }) || [];
+
+          // Generate types and tracking config
+          const types = generateTypes(eventsData, groupsData, dimensionsData, disableComments, eventKeyPropertyName);
+          const trackingConfig = generateTrackingConfig(eventsData, groupsData, dimensionsData, disableComments, eventKeyPropertyName);
+
+          // Write output file
+          const outputPath = path.resolve(process.cwd(), output);
+          const outputDir = path.dirname(outputPath);
           if (!fs.existsSync(outputDir)) {
             fs.mkdirSync(outputDir, { recursive: true });
           }
 
-          console.log(`📁 Generating files in ${outputDir}...`);
+          const outputContent = output.endsWith(".ts")
+            ? `// This file is auto-generated. Do not edit it manually.\n\n${types}\n\n${trackingConfig}`
+            : trackingConfig;
 
-          // Generate trackingConfig object without descriptions
-          const trackingConfig: TrackingConfig = {
-            events: Object.fromEntries(
-              Object.entries(events.events).map(([eventKey, event]) => [
-                eventKey,
-                {
-                  name: event.name,
-                  properties: event.properties?.map((prop: AnalyticsSchemaProperty) => ({
-                    name: prop.name,
-                    type: prop.type,
-                    optional: prop.optional,
-                    defaultValue: prop.defaultValue
-                  })) || [],
-                  passthrough: event.passthrough,
-                  meta: event.meta
-                }
-              ])
-            ),
-            groups: Object.fromEntries(
-              Object.entries(allGroups).map(([groupName, group]) => [
-                groupName,
-                {
-                  name: group.name,
-                  properties: group.properties?.map((prop: AnalyticsSchemaProperty) => ({
-                    name: prop.name,
-                    type: prop.type,
-                    optional: prop.optional,
-                    defaultValue: prop.defaultValue
-                  })) || [],
-                  identifiedBy: group.identifiedBy,
-                  passthrough: group.passthrough
-                }
-              ])
-            )
-          };
-
-          // Generate output based on file extension
-          if (outputExt === ".ts" || outputExt === ".tsx") {
-            generateTypeScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath, genConfig);
-          } else {
-            generateJavaScriptOutput(trackingConfig, events, !genConfig.disableComments, outputPath, genConfig.eventKeyPropertyName);
-          }
+          fs.writeFileSync(outputPath, outputContent);
+          console.log(`✅ Generated ${output}`);
         });
       } catch (error) {
-        console.error(error);
+        console.error("❌ Error generating types:", error);
         process.exit(1);
       }
     });

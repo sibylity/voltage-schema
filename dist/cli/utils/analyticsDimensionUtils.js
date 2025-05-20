@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getAllDimensions = getAllDimensions;
+exports.getAllDimensions = void 0;
 const analyticsConfigHelper_1 = require("./analyticsConfigHelper");
 function initializeDimensionMaps(globals) {
     const dimensionMap = {};
@@ -175,3 +175,4 @@ function getAllDimensions(options = {}) {
     // Combine the formatted outputs from all configs
     return allFormattedOutputs;
 }
+exports.getAllDimensions = getAllDimensions;
