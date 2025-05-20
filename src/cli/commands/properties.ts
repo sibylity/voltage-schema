@@ -1,13 +1,12 @@
-import { Command } from "commander";
+import { CLI } from "../cli";
 import { validateAnalyticsFiles } from "../validation";
 import { getAllProperties } from "../utils/analyticsPropertyUtils";
 
-export function registerPropertiesCommand(program: Command) {
-  program
-    .command("properties")
-    .description("List all properties across groups and events")
+export function registerPropertiesCommand(cli: CLI) {
+  cli
+    .command("properties", "List all properties across groups and events")
     .option("--verbose", "Include all available information")
-    .action((options) => {
+    .action((options: Record<string, boolean>) => {
       try {
         console.log("🔍 Running validation before listing properties...");
         if (!validateAnalyticsFiles()) {
@@ -21,4 +20,4 @@ export function registerPropertiesCommand(program: Command) {
         process.exit(1);
       }
     });
-} 
+}

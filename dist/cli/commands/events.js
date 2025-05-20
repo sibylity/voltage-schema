@@ -3,10 +3,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerEventsCommand = registerEventsCommand;
 const validation_1 = require("../validation");
 const analyticsEventUtils_1 = require("../utils/analyticsEventUtils");
-function registerEventsCommand(program) {
-    program
-        .command("events")
-        .description("List all events with their properties and dimensions")
+function registerEventsCommand(cli) {
+    cli
+        .command("events", "List all events with their properties and dimensions")
         .option("--include-groups", "Include properties from all groups")
         .option("--include-dimensions", "Include detailed dimension information")
         .option("--verbose", "Include all available information (equivalent to --include-groups --include-dimensions)")
@@ -17,8 +16,8 @@ function registerEventsCommand(program) {
                 process.exit(1);
             }
             const events = (0, analyticsEventUtils_1.getAllEvents)({
-                includeGroups: options.includeGroups,
-                includeDimensions: options.includeDimensions,
+                includeGroups: options["include-groups"],
+                includeDimensions: options["include-dimensions"],
                 verbose: options.verbose
             });
             console.log(JSON.stringify(events, null, 2));

@@ -13,10 +13,9 @@ const defaultConfigPath = path_1.default.resolve(__dirname, "../../schemas/defau
 const defaultAllDimensionsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.all-dimensions.default.json");
 const defaultAllGroupsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.all-groups.default.json");
 const defaultEventsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.events.default.json");
-function registerInitCommand(program) {
-    program
-        .command("init")
-        .description("Create default analytics configuration files")
+function registerInitCommand(cli) {
+    cli
+        .command("init", "Create default analytics configuration files")
         .option("--reset", "Replace existing analytics files")
         .action((options) => {
         const files = [

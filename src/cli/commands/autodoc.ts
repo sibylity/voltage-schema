@@ -1,4 +1,4 @@
-import { Command } from "commander";
+import { CLI } from "../cli";
 import express, { Request, Response } from "express";
 import opener from "opener";
 import { validateAnalyticsFiles } from "../validation";
@@ -51,55 +51,36 @@ declare global {
   }
 }
 
-export function registerAutodocCommand(program: Command) {
-  program
-    .command("autodoc")
-    .description("Start a local server to view analytics documentation")
-    .option("--output-html", "Output the generated HTML instead of starting a server")
-    .action(async (options) => {
+export function registerAutodocCommand(cli: CLI) {
+  cli
+    .command("autodoc", "Open the autodoc in your browser, or output it's HTML for CI")
+    .option("--output-html", "Output HTML instead of starting server")
+    .action((options: Record<string, boolean>) => {
       try {
-        console.log("🔍 Running validation before generating documentation...");
+        console.log("🔍 Running validation before generating autodoc...");
         if (!validateAnalyticsFiles()) {
           process.exit(1);
         }
 
-        const autodocHtml = generateAutodocHtml();
+        const html = generateAutodocHtml();
 
-        if (options.outputHtml) {
-          // Output the HTML directly
-          console.log(autodocHtml);
-          return;
+        if (options["output-html"]) {
+          console.log(html);
+        } else {
+          const app = express();
+          const port = 3000;
+
+          app.get("/", (req: Request, res: Response) => {
+            res.send(html);
+          });
+
+          app.listen(port, () => {
+            console.log(`📚 Autodoc server running at http://localhost:${port}`);
+            opener(`http://localhost:${port}`);
+          });
         }
-
-        // Start server mode
-        const app = express();
-        const port = 5555;
-
-        // Serve static assets
-        app.get("/", (req: Request, res: Response) => {
-          res.send(autodocHtml);
-        });
-
-        // Start the server
-        app.listen(port, () => {
-          console.log("📚 Documentation server running at http://localhost:" + port);
-          console.log("Press 'q' to quit");
-          
-          // Open the browser
-          opener("http://localhost:" + port);
-        });
-
-        // Handle 'q' key press to quit
-        process.stdin.setRawMode(true);
-        process.stdin.resume();
-        process.stdin.on('data', (key) => {
-          if (key[0] === 113) { // 'q' key
-            console.log("\n👋 Shutting down documentation server...");
-            process.exit(0);
-          }
-        });
       } catch (error) {
-        console.error("❌ Error:", error);
+        console.error("❌ Error generating autodoc:", error);
         process.exit(1);
       }
     });
