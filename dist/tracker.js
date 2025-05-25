@@ -75,11 +75,24 @@ function createAnalyticsTracker(config, options) {
                 }
                 // Resolve event properties if provided
                 const resolvedProperties = yield resolveProperties(properties);
-                // Call the tracking callback with current group properties
+                // Resolve all group properties
+                const resolvedGroups = yield Promise.all(Object.entries(groupProperties).map(([groupName, props]) => __awaiter(this, void 0, void 0, function* () {
+                    const resolvedProps = yield Promise.all(Object.entries(props).map(([key, propValue]) => __awaiter(this, void 0, void 0, function* () {
+                        let value = propValue.value;
+                        if (propValue.isFunction) {
+                            const resolved = yield resolveProperties({ [key]: value });
+                            value = resolved[key];
+                            // Update the last resolved value
+                            propValue.lastResolved = value;
+                        }
+                        return [key, value];
+                    })));
+                    return [groupName, Object.fromEntries(resolvedProps)];
+                })));
                 onEventTracked(event.name, {
                     properties: resolvedProperties,
                     meta: event.meta,
-                    groups: Object.assign({}, groupProperties)
+                    groups: Object.fromEntries(resolvedGroups)
                 });
             }
             catch (error) {
@@ -94,26 +107,58 @@ function createAnalyticsTracker(config, options) {
             try {
                 // Start with existing properties and merge in new ones
                 const existingProps = groupProperties[groupName] || {};
-                const groupProps = Object.assign(Object.assign({}, existingProps), properties);
+                const groupProps = Object.assign({}, existingProps);
+                // Process each new property
+                for (const [key, value] of Object.entries(properties)) {
+                    groupProps[key] = {
+                        value,
+                        isFunction: typeof value === 'function'
+                    };
+                }
                 if (group.properties) {
                     for (const prop of group.properties) {
                         if (prop.defaultValue !== undefined && !(prop.name in groupProps)) {
-                            groupProps[prop.name] = prop.defaultValue;
+                            groupProps[prop.name] = {
+                                value: prop.defaultValue,
+                                isFunction: false
+                            };
                         }
                     }
                 }
-                // Resolve group properties
-                const resolvedProperties = yield resolveProperties(groupProps);
+                // Resolve initial values for non-function properties
+                const initialValues = yield Promise.all(Object.entries(groupProps)
+                    .filter(([_, propValue]) => !propValue.isFunction)
+                    .map(([key, propValue]) => __awaiter(this, void 0, void 0, function* () {
+                    const resolved = yield resolveProperties({ [key]: propValue.value });
+                    return [key, resolved[key]];
+                })));
+                // Update the group properties state with resolved values
+                for (const [key, value] of initialValues) {
+                    groupProps[key].lastResolved = value;
+                }
                 // Update the group properties state
-                groupProperties[groupName] = resolvedProperties;
-                // Call the group update callback
-                onGroupUpdated(group.name, resolvedProperties);
+                groupProperties[groupName] = groupProps;
+                // Call the group update callback with resolved values
+                const resolvedValues = Object.fromEntries(Object.entries(groupProps).map(([key, propValue]) => [
+                    key,
+                    propValue.isFunction ? propValue.lastResolved : propValue.value
+                ]));
+                onGroupUpdated(group.name, resolvedValues);
             }
             catch (error) {
                 onError(error instanceof Error ? error : new Error(String(error)));
             }
         }),
-        getProperties: () => (Object.assign({}, groupProperties))
+        getProperties: () => {
+            // Return only the resolved values
+            return Object.fromEntries(Object.entries(groupProperties).map(([groupName, props]) => [
+                groupName,
+                Object.fromEntries(Object.entries(props).map(([key, propValue]) => [
+                    key,
+                    propValue.isFunction ? propValue.lastResolved : propValue.value
+                ]))
+            ]));
+        }
     };
 }
 exports.createAnalyticsTracker = createAnalyticsTracker;
