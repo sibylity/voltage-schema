@@ -52,7 +52,11 @@ function resolveProperties(properties) {
 }
 function createAnalyticsTracker(config, options) {
     const { onEventTracked, onGroupUpdated, onError = console.error } = options;
-    const groupProperties = {};
+    // Initialize groupProperties with empty objects for each group
+    const groupProperties = Object.keys(config.groups || {}).reduce((acc, groupName) => {
+        acc[groupName] = {};
+        return acc;
+    }, {});
     return {
         track: (eventKey, ...args) => __awaiter(this, void 0, void 0, function* () {
             const event = config.events[String(eventKey)];
@@ -71,11 +75,11 @@ function createAnalyticsTracker(config, options) {
                 }
                 // Resolve event properties if provided
                 const resolvedProperties = yield resolveProperties(properties);
-                // Call the tracking callback
+                // Call the tracking callback with current group properties
                 onEventTracked(event.name, {
                     properties: resolvedProperties,
                     meta: event.meta,
-                    groups: {}
+                    groups: Object.assign({}, groupProperties)
                 });
             }
             catch (error) {
@@ -88,8 +92,9 @@ function createAnalyticsTracker(config, options) {
                 throw new Error(`Group "${String(groupName)}" not found in tracking config`);
             }
             try {
-                // Start with default values
-                const groupProps = Object.assign({}, properties);
+                // Start with existing properties and merge in new ones
+                const existingProps = groupProperties[groupName] || {};
+                const groupProps = Object.assign(Object.assign({}, existingProps), properties);
                 if (group.properties) {
                     for (const prop of group.properties) {
                         if (prop.defaultValue !== undefined && !(prop.name in groupProps)) {
@@ -99,6 +104,8 @@ function createAnalyticsTracker(config, options) {
                 }
                 // Resolve group properties
                 const resolvedProperties = yield resolveProperties(groupProps);
+                // Update the group properties state
+                groupProperties[groupName] = resolvedProperties;
                 // Call the group update callback
                 onGroupUpdated(group.name, resolvedProperties);
             }
@@ -106,7 +113,7 @@ function createAnalyticsTracker(config, options) {
                 onError(error instanceof Error ? error : new Error(String(error)));
             }
         }),
-        getProperties: () => groupProperties
+        getProperties: () => (Object.assign({}, groupProperties))
     };
 }
 exports.createAnalyticsTracker = createAnalyticsTracker;

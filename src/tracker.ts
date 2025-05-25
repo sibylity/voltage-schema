@@ -70,7 +70,11 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
 ): AnalyticsTracker<T> {
   const { onEventTracked, onGroupUpdated, onError = console.error } = options;
 
-  const groupProperties = {} as Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>;
+  // Initialize groupProperties with empty objects for each group
+  const groupProperties = Object.keys(config.groups || {}).reduce((acc, groupName) => {
+    acc[groupName as TrackerGroup<T>] = {} as GroupProperties<T, TrackerGroup<T>>;
+    return acc;
+  }, {} as Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>);
 
   return {
     track: async <E extends TrackerEvent<T>>(
@@ -96,11 +100,11 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
         // Resolve event properties if provided
         const resolvedProperties = await resolveProperties(properties);
 
-        // Call the tracking callback
+        // Call the tracking callback with current group properties
         onEventTracked(event.name as T["events"][E]["name"], {
           properties: resolvedProperties as T["events"][E]["properties"],
           meta: event.meta as T["events"][E]["meta"],
-          groups: {} as { [K in TrackerGroup<T>]: T["groups"][K]["properties"] }
+          groups: { ...groupProperties } as { [K in TrackerGroup<T>]: T["groups"][K]["properties"] }
         });
       } catch (error) {
         onError(error instanceof Error ? error : new Error(String(error)));
@@ -117,8 +121,10 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
       }
 
       try {
-        // Start with default values
-        const groupProps = { ...properties } as Record<string, any>;
+        // Start with existing properties and merge in new ones
+        const existingProps = groupProperties[groupName] || {};
+        const groupProps = { ...existingProps, ...properties } as Record<string, any>;
+
         if (group.properties) {
           for (const prop of group.properties) {
             if (prop.defaultValue !== undefined && !(prop.name in groupProps)) {
@@ -130,6 +136,9 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
         // Resolve group properties
         const resolvedProperties = await resolveProperties(groupProps);
 
+        // Update the group properties state
+        groupProperties[groupName] = resolvedProperties as T["groups"][G]["properties"];
+
         // Call the group update callback
         onGroupUpdated(group.name as T["groups"][G]["name"], resolvedProperties as T["groups"][G]["properties"]);
       } catch (error) {
@@ -137,6 +146,6 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
       }
     },
 
-    getProperties: () => groupProperties
+    getProperties: () => ({ ...groupProperties })
   };
 }
