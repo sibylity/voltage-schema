@@ -123,6 +123,7 @@ function createAnalyticsTracker(config, options) {
                         unresolved: isFunction ? value : undefined
                     };
                 }
+                // Add default values for any missing properties
                 if (group.properties) {
                     for (const prop of group.properties) {
                         if (prop.defaultValue !== undefined && !(prop.name in groupProps)) {
@@ -133,7 +134,9 @@ function createAnalyticsTracker(config, options) {
                         }
                     }
                 }
-                // Resolve initial values for all properties
+                // Write to groupProperties immediately to avoid race conditions
+                groupProperties[groupName] = groupProps;
+                // Now resolve all properties
                 const initialValues = yield Promise.all(Object.entries(groupProps).map(([key, propValue]) => __awaiter(this, void 0, void 0, function* () {
                     let value;
                     if (propValue.isFunction) {
@@ -149,7 +152,7 @@ function createAnalyticsTracker(config, options) {
                 for (const [key, value] of initialValues) {
                     groupProps[key].lastResolved = value;
                 }
-                // Update the group properties state
+                // Update groupProperties again with resolved values
                 groupProperties[groupName] = groupProps;
                 // Call the group update callback with resolved values
                 const resolvedValues = Object.fromEntries(initialValues);
