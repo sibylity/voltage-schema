@@ -111,9 +111,10 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
           Object.entries(groupProperties).map(async ([groupName, props]) => {
             const resolvedProps = await Promise.all(
               Object.entries(props).map(async ([key, propValue]) => {
-                let value = propValue.value;
+                let value;
                 if (propValue.isFunction) {
-                  const resolved = await resolveProperties({ [key]: value });
+                  // Always resolve function properties in track
+                  const resolved = await resolveProperties({ [key]: propValue.value });
                   value = resolved[key];
                   // Update the last resolved value
                   propValue.lastResolved = value;

@@ -78,9 +78,10 @@ function createAnalyticsTracker(config, options) {
                 // Resolve all group properties
                 const resolvedGroups = yield Promise.all(Object.entries(groupProperties).map(([groupName, props]) => __awaiter(this, void 0, void 0, function* () {
                     const resolvedProps = yield Promise.all(Object.entries(props).map(([key, propValue]) => __awaiter(this, void 0, void 0, function* () {
-                        let value = propValue.value;
+                        let value;
                         if (propValue.isFunction) {
-                            const resolved = yield resolveProperties({ [key]: value });
+                            // Always resolve function properties in track
+                            const resolved = yield resolveProperties({ [key]: propValue.value });
                             value = resolved[key];
                             // Update the last resolved value
                             propValue.lastResolved = value;
