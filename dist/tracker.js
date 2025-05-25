@@ -80,8 +80,9 @@ function createAnalyticsTracker(config, options) {
                     const resolvedProps = yield Promise.all(Object.entries(props).map(([key, propValue]) => __awaiter(this, void 0, void 0, function* () {
                         let value;
                         if (propValue.isFunction) {
-                            // Always resolve function properties in track
-                            const resolved = yield resolveProperties({ [key]: propValue.value });
+                            // Use the stored function if available, otherwise use the unresolved value
+                            const funcToResolve = propValue.value || propValue.unresolved;
+                            const resolved = yield resolveProperties({ [key]: funcToResolve });
                             value = resolved[key];
                             // Update the last resolved value
                             propValue.lastResolved = value;
@@ -115,9 +116,11 @@ function createAnalyticsTracker(config, options) {
                 const groupProps = Object.assign({}, existingProps);
                 // Process each new property
                 for (const [key, value] of Object.entries(properties)) {
+                    const isFunction = typeof value === 'function';
                     groupProps[key] = {
                         value,
-                        isFunction: typeof value === 'function'
+                        isFunction,
+                        unresolved: isFunction ? value : undefined
                     };
                 }
                 if (group.properties) {
@@ -160,10 +163,14 @@ function createAnalyticsTracker(config, options) {
             // Return only the resolved values
             return Object.fromEntries(Object.entries(groupProperties).map(([groupName, props]) => [
                 groupName,
-                Object.fromEntries(Object.entries(props).map(([key, propValue]) => [
-                    key,
-                    propValue.isFunction ? propValue.lastResolved : propValue.value
-                ]))
+                Object.fromEntries(Object.entries(props).map(([key, propValue]) => {
+                    if (propValue.isFunction) {
+                        // For function properties, use lastResolved if available
+                        return [key, propValue.lastResolved || propValue.value];
+                    }
+                    // For non-function properties, use the value directly
+                    return [key, propValue.value];
+                }))
             ]));
         }
     };
