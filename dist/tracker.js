@@ -27,7 +27,7 @@ function resolveProperties(properties) {
             try {
                 // If value is a function, call it
                 if (typeof value === 'function') {
-                    value = yield value();
+                    value = value();
                 }
                 // If value is a promise, await it
                 if (value instanceof Promise) {
