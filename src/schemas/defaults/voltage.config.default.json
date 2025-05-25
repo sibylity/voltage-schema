@@ -1,12 +1,12 @@
 {
   "generates": [
     {
-      "events": "./analytics.events.volt",
+      "events": "./analytics.events.yaml",
       "dimensions": [
-        "./analytics.all-dimensions.volt"
+        "./analytics.all-dimensions.yaml"
       ],
       "groups": [
-        "./analytics.all-groups.volt"
+        "./analytics.all-groups.yaml"
       ],
       "output": "./__analytics_generated__/analytics.ts"
     }

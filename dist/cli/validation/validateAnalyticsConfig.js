@@ -4,78 +4,37 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.validateAnalyticsConfig = void 0;
+const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const schemaValidation_1 = require("./schemaValidation");
-const fileValidation_1 = require("./fileValidation");
-const logging_1 = require("./logging");
 const validateConfigSchema = (0, schemaValidation_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.config.schema.json"));
 const validateGroupsSchema = (0, schemaValidation_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.groups.schema.json"));
 const validateDimensionsSchema = (0, schemaValidation_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.dimensions.schema.json"));
 const validateMetaSchema = (0, schemaValidation_1.createValidator)(path_1.default.resolve(__dirname, "../../schemas/analytics.meta.schema.json"));
 function validateAnalyticsConfig(configPath, context) {
-    var _a, _b, _c, _d;
-    (0, logging_1.logValidationStart)(context);
-    const result = (0, fileValidation_1.parseSchemaFile)(configPath);
-    if (!result.isValid || !result.data) {
-        (0, logging_1.logValidationErrors)(result.errors || []);
-        return result;
+    if (!fs_1.default.existsSync(configPath)) {
+        return { isValid: false, errors: [`Config file not found: ${configPath}`] };
     }
-    const isValid = validateConfigSchema(result.data);
-    if (!isValid) {
-        const errors = ((_a = validateConfigSchema.errors) === null || _a === void 0 ? void 0 : _a.map((error) => `Invalid analytics config: ${error.message || "Unknown error"}`)) || [];
-        (0, logging_1.logValidationErrors)(errors);
-        return { isValid: false, errors };
+    let config;
+    if (configPath.endsWith(".js")) {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        config = require(configPath).default || require(configPath);
     }
-    // Validate each generation config entry
-    for (const genConfig of result.data.generates) {
-        // Validate groups if present
-        if (genConfig.groups) {
-            for (const groupFile of genConfig.groups) {
-                const groupResult = (0, fileValidation_1.parseSchemaFile)(groupFile);
-                if (!groupResult.isValid) {
-                    (0, logging_1.logValidationErrors)(groupResult.errors || []);
-                    return { isValid: false, errors: groupResult.errors };
-                }
-                const isGroupValid = validateGroupsSchema(groupResult.data);
-                if (!isGroupValid) {
-                    const errors = ((_b = validateGroupsSchema.errors) === null || _b === void 0 ? void 0 : _b.map((error) => `Invalid groups file ${groupFile}: ${error.message || "Unknown error"}`)) || [];
-                    (0, logging_1.logValidationErrors)(errors);
-                    return { isValid: false, errors };
-                }
-            }
-        }
-        // Validate dimensions if present
-        if (genConfig.dimensions) {
-            for (const dimensionFile of genConfig.dimensions) {
-                const dimensionResult = (0, fileValidation_1.parseSchemaFile)(dimensionFile);
-                if (!dimensionResult.isValid) {
-                    (0, logging_1.logValidationErrors)(dimensionResult.errors || []);
-                    return { isValid: false, errors: dimensionResult.errors };
-                }
-                const isDimensionValid = validateDimensionsSchema(dimensionResult.data);
-                if (!isDimensionValid) {
-                    const errors = ((_c = validateDimensionsSchema.errors) === null || _c === void 0 ? void 0 : _c.map((error) => `Invalid dimensions file ${dimensionFile}: ${error.message || "Unknown error"}`)) || [];
-                    (0, logging_1.logValidationErrors)(errors);
-                    return { isValid: false, errors };
-                }
-            }
-        }
-        // Validate meta if present
-        if (genConfig.meta) {
-            const metaResult = (0, fileValidation_1.parseSchemaFile)(genConfig.meta);
-            if (!metaResult.isValid) {
-                (0, logging_1.logValidationErrors)(metaResult.errors || []);
-                return { isValid: false, errors: metaResult.errors };
-            }
-            const isMetaValid = validateMetaSchema(metaResult.data);
-            if (!isMetaValid) {
-                const errors = ((_d = validateMetaSchema.errors) === null || _d === void 0 ? void 0 : _d.map((error) => `Invalid meta file ${genConfig.meta}: ${error.message || "Unknown error"}`)) || [];
-                (0, logging_1.logValidationErrors)(errors);
-                return { isValid: false, errors };
-            }
-        }
+    else {
+        config = JSON.parse(fs_1.default.readFileSync(configPath, "utf8"));
     }
-    (0, logging_1.logValidationSuccess)(context);
-    return { isValid: true, data: result.data };
+    if (!config || !config.generates || !Array.isArray(config.generates)) {
+        return { isValid: false, errors: ["Config must have a 'generates' array."] };
+    }
+    const errors = [];
+    config.generates.forEach((genConfig, index) => {
+        if (!genConfig.events) {
+            errors.push(`Generation config at index ${index} is missing 'events' property.`);
+        }
+        if (!genConfig.output) {
+            errors.push(`Generation config at index ${index} is missing 'output' property.`);
+        }
+    });
+    return { isValid: errors.length === 0, errors: errors.length > 0 ? errors : undefined };
 }
 exports.validateAnalyticsConfig = validateAnalyticsConfig;

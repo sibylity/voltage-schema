@@ -4,13 +4,24 @@ import { type AnalyticsConfig, type AnalyticsGlobals, type AnalyticsEvents } fro
 import { parseSchemaFile } from "../validation/fileValidation";
 
 export function getAnalyticsConfig(): AnalyticsConfig {
-  const configPath = path.resolve(process.cwd(), "voltage.config.json");
+  const cwd = process.cwd();
+  const jsConfigPath = path.resolve(cwd, "voltage.config.js");
+  const jsonConfigPath = path.resolve(cwd, "voltage.config.json");
 
-  if (!fs.existsSync(configPath)) {
-    throw new Error("voltage.config.json not found. Run 'npm voltage init' to create it.");
+  let config: AnalyticsConfig | undefined;
+
+  if (fs.existsSync(jsConfigPath)) {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    config = require(jsConfigPath).default || require(jsConfigPath);
+  } else if (fs.existsSync(jsonConfigPath)) {
+    config = JSON.parse(fs.readFileSync(jsonConfigPath, "utf8"));
+  } else {
+    throw new Error("No voltage.config.js or voltage.config.json found. Run 'npm voltage init' to create it.");
   }
 
-  const config = JSON.parse(fs.readFileSync(configPath, "utf8")) as AnalyticsConfig;
+  if (!config) {
+    throw new Error("Failed to load voltage config. No valid config found or config is empty.");
+  }
   return config;
 }
 

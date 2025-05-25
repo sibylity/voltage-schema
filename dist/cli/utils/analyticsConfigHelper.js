@@ -8,11 +8,23 @@ const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
 const fileValidation_1 = require("../validation/fileValidation");
 function getAnalyticsConfig() {
-    const configPath = path_1.default.resolve(process.cwd(), "voltage.config.json");
-    if (!fs_1.default.existsSync(configPath)) {
-        throw new Error("voltage.config.json not found. Run 'npm voltage init' to create it.");
+    const cwd = process.cwd();
+    const jsConfigPath = path_1.default.resolve(cwd, "voltage.config.js");
+    const jsonConfigPath = path_1.default.resolve(cwd, "voltage.config.json");
+    let config;
+    if (fs_1.default.existsSync(jsConfigPath)) {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        config = require(jsConfigPath).default || require(jsConfigPath);
     }
-    const config = JSON.parse(fs_1.default.readFileSync(configPath, "utf8"));
+    else if (fs_1.default.existsSync(jsonConfigPath)) {
+        config = JSON.parse(fs_1.default.readFileSync(jsonConfigPath, "utf8"));
+    }
+    else {
+        throw new Error("No voltage.config.js or voltage.config.json found. Run 'npm voltage init' to create it.");
+    }
+    if (!config) {
+        throw new Error("Failed to load voltage config. No valid config found or config is empty.");
+    }
     return config;
 }
 exports.getAnalyticsConfig = getAnalyticsConfig;

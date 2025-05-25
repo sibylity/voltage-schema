@@ -1,4 +1,13 @@
 "use strict";
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createAnalyticsTracker = exports.ValidationError = void 0;
 class ValidationError extends Error {
@@ -8,147 +17,95 @@ class ValidationError extends Error {
     }
 }
 exports.ValidationError = ValidationError;
+/**
+ * Resolves all property values, handling both sync and async values
+ */
 function resolveProperties(properties) {
-    return Object.fromEntries(Object.entries(properties).map(([key, value]) => [
-        key,
-        typeof value === 'function' ? value() : value
-    ]));
-}
-function validateEventProperties(event, properties) {
-    if (!event.properties) {
-        return;
-    }
-    for (const prop of event.properties) {
-        if (!prop.optional && !(prop.name in properties) && prop.defaultValue === undefined) {
-            throw new ValidationError(`Required property "${prop.name}" is missing`);
-        }
-        if (prop.name in properties) {
-            const value = properties[prop.name];
-            const type = Array.isArray(prop.type) ? prop.type : [prop.type];
-            if (!type.some(t => {
-                if (t === 'string')
-                    return typeof value === 'string';
-                if (t === 'number')
-                    return typeof value === 'number';
-                if (t === 'boolean')
-                    return typeof value === 'boolean';
-                return value === t;
-            })) {
-                throw new ValidationError(`Property "${prop.name}" has invalid type. Expected ${type.join(' | ')}, got ${typeof value}`);
+    return __awaiter(this, void 0, void 0, function* () {
+        const entries = Object.entries(properties);
+        const promises = entries.map(([key, value]) => __awaiter(this, void 0, void 0, function* () {
+            try {
+                // If value is a function, call it
+                if (typeof value === 'function') {
+                    value = yield value();
+                }
+                // If value is a promise, await it
+                if (value instanceof Promise) {
+                    value = yield value;
+                }
+                return [key, value];
             }
-        }
-    }
-}
-function validateGroupProperties(group, properties) {
-    if (!group.properties) {
-        return;
-    }
-    for (const prop of group.properties) {
-        if (!prop.optional && !(prop.name in properties) && prop.defaultValue === undefined) {
-            throw new ValidationError(`Required property "${prop.name}" is missing`);
-        }
-        if (prop.name in properties) {
-            const value = properties[prop.name];
-            const type = Array.isArray(prop.type) ? prop.type : [prop.type];
-            if (!type.some(t => {
-                if (t === 'string')
-                    return typeof value === 'string';
-                if (t === 'number')
-                    return typeof value === 'number';
-                if (t === 'boolean')
-                    return typeof value === 'boolean';
-                return value === t;
-            })) {
-                throw new ValidationError(`Property "${prop.name}" has invalid type. Expected ${type.join(' | ')}, got ${typeof value}`);
+            catch (error) {
+                // Re-throw with context about which property failed
+                throw new Error(`Failed to resolve property "${key}": ${error instanceof Error ? error.message : String(error)}`);
             }
+        }));
+        try {
+            const resolvedEntries = yield Promise.all(promises);
+            return Object.fromEntries(resolvedEntries);
         }
-    }
+        catch (error) {
+            // Re-throw the error to be caught by the calling function
+            throw error;
+        }
+    });
 }
-function createAnalyticsTracker(context, options) {
+function createAnalyticsTracker(config, options) {
     const { onEventTracked, onGroupUpdated, onError = console.error } = options;
     const groupProperties = {};
     return {
-        track: (eventKey, ...args) => {
+        track: (eventKey, ...args) => __awaiter(this, void 0, void 0, function* () {
+            const event = config.events[String(eventKey)];
+            if (!event) {
+                throw new Error(`Event "${String(eventKey)}" not found in tracking config`);
+            }
             try {
-                const event = context.events[eventKey];
-                if (!event) {
-                    throw new ValidationError(`Event "${String(eventKey)}" not found`);
-                }
-                const eventProperties = args[0];
-                // Validate properties
-                validateEventProperties(event, eventProperties || {});
-                // Send the event
-                try {
-                    const eventName = event.name;
-                    // Create a new object with default values
-                    const propertiesWithDefaults = {};
-                    // Add default values first
-                    if (event.properties) {
-                        event.properties.forEach((prop) => {
-                            if (prop.defaultValue !== undefined) {
-                                propertiesWithDefaults[prop.name] = prop.defaultValue;
-                            }
-                        });
+                // Start with default values
+                const properties = Object.assign({}, args[0]);
+                if (event.properties) {
+                    for (const prop of event.properties) {
+                        if (prop.defaultValue !== undefined && !(prop.name in properties)) {
+                            properties[prop.name] = prop.defaultValue;
+                        }
                     }
-                    // Override with provided properties
-                    if (eventProperties) {
-                        Object.assign(propertiesWithDefaults, eventProperties);
-                    }
-                    const resolvedEventProperties = resolveProperties(propertiesWithDefaults);
-                    const resolvedGroupProperties = Object.fromEntries(Object.entries(groupProperties).map(([key, props]) => [
-                        key,
-                        resolveProperties(props)
-                    ]));
-                    onEventTracked(eventName, {
-                        properties: resolvedEventProperties,
-                        meta: event.meta,
-                        groups: resolvedGroupProperties
-                    });
                 }
-                catch (error) {
-                    onError(new Error(`Failed to send event: ${error instanceof Error ? error.message : String(error)}`));
-                }
+                // Resolve event properties if provided
+                const resolvedProperties = yield resolveProperties(properties);
+                // Call the tracking callback
+                onEventTracked(event.name, {
+                    properties: resolvedProperties,
+                    meta: event.meta,
+                    groups: {}
+                });
             }
             catch (error) {
                 onError(error instanceof Error ? error : new Error(String(error)));
             }
-        },
-        setProperties: (groupName, properties) => {
+        }),
+        setProperties: (groupName, properties) => __awaiter(this, void 0, void 0, function* () {
+            const group = config.groups[String(groupName)];
+            if (!group) {
+                throw new Error(`Group "${String(groupName)}" not found in tracking config`);
+            }
             try {
-                const group = context.groups[groupName];
-                if (!group) {
-                    throw new ValidationError(`Group "${String(groupName)}" not found`);
-                }
-                // Validate properties
-                validateGroupProperties(group, properties);
-                // Update group properties
-                groupProperties[groupName] = Object.assign(Object.assign({}, groupProperties[groupName]), properties);
-                // Send the group data
-                try {
-                    const groupNameStr = group.name;
-                    // Create a new object with default values
-                    const propertiesWithDefaults = {};
-                    // Add default values first
-                    if (group.properties) {
-                        group.properties.forEach((prop) => {
-                            if (prop.defaultValue !== undefined) {
-                                propertiesWithDefaults[prop.name] = prop.defaultValue;
-                            }
-                        });
+                // Start with default values
+                const groupProps = Object.assign({}, properties);
+                if (group.properties) {
+                    for (const prop of group.properties) {
+                        if (prop.defaultValue !== undefined && !(prop.name in groupProps)) {
+                            groupProps[prop.name] = prop.defaultValue;
+                        }
                     }
-                    // Override with provided properties
-                    Object.assign(propertiesWithDefaults, properties);
-                    const resolvedProperties = resolveProperties(propertiesWithDefaults);
-                    onGroupUpdated(groupNameStr, resolvedProperties);
                 }
-                catch (error) {
-                    onError(new Error(`Failed to update group: ${error instanceof Error ? error.message : String(error)}`));
-                }
+                // Resolve group properties
+                const resolvedProperties = yield resolveProperties(groupProps);
+                // Call the group update callback
+                onGroupUpdated(group.name, resolvedProperties);
             }
             catch (error) {
                 onError(error instanceof Error ? error : new Error(String(error)));
             }
-        },
+        }),
         getProperties: () => groupProperties
     };
 }
