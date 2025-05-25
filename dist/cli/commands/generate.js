@@ -113,7 +113,7 @@ function generateTrackingConfig(eventsData, groupsData, dimensionsData, disableC
             if (!prop || typeof prop !== 'object') {
                 throw new Error(`Invalid property data in group "${group.name}". Expected an object.`);
             }
-            const propComment = !disableComments && propertyDescriptions.get(prop.name) ? `/** ${propertyDescriptions.get(prop.name)} */\n        ` : '';
+            const propComment = !disableComments && propertyDescriptions.get(prop.name) ? `        /** ${propertyDescriptions.get(prop.name)} */\n        ` : '';
             const type = Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`;
             return `${propComment}{
           name: '${prop.name}',
