@@ -22,8 +22,8 @@ function validateFileExists(filePath, isOptional = false) {
 exports.validateFileExists = validateFileExists;
 function validateFileExtension(filePath) {
     const ext = path_1.default.extname(filePath).toLowerCase();
-    if (ext !== ".json" && ext !== ".volt" && ext !== ".yaml" && ext !== ".yml") {
-        return `Invalid file extension: ${ext}. Expected .json, .volt, .yaml, or .yml`;
+    if (ext !== ".json" && ext !== ".yaml" && ext !== ".yml") {
+        return `Invalid file extension: ${ext}. Expected .json, .yaml, or .yml`;
     }
     return null;
 }
@@ -46,7 +46,7 @@ function parseSchemaFile(filePath) {
     if (ext === ".json") {
         return parseJsonFile(filePath);
     }
-    else if (ext === ".volt" || ext === ".yaml" || ext === ".yml") {
+    else if (ext === ".yaml" || ext === ".yml") {
         return (0, yamlUtils_1.parseYamlFile)(filePath);
     }
     return {

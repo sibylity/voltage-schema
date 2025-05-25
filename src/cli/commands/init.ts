@@ -17,9 +17,9 @@ export function registerInitCommand(cli: CLI) {
     .action((options: Record<string, boolean>) => {
       const files = [
         { src: defaultConfigPath, dest: configPath, name: "config" },
-        { src: defaultAllGroupsPath, dest: "analytics.all-groups.volt", name: "all-groups" },
-        { src: defaultAllDimensionsPath, dest: "analytics.all-dimensions.volt", name: "all-dimensions" },
-        { src: defaultEventsPath, dest: "analytics.events.volt", name: "events" }
+        { src: defaultAllGroupsPath, dest: "analytics.all-groups.yaml", name: "all-groups" },
+        { src: defaultAllDimensionsPath, dest: "analytics.all-dimensions.yaml", name: "all-dimensions" },
+        { src: defaultEventsPath, dest: "analytics.events.yaml", name: "events" }
       ];
 
       files.forEach(file => {
