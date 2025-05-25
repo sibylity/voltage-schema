@@ -42,7 +42,7 @@ async function resolveProperties<T extends Record<string, any>>(properties: T): 
     try {
       // If value is a function, call it
       if (typeof value === 'function') {
-        value = await value();
+        value = value();
       }
       // If value is a promise, await it
       if (value instanceof Promise) {
