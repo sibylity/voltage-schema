@@ -6,41 +6,46 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.registerInitCommand = void 0;
 const fs_1 = __importDefault(require("fs"));
 const path_1 = __importDefault(require("path"));
-const yamlUtils_1 = require("../utils/yamlUtils");
-// Default paths
-const configPath = path_1.default.resolve(process.cwd(), "voltage.config.json");
-const defaultConfigPath = path_1.default.resolve(__dirname, "../../schemas/defaults/voltage.config.default.json");
-const defaultAllDimensionsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.all-dimensions.default.json");
-const defaultAllGroupsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.all-groups.default.json");
-const defaultEventsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.events.default.json");
 function registerInitCommand(cli) {
     cli
-        .command("init", "Create default analytics configuration files")
-        .option("--reset", "Replace existing analytics files")
+        .command("init", "Initialize a new analytics schema")
+        .option("--reset", "Reset existing files")
         .action((options) => {
+        const defaultAllGroupsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.all-groups.default.json");
+        const defaultAllDimensionsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.all-dimensions.default.json");
+        const defaultEventsPath = path_1.default.resolve(__dirname, "../../schemas/defaults/analytics.events.default.json");
         const files = [
-            { src: defaultConfigPath, dest: configPath, name: "config" },
             { src: defaultAllGroupsPath, dest: "analytics.all-groups.yaml", name: "all-groups" },
             { src: defaultAllDimensionsPath, dest: "analytics.all-dimensions.yaml", name: "all-dimensions" },
             { src: defaultEventsPath, dest: "analytics.events.yaml", name: "events" }
         ];
-        files.forEach(file => {
-            if (!fs_1.default.existsSync(file.src)) {
-                console.error(`❌ ${file.name} default file is missing. Please create it.`);
-                process.exit(1);
-            }
-            const destPath = path_1.default.resolve(process.cwd(), file.dest);
+        files.forEach(({ src, dest, name }) => {
+            const destPath = path_1.default.resolve(process.cwd(), dest);
             if (fs_1.default.existsSync(destPath) && !options.reset) {
-                console.warn(`⚠️ ${file.dest} already exists. Use --reset to overwrite it.`);
+                console.log(`ℹ️ ${dest} already exists. Use --reset to overwrite.`);
                 return;
             }
-            const defaultContent = fs_1.default.readFileSync(file.src, "utf8");
-            const jsonData = JSON.parse(defaultContent);
-            // Convert to YAML for YAML files, keep as JSON for config
-            const outputContent = file.dest.endsWith(".json") ? defaultContent : (0, yamlUtils_1.jsonToYaml)(jsonData);
-            fs_1.default.writeFileSync(destPath, outputContent);
-            console.log(`✅ ${file.dest} ${options.reset ? "reset" : "created"} successfully!`);
+            fs_1.default.copyFileSync(src, destPath);
+            console.log(`✅ Created ${dest}`);
         });
+        // Generate voltage.config.js instead of voltage.config.json
+        const configPath = path_1.default.resolve(process.cwd(), "voltage.config.js");
+        if (fs_1.default.existsSync(configPath) && !options.reset) {
+            console.log("ℹ️ voltage.config.js already exists. Use --reset to overwrite.");
+            return;
+        }
+        const config = {
+            generates: [
+                {
+                    events: "./analytics.events.yaml",
+                    groups: ["./analytics.all-groups.yaml"],
+                    dimensions: ["./analytics.all-dimensions.yaml"],
+                    output: "./__analytics_generated__/analytics.ts"
+                }
+            ]
+        };
+        fs_1.default.writeFileSync(configPath, `module.exports = ${JSON.stringify(config, null, 2)};`);
+        console.log("✅ Created voltage.config.js");
     });
 }
 exports.registerInitCommand = registerInitCommand;

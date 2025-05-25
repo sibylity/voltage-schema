@@ -15,17 +15,35 @@ const validateAnalyticsMeta_1 = require("./validateAnalyticsMeta");
 const fs_1 = __importDefault(require("fs"));
 function validateAnalyticsFiles() {
     var _a, _b, _c, _d, _e;
-    console.log("🔍 Validating voltage.config.json...");
-    const configPath = path_1.default.resolve(process.cwd(), "voltage.config.json");
-    if (!fs_1.default.existsSync(configPath)) {
-        console.error(`❌ Failed to parse voltage.config.json: ENOENT: no such file or directory, open '${configPath}'`);
+    const cwd = process.cwd();
+    const jsConfigPath = path_1.default.resolve(cwd, "voltage.config.js");
+    const jsonConfigPath = path_1.default.resolve(cwd, "voltage.config.json");
+    let configPath;
+    if (fs_1.default.existsSync(jsConfigPath)) {
+        configPath = jsConfigPath;
+    }
+    else if (fs_1.default.existsSync(jsonConfigPath)) {
+        configPath = jsonConfigPath;
+    }
+    else {
+        console.error("❌ No voltage.config.js or voltage.config.json found. Run 'npm voltage init' to create it.");
         return false;
     }
+    console.log(`🔍 Validating ${configPath}...`);
+    const result = (0, validateAnalyticsConfig_1.validateAnalyticsConfig)(configPath, { filePath: configPath });
+    if (!result.isValid) {
+        console.error(`❌ Failed to parse ${configPath}:`, result.errors);
+        return false;
+    }
+    console.log(`✅ ${configPath} is valid.`);
     try {
-        const config = JSON.parse(fs_1.default.readFileSync(configPath, "utf8"));
-        const configResult = (0, validateAnalyticsConfig_1.validateAnalyticsConfig)(configPath, { filePath: configPath });
-        if (!configResult.isValid) {
-            return false;
+        let config;
+        if (configPath.endsWith(".js")) {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            config = require(configPath).default || require(configPath);
+        }
+        else {
+            config = JSON.parse(fs_1.default.readFileSync(configPath, "utf8"));
         }
         // Process each generation config
         for (const genConfig of config.generates) {

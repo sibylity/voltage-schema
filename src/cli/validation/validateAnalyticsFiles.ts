@@ -10,18 +10,35 @@ import fs from "fs";
 import { type AnalyticsConfig } from "../../types";
 
 export function validateAnalyticsFiles(): boolean {
-  console.log("🔍 Validating voltage.config.json...");
-  const configPath = path.resolve(process.cwd(), "voltage.config.json");
-  if (!fs.existsSync(configPath)) {
-    console.error(`❌ Failed to parse voltage.config.json: ENOENT: no such file or directory, open '${configPath}'`);
+  const cwd = process.cwd();
+  const jsConfigPath = path.resolve(cwd, "voltage.config.js");
+  const jsonConfigPath = path.resolve(cwd, "voltage.config.json");
+
+  let configPath: string;
+  if (fs.existsSync(jsConfigPath)) {
+    configPath = jsConfigPath;
+  } else if (fs.existsSync(jsonConfigPath)) {
+    configPath = jsonConfigPath;
+  } else {
+    console.error("❌ No voltage.config.js or voltage.config.json found. Run 'npm voltage init' to create it.");
     return false;
   }
 
+  console.log(`🔍 Validating ${configPath}...`);
+  const result = validateAnalyticsConfig(configPath, { filePath: configPath });
+  if (!result.isValid) {
+    console.error(`❌ Failed to parse ${configPath}:`, result.errors);
+    return false;
+  }
+  console.log(`✅ ${configPath} is valid.`);
+
   try {
-    const config = JSON.parse(fs.readFileSync(configPath, "utf8")) as AnalyticsConfig;
-    const configResult = validateAnalyticsConfig(configPath, { filePath: configPath });
-    if (!configResult.isValid) {
-      return false;
+    let config: AnalyticsConfig;
+    if (configPath.endsWith(".js")) {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      config = require(configPath).default || require(configPath);
+    } else {
+      config = JSON.parse(fs.readFileSync(configPath, "utf8"));
     }
 
     // Process each generation config
