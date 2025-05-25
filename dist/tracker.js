@@ -85,6 +85,10 @@ function createAnalyticsTracker(config, options) {
                             // Update the last resolved value
                             propValue.lastResolved = value;
                         }
+                        else {
+                            // For non-function properties, use the value directly
+                            value = propValue.value;
+                        }
                         return [key, value];
                     })));
                     return [groupName, Object.fromEntries(resolvedProps)];
@@ -125,12 +129,17 @@ function createAnalyticsTracker(config, options) {
                         }
                     }
                 }
-                // Resolve initial values for non-function properties
-                const initialValues = yield Promise.all(Object.entries(groupProps)
-                    .filter(([_, propValue]) => !propValue.isFunction)
-                    .map(([key, propValue]) => __awaiter(this, void 0, void 0, function* () {
-                    const resolved = yield resolveProperties({ [key]: propValue.value });
-                    return [key, resolved[key]];
+                // Resolve initial values for all properties
+                const initialValues = yield Promise.all(Object.entries(groupProps).map(([key, propValue]) => __awaiter(this, void 0, void 0, function* () {
+                    let value;
+                    if (propValue.isFunction) {
+                        const resolved = yield resolveProperties({ [key]: propValue.value });
+                        value = resolved[key];
+                    }
+                    else {
+                        value = propValue.value;
+                    }
+                    return [key, value];
                 })));
                 // Update the group properties state with resolved values
                 for (const [key, value] of initialValues) {
@@ -139,10 +148,7 @@ function createAnalyticsTracker(config, options) {
                 // Update the group properties state
                 groupProperties[groupName] = groupProps;
                 // Call the group update callback with resolved values
-                const resolvedValues = Object.fromEntries(Object.entries(groupProps).map(([key, propValue]) => [
-                    key,
-                    propValue.isFunction ? propValue.lastResolved : propValue.value
-                ]));
+                const resolvedValues = Object.fromEntries(initialValues);
                 onGroupUpdated(group.name, resolvedValues);
             }
             catch (error) {

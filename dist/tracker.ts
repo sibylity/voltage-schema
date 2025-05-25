@@ -117,6 +117,9 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
                   value = resolved[key];
                   // Update the last resolved value
                   propValue.lastResolved = value;
+                } else {
+                  // For non-function properties, use the value directly
+                  value = propValue.value;
                 }
                 return [key, value];
               })
@@ -168,14 +171,18 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
           }
         }
 
-        // Resolve initial values for non-function properties
+        // Resolve initial values for all properties
         const initialValues = await Promise.all(
-          Object.entries(groupProps)
-            .filter(([_, propValue]) => !propValue.isFunction)
-            .map(async ([key, propValue]) => {
+          Object.entries(groupProps).map(async ([key, propValue]) => {
+            let value;
+            if (propValue.isFunction) {
               const resolved = await resolveProperties({ [key]: propValue.value });
-              return [key, resolved[key]];
-            })
+              value = resolved[key];
+            } else {
+              value = propValue.value;
+            }
+            return [key, value];
+          })
         );
 
         // Update the group properties state with resolved values
@@ -187,13 +194,7 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
         groupProperties[groupName] = groupProps;
 
         // Call the group update callback with resolved values
-        const resolvedValues = Object.fromEntries(
-          Object.entries(groupProps).map(([key, propValue]) => [
-            key,
-            propValue.isFunction ? propValue.lastResolved : propValue.value
-          ])
-        );
-
+        const resolvedValues = Object.fromEntries(initialValues);
         onGroupUpdated(group.name as T["groups"][G]["name"], resolvedValues as T["groups"][G]["properties"]);
       } catch (error) {
         onError(error instanceof Error ? error : new Error(String(error)));
