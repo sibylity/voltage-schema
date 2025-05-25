@@ -128,7 +128,8 @@ export function validateAnalyticsFiles(): boolean {
         return false;
       }
 
-      const eventsResult = validateEvents(eventsPath, Array.from(dimensionNames), true, metaRules);
+      // Always validate events with meta rules (empty array if no meta file)
+      const eventsResult = validateEvents(eventsPath, Array.from(dimensionNames), true, metaRules || []);
       if (!eventsResult.isValid) {
         return false;
       }
