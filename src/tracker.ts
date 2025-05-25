@@ -37,6 +37,7 @@ interface PropertyValue<T> {
   value: T;
   isFunction: boolean;
   lastResolved?: T;
+  unresolved?: T;
 }
 
 /**
@@ -113,8 +114,9 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
               Object.entries(props).map(async ([key, propValue]) => {
                 let value;
                 if (propValue.isFunction) {
-                  // Always resolve function properties in track
-                  const resolved = await resolveProperties({ [key]: propValue.value });
+                  // Use the stored function if available, otherwise use the unresolved value
+                  const funcToResolve = propValue.value || propValue.unresolved;
+                  const resolved = await resolveProperties({ [key]: funcToResolve });
                   value = resolved[key];
                   // Update the last resolved value
                   propValue.lastResolved = value;
@@ -155,9 +157,11 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
 
         // Process each new property
         for (const [key, value] of Object.entries(properties)) {
+          const isFunction = typeof value === 'function';
           groupProps[key] = {
             value,
-            isFunction: typeof value === 'function'
+            isFunction,
+            unresolved: isFunction ? value : undefined
           };
         }
 
@@ -208,10 +212,14 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
         Object.entries(groupProperties).map(([groupName, props]) => [
           groupName,
           Object.fromEntries(
-            Object.entries(props).map(([key, propValue]) => [
-              key,
-              propValue.isFunction ? propValue.lastResolved : propValue.value
-            ])
+            Object.entries(props).map(([key, propValue]) => {
+              if (propValue.isFunction) {
+                // For function properties, use lastResolved if available
+                return [key, propValue.lastResolved || propValue.value];
+              }
+              // For non-function properties, use the value directly
+              return [key, propValue.value];
+            })
           )
         ])
       ) as { [K in TrackerGroup<T>]: T["groups"][K]["properties"] };
