@@ -29,7 +29,6 @@ Schema files for voltage can be initialized by running ```npm voltage init```.
 ### File Extensions
 
 Voltage supports multiple file extensions for schema files:
-- `.volt` (default, recommended) - YAML format with `.volt` extension
 - `.yaml` or `.yml` - Standard YAML format
 - `.json` - JSON format
 
@@ -54,26 +53,26 @@ The `voltage.config.json` file must use the `.json` extension.
 
 </details>
 
-Create a `voltage.config.json` file in your project root:
+Create a `voltage.config.js` file in your project root:
 
-```json
-{
-  "generates": [
+```javascript
+export default {
+  generates: [
     {
-      "events": "./analytics/events/unauthed-events.volt",
-      "output": "/__analytics_generated__/unauthed-analytics.ts"
+      events: "./analytics/events/unauthed-events.volt.yaml",
+      output: "/__analytics_generated__/unauthed-analytics.ts"
     },
     {
-      "events": "./analytics/events/authed-events.volt",
-      "groups": [
-        "./analytics/groups/user-group.volt",
-        "./analytics/groups/team-group.volt"
+      events: "./analytics/events/authed-events.volt.yaml",
+      groups: [
+        "./analytics/groups/user-group.volt.yaml",
+        "./analytics/groups/team-group.volt.yaml"
       ],
-      "dimensions": [
-        "./analytics/dimensions/user-role-dimensions.volt",
-        "./analytics/dimensions/team-plan-dimensions.volt"
+      dimensions: [
+        "./analytics/dimensions/user-role-dimensions.volt.yaml",
+        "./analytics/dimensions/team-plan-dimensions.volt.yaml"
       ],
-      "output": "/__analytics_generated__/authed-analytics.ts"
+      output: "/__analytics_generated__/authed-analytics.ts"
     }
   ]
 }
@@ -109,10 +108,9 @@ _Note - in this example, we are generating types & config for unauthed vs. authe
 
 </details>
 
-Create an `events.volt` file to define your events:
+Create an `events.volt.yaml` file to define your events:
 
 ```yaml
-# .volt uses a YAML syntax
 events:
   page_view:
     name: Page View
@@ -161,10 +159,9 @@ events:
 
 </details>
 
-Create a `groups.volt` file to define your groups:
+Create a `groups.volt.yaml` file to define your groups:
 
 ```yaml
-# .volt uses a YAML syntax
 groups:
   - name: User
     description: The user that triggered the event.
@@ -228,10 +225,9 @@ groups:
 
 </details>
 
-Create a `dimensions.volt` file to define your dimensions:
+Create a `dimensions.volt.yaml` file to define your dimensions:
 
 ```yaml
-# .volt uses a YAML syntax
 dimensions:
   - name: Free
     description: Teams without a paid plan.
