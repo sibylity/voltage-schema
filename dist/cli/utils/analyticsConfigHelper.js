@@ -42,7 +42,8 @@ function readGenerationConfigFiles(genConfig) {
     // Combine groups and dimensions from all files
     const combinedGlobals = {
         groups: [],
-        dimensions: []
+        dimensions: [],
+        meta: []
     };
     // Process groups if present
     if (genConfig.groups) {
@@ -80,6 +81,23 @@ function readGenerationConfigFiles(genConfig) {
             else {
                 console.log(`ℹ️ Dimension file not found at ${dimensionPath}, skipping.`);
             }
+        }
+    }
+    // Process meta file if present
+    if (genConfig.meta) {
+        const metaPath = path_1.default.resolve(process.cwd(), genConfig.meta);
+        if (fs_1.default.existsSync(metaPath)) {
+            const metaResult = (0, fileValidation_1.parseSchemaFile)(metaPath);
+            if (!metaResult.isValid || !metaResult.data) {
+                console.error(`❌ Failed to parse meta file at ${metaPath}:`, metaResult.errors);
+                process.exit(1);
+            }
+            if (metaResult.data.meta) {
+                combinedGlobals.meta = metaResult.data.meta;
+            }
+        }
+        else {
+            console.log(`ℹ️ Meta file not found at ${metaPath}, skipping.`);
         }
     }
     return { globals: combinedGlobals, events: eventsResult.data };

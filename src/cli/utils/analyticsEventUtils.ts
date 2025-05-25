@@ -67,7 +67,8 @@ function processEvent(
   includeGroups: boolean,
   includeDimensions: boolean,
   groups?: AnalyticsGlobals["groups"],
-  dimensions?: Dimension[]
+  dimensions?: Dimension[],
+  metaRules?: AnalyticsGlobals["meta"]
 ): EventOutput {
   const eventProperties = (event.properties || []).map(prop => ({
     ...prop,
@@ -99,13 +100,29 @@ function processEvent(
     allProperties = Array.from(propertyMap.values());
   }
 
+  // Initialize meta with defaultValues from meta rules
+  const meta: Record<string, string | number | boolean> = {};
+  if (metaRules) {
+    // Always include all meta rules in the events command output
+    metaRules.forEach(rule => {
+      if (rule.defaultValue !== undefined) {
+        meta[rule.name] = rule.defaultValue;
+      }
+    });
+  }
+
+  // Merge with any explicit meta values from the event
+  if (event.meta) {
+    Object.assign(meta, event.meta);
+  }
+
   const output: EventOutput = {
     key: eventKey,
     name: event.name,
     description: event.description,
     properties: allProperties,
     passthrough: event.passthrough,
-    meta: event.meta
+    meta: Object.keys(meta).length > 0 ? meta : undefined
   };
 
   if (includeDimensions && dimensions) {
@@ -179,7 +196,8 @@ export function getAllEvents(options: GetAllEventsOptions = {}): EventOutput[] {
         effectiveIncludeGroups,
         effectiveIncludeDimensions,
         globals.groups,
-        globals.dimensions
+        globals.dimensions,
+        globals.meta
       ));
     });
   });

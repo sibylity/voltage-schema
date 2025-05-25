@@ -98,9 +98,11 @@ function generateTrackingConfig(eventsData: any, groupsData: any[], dimensionsDa
     throw new Error('Invalid events data structure. Expected an object with an "events" property.');
   }
 
-  // Create a map of meta rules with defaultValues
+  // Create a map of meta rules with defaultValues, excluding private rules
   const metaRuleMap = new Map(
-    (metaRules || []).map((rule: any) => [rule.name, rule])
+    (metaRules || [])
+      .filter((rule: any) => !rule.private)
+      .map((rule: any) => [rule.name, rule])
   );
 
   const eventEntries = Object.entries(eventsData.events || {})
@@ -124,9 +126,15 @@ function generateTrackingConfig(eventsData: any, groupsData: any[], dimensionsDa
         }
       });
 
-      // Merge with any explicit meta values from the event
+      // Merge with any explicit meta values from the event, excluding private meta rules
       if (event.meta) {
-        Object.assign(meta, event.meta);
+        const publicMeta = { ...event.meta };
+        metaRules?.forEach((rule: any) => {
+          if (rule.private && rule.name in publicMeta) {
+            delete publicMeta[rule.name];
+          }
+        });
+        Object.assign(meta, publicMeta);
       }
 
       return `${eventComment}    ${key}: {
