@@ -67,10 +67,12 @@ function generateEventConfigs(trackingConfig, events, includeComments, eventKeyP
 /**
  * Generates the tracking config object
  */
-function generateTrackingConfig(eventsData, groupsData, dimensionsData, disableComments, eventKeyPropertyName = 'Event Key') {
+function generateTrackingConfig(eventsData, groupsData, dimensionsData, metaRules, disableComments, eventKeyPropertyName = 'Event Key') {
     if (!eventsData || !eventsData.events || typeof eventsData.events !== 'object') {
         throw new Error('Invalid events data structure. Expected an object with an "events" property.');
     }
+    // Create a map of meta rules with defaultValues
+    const metaRuleMap = new Map((metaRules || []).map((rule) => [rule.name, rule]));
     const eventEntries = Object.entries(eventsData.events || {})
         .map(([key, event]) => {
         if (!event || typeof event !== 'object') {
@@ -79,6 +81,17 @@ function generateTrackingConfig(eventsData, groupsData, dimensionsData, disableC
         const eventComment = !disableComments && event.description && event.description.length > 0 ? `    /** ${event.description} */\n` : '';
         // Create a map of property descriptions from the original event
         const propertyDescriptions = new Map((event.properties || []).map((prop) => [prop.name, prop.description]));
+        // Initialize meta with defaultValues from meta rules
+        const meta = {};
+        metaRuleMap.forEach((rule, name) => {
+            if (rule.defaultValue !== undefined) {
+                meta[name] = rule.defaultValue;
+            }
+        });
+        // Merge with any explicit meta values from the event
+        if (event.meta) {
+            Object.assign(meta, event.meta);
+        }
         return `${eventComment}    ${key}: {
       name: '${event.name}',
       properties: [
@@ -96,7 +109,7 @@ function generateTrackingConfig(eventsData, groupsData, dimensionsData, disableC
           type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.defaultValue !== undefined ? `,\n          defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
         }`;
         }).join(',\n        ') : ''}
-      ]${event.passthrough ? ',\n      passthrough: true' : ''}${event.meta ? `,\n      meta: ${JSON.stringify(event.meta)}` : ''}
+      ]${event.passthrough ? ',\n      passthrough: true' : ''}${Object.keys(meta).length > 0 ? `,\n      meta: ${JSON.stringify(meta)}` : ''}
     }`;
     })
         .join(',\n');
@@ -244,7 +257,7 @@ function registerGenerateCommand(cli) {
             const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
             const generationConfigs = config.generates;
             generationConfigs.forEach((generationConfig) => {
-                const { events, groups, dimensions, output, disableComments, eventKeyPropertyName } = generationConfig;
+                const { events, groups, dimensions, meta, output, disableComments, eventKeyPropertyName } = generationConfig;
                 // Parse events file
                 const eventsResult = (0, fileValidation_1.parseSchemaFile)(events);
                 if (!eventsResult.isValid || !eventsResult.data) {
@@ -285,9 +298,22 @@ function registerGenerateCommand(cli) {
                     }
                     return result.data;
                 })) || [];
+                // Parse meta file if provided
+                let metaRules;
+                if (meta) {
+                    const metaResult = (0, fileValidation_1.parseSchemaFile)(meta);
+                    if (!metaResult.isValid || !metaResult.data) {
+                        console.error(`❌ Failed to parse meta file: ${meta}`);
+                        if (metaResult.errors) {
+                            console.error(metaResult.errors.join('\n'));
+                        }
+                        process.exit(1);
+                    }
+                    metaRules = metaResult.data.meta;
+                }
                 // Generate types and tracking config
                 const types = generateTypes(eventsData, groupsData, dimensionsData, disableComments, eventKeyPropertyName);
-                const trackingConfig = generateTrackingConfig(eventsData, groupsData, dimensionsData, disableComments, eventKeyPropertyName);
+                const trackingConfig = generateTrackingConfig(eventsData, groupsData, dimensionsData, metaRules, disableComments, eventKeyPropertyName);
                 // Write output file
                 const outputPath = path_1.default.resolve(process.cwd(), output);
                 const outputDir = path_1.default.dirname(outputPath);

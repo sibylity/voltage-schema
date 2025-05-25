@@ -93,10 +93,15 @@ function generateEventConfigs(trackingConfig: TrackingConfig, events: AnalyticsE
 /**
  * Generates the tracking config object
  */
-function generateTrackingConfig(eventsData: any, groupsData: any[], dimensionsData: any[], disableComments?: boolean, eventKeyPropertyName: string = 'Event Key'): string {
+function generateTrackingConfig(eventsData: any, groupsData: any[], dimensionsData: any[], metaRules?: any[], disableComments?: boolean, eventKeyPropertyName: string = 'Event Key'): string {
   if (!eventsData || !eventsData.events || typeof eventsData.events !== 'object') {
     throw new Error('Invalid events data structure. Expected an object with an "events" property.');
   }
+
+  // Create a map of meta rules with defaultValues
+  const metaRuleMap = new Map(
+    (metaRules || []).map((rule: any) => [rule.name, rule])
+  );
 
   const eventEntries = Object.entries(eventsData.events || {})
     .map(([key, event]: [string, any]) => {
@@ -110,6 +115,19 @@ function generateTrackingConfig(eventsData: any, groupsData: any[], dimensionsDa
       const propertyDescriptions = new Map(
         (event.properties || []).map((prop: any) => [prop.name, prop.description])
       );
+
+      // Initialize meta with defaultValues from meta rules
+      const meta: Record<string, string | number | boolean> = {};
+      metaRuleMap.forEach((rule, name) => {
+        if (rule.defaultValue !== undefined) {
+          meta[name] = rule.defaultValue;
+        }
+      });
+
+      // Merge with any explicit meta values from the event
+      if (event.meta) {
+        Object.assign(meta, event.meta);
+      }
 
       return `${eventComment}    ${key}: {
       name: '${event.name}',
@@ -128,7 +146,7 @@ function generateTrackingConfig(eventsData: any, groupsData: any[], dimensionsDa
           type: ${Array.isArray(prop.type) ? JSON.stringify(prop.type) : `'${prop.type}'`}${prop.defaultValue !== undefined ? `,\n          defaultValue: ${JSON.stringify(prop.defaultValue)}` : ''}
         }`;
         }).join(',\n        ') : ''}
-      ]${event.passthrough ? ',\n      passthrough: true' : ''}${event.meta ? `,\n      meta: ${JSON.stringify(event.meta)}` : ''}
+      ]${event.passthrough ? ',\n      passthrough: true' : ''}${Object.keys(meta).length > 0 ? `,\n      meta: ${JSON.stringify(meta)}` : ''}
     }`;
     })
     .join(',\n');
@@ -297,7 +315,7 @@ export function registerGenerateCommand(cli: CLI) {
         const generationConfigs = config.generates;
 
         generationConfigs.forEach((generationConfig: GenerationConfig) => {
-          const { events, groups, dimensions, output, disableComments, eventKeyPropertyName } = generationConfig;
+          const { events, groups, dimensions, meta, output, disableComments, eventKeyPropertyName } = generationConfig;
 
           // Parse events file
           const eventsResult = parseSchemaFile(events);
@@ -342,9 +360,23 @@ export function registerGenerateCommand(cli: CLI) {
             return result.data;
           }) || [];
 
+          // Parse meta file if provided
+          let metaRules;
+          if (meta) {
+            const metaResult = parseSchemaFile(meta);
+            if (!metaResult.isValid || !metaResult.data) {
+              console.error(`❌ Failed to parse meta file: ${meta}`);
+              if (metaResult.errors) {
+                console.error(metaResult.errors.join('\n'));
+              }
+              process.exit(1);
+            }
+            metaRules = (metaResult.data as { meta: any[] }).meta;
+          }
+
           // Generate types and tracking config
           const types = generateTypes(eventsData, groupsData, dimensionsData, disableComments, eventKeyPropertyName);
-          const trackingConfig = generateTrackingConfig(eventsData, groupsData, dimensionsData, disableComments, eventKeyPropertyName);
+          const trackingConfig = generateTrackingConfig(eventsData, groupsData, dimensionsData, metaRules, disableComments, eventKeyPropertyName);
 
           // Write output file
           const outputPath = path.resolve(process.cwd(), output);
