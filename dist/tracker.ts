@@ -33,6 +33,12 @@ export class ValidationError extends Error {
   }
 }
 
+interface PropertyValue<T> {
+  value: T;
+  isFunction: boolean;
+  lastResolved?: T;
+}
+
 /**
  * Resolves all property values, handling both sync and async values
  */
@@ -72,9 +78,9 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
 
   // Initialize groupProperties with empty objects for each group
   const groupProperties = Object.keys(config.groups || {}).reduce((acc, groupName) => {
-    acc[groupName as TrackerGroup<T>] = {} as GroupProperties<T, TrackerGroup<T>>;
+    acc[groupName as TrackerGroup<T>] = {} as Record<string, PropertyValue<any>>;
     return acc;
-  }, {} as Record<TrackerGroup<T>, GroupProperties<T, TrackerGroup<T>>>);
+  }, {} as Record<TrackerGroup<T>, Record<string, PropertyValue<any>>>);
 
   return {
     track: async <E extends TrackerEvent<T>>(
@@ -100,11 +106,29 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
         // Resolve event properties if provided
         const resolvedProperties = await resolveProperties(properties);
 
-        // Call the tracking callback with current group properties
+        // Resolve all group properties
+        const resolvedGroups = await Promise.all(
+          Object.entries(groupProperties).map(async ([groupName, props]) => {
+            const resolvedProps = await Promise.all(
+              Object.entries(props).map(async ([key, propValue]) => {
+                let value = propValue.value;
+                if (propValue.isFunction) {
+                  const resolved = await resolveProperties({ [key]: value });
+                  value = resolved[key];
+                  // Update the last resolved value
+                  propValue.lastResolved = value;
+                }
+                return [key, value];
+              })
+            );
+            return [groupName, Object.fromEntries(resolvedProps)];
+          })
+        );
+
         onEventTracked(event.name as T["events"][E]["name"], {
           properties: resolvedProperties as T["events"][E]["properties"],
           meta: event.meta as T["events"][E]["meta"],
-          groups: { ...groupProperties } as { [K in TrackerGroup<T>]: T["groups"][K]["properties"] }
+          groups: Object.fromEntries(resolvedGroups) as { [K in TrackerGroup<T>]: T["groups"][K]["properties"] }
         });
       } catch (error) {
         onError(error instanceof Error ? error : new Error(String(error)));
@@ -123,29 +147,72 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
       try {
         // Start with existing properties and merge in new ones
         const existingProps = groupProperties[groupName] || {};
-        const groupProps = { ...existingProps, ...properties } as Record<string, any>;
+        const groupProps = { ...existingProps } as Record<string, PropertyValue<any>>;
+
+        // Process each new property
+        for (const [key, value] of Object.entries(properties)) {
+          groupProps[key] = {
+            value,
+            isFunction: typeof value === 'function'
+          };
+        }
 
         if (group.properties) {
           for (const prop of group.properties) {
             if (prop.defaultValue !== undefined && !(prop.name in groupProps)) {
-              groupProps[prop.name] = prop.defaultValue;
+              groupProps[prop.name] = {
+                value: prop.defaultValue,
+                isFunction: false
+              };
             }
           }
         }
 
-        // Resolve group properties
-        const resolvedProperties = await resolveProperties(groupProps);
+        // Resolve initial values for non-function properties
+        const initialValues = await Promise.all(
+          Object.entries(groupProps)
+            .filter(([_, propValue]) => !propValue.isFunction)
+            .map(async ([key, propValue]) => {
+              const resolved = await resolveProperties({ [key]: propValue.value });
+              return [key, resolved[key]];
+            })
+        );
+
+        // Update the group properties state with resolved values
+        for (const [key, value] of initialValues) {
+          groupProps[key].lastResolved = value;
+        }
 
         // Update the group properties state
-        groupProperties[groupName] = resolvedProperties as T["groups"][G]["properties"];
+        groupProperties[groupName] = groupProps;
 
-        // Call the group update callback
-        onGroupUpdated(group.name as T["groups"][G]["name"], resolvedProperties as T["groups"][G]["properties"]);
+        // Call the group update callback with resolved values
+        const resolvedValues = Object.fromEntries(
+          Object.entries(groupProps).map(([key, propValue]) => [
+            key,
+            propValue.isFunction ? propValue.lastResolved : propValue.value
+          ])
+        );
+
+        onGroupUpdated(group.name as T["groups"][G]["name"], resolvedValues as T["groups"][G]["properties"]);
       } catch (error) {
         onError(error instanceof Error ? error : new Error(String(error)));
       }
     },
 
-    getProperties: () => ({ ...groupProperties })
+    getProperties: () => {
+      // Return only the resolved values
+      return Object.fromEntries(
+        Object.entries(groupProperties).map(([groupName, props]) => [
+          groupName,
+          Object.fromEntries(
+            Object.entries(props).map(([key, propValue]) => [
+              key,
+              propValue.isFunction ? propValue.lastResolved : propValue.value
+            ])
+          )
+        ])
+      ) as { [K in TrackerGroup<T>]: T["groups"][K]["properties"] };
+    }
   };
 }
