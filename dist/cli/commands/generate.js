@@ -148,28 +148,23 @@ function generateTypes(eventsData, groupsData, dimensionsData, disableComments, 
         if (!event || typeof event !== 'object') {
             throw new Error(`Invalid event data for key "${key}". Expected an object.`);
         }
-        let properties = ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.length)
-            ? `{ ${event.properties.map((prop) => {
-                if (!prop || typeof prop !== 'object') {
-                    throw new Error(`Invalid property data in event "${key}". Expected an object.`);
-                }
-                const type = Array.isArray(prop.type) ? prop.type.map((t) => `'${t}'`).join(' | ') : prop.type;
-                // Make properties with default values optional
-                const isOptional = prop.optional || prop.defaultValue !== undefined;
-                return `'${prop.name}'${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
-            }).join('; ')} }`
-            : 'Record<string, never>';
+        const properties = ((_a = event.properties) === null || _a === void 0 ? void 0 : _a.map((prop) => {
+            const type = Array.isArray(prop.type)
+                ? prop.type.map(t => `'${t}'`).join(' | ')
+                : prop.type === 'string' || prop.type === 'number' || prop.type === 'boolean'
+                    ? prop.type
+                    : `'${prop.type}'`;
+            return `'${prop.name}': ${type} | (() => ${type}) | Promise<${type}> | (() => Promise<${type}>)`;
+        })) || [];
         // Add index signature for passthrough events
         if (event.passthrough) {
-            properties = properties === 'Record<string, never>'
-                ? '{ [key: string]: any }'
-                : properties.replace(/}$/, '; [key: string]: any }');
+            properties.push('[key: string]: any');
         }
         // Always add meta as optional Record type
         const metaType = '\n      meta?: Record<string, string | number | boolean>;';
         return `    ${key}: {
       name: '${event.name}';
-      properties: ${properties};${metaType}
+      properties: { ${properties.join('; ')} };${metaType}
     };`;
     }).join('\n\n');
     const groupTypes = (groupsData || []).map((group) => {
@@ -177,27 +172,21 @@ function generateTypes(eventsData, groupsData, dimensionsData, disableComments, 
         if (!group || typeof group !== 'object') {
             throw new Error(`Invalid group data. Expected an object.`);
         }
-        let properties = ((_a = group.properties) === null || _a === void 0 ? void 0 : _a.length)
-            ? `{ ${group.properties.map((prop) => {
-                if (!prop || typeof prop !== 'object') {
-                    throw new Error(`Invalid property data in group "${group.name}". Expected an object.`);
-                }
-                const type = Array.isArray(prop.type) ? prop.type.map((t) => `'${t}'`).join(' | ') : prop.type;
-                // Make properties with default values optional
-                const isOptional = prop.optional || prop.defaultValue !== undefined;
-                // Match event property typing: value type OR function returning value type
-                return `'${prop.name}'${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
-            }).join('; ')} }`
-            : 'Record<string, never>';
+        const properties = ((_a = group.properties) === null || _a === void 0 ? void 0 : _a.map((prop) => {
+            const type = Array.isArray(prop.type)
+                ? prop.type.map(t => `'${t}'`).join(' | ')
+                : prop.type === 'string' || prop.type === 'number' || prop.type === 'boolean'
+                    ? prop.type
+                    : `'${prop.type}'`;
+            return `'${prop.name}': ${type} | (() => ${type}) | Promise<${type}> | (() => Promise<${type}>)`;
+        })) || [];
         // Add index signature for passthrough groups
         if (group.passthrough) {
-            properties = properties === 'Record<string, never>'
-                ? '{ [key: string]: any }'
-                : properties.replace(/}$/, '; [key: string]: any }');
+            properties.push('[key: string]: any');
         }
-        return `    ${group.name}: {
+        return `    '${group.name}': {
       name: '${group.name}';
-      properties: ${properties};${group.identifiedBy ? `\n      identifiedBy: '${group.identifiedBy}';` : ''}
+      properties: { ${properties.join('; ')} };${group.identifiedBy ? `\n      identifiedBy: '${group.identifiedBy}';` : ''}
     };`;
     }).join('\n\n');
     const groupNames = (groupsData === null || groupsData === void 0 ? void 0 : groupsData.map(g => `'${g.name}'`).join(' | ')) || 'never';

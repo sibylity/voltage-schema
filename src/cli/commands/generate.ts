@@ -190,31 +190,26 @@ function generateTypes(eventsData: any, groupsData: any[], dimensionsData: any[]
       throw new Error(`Invalid event data for key "${key}". Expected an object.`);
     }
 
-    let properties = event.properties?.length
-      ? `{ ${event.properties.map((prop: any) => {
-          if (!prop || typeof prop !== 'object') {
-            throw new Error(`Invalid property data in event "${key}". Expected an object.`);
-          }
-          const type = Array.isArray(prop.type) ? prop.type.map((t: string) => `'${t}'`).join(' | ') : prop.type;
-          // Make properties with default values optional
-          const isOptional = prop.optional || prop.defaultValue !== undefined;
-          return `'${prop.name}'${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
-        }).join('; ')} }`
-      : 'Record<string, never>';
+    const properties = event.properties?.map((prop: { name: string; type: string | string[] }) => {
+      const type = Array.isArray(prop.type)
+        ? prop.type.map(t => `'${t}'`).join(' | ')
+        : prop.type === 'string' || prop.type === 'number' || prop.type === 'boolean'
+          ? prop.type
+          : `'${prop.type}'`;
+      return `'${prop.name}': ${type} | (() => ${type}) | Promise<${type}> | (() => Promise<${type}>)`;
+    }) || [];
 
     // Add index signature for passthrough events
     if (event.passthrough) {
-      properties = properties === 'Record<string, never>'
-        ? '{ [key: string]: any }'
-        : properties.replace(/}$/, '; [key: string]: any }');
+      properties.push('[key: string]: any');
     }
 
     // Always add meta as optional Record type
-    const metaType = '\n      meta?: Record<string, string | number | boolean>;' ;
+    const metaType = '\n      meta?: Record<string, string | number | boolean>;';
 
     return `    ${key}: {
       name: '${event.name}';
-      properties: ${properties};${metaType}
+      properties: { ${properties.join('; ')} };${metaType}
     };`;
   }).join('\n\n');
 
@@ -223,29 +218,23 @@ function generateTypes(eventsData: any, groupsData: any[], dimensionsData: any[]
       throw new Error(`Invalid group data. Expected an object.`);
     }
 
-    let properties = group.properties?.length
-      ? `{ ${group.properties.map((prop: any) => {
-          if (!prop || typeof prop !== 'object') {
-            throw new Error(`Invalid property data in group "${group.name}". Expected an object.`);
-          }
-          const type = Array.isArray(prop.type) ? prop.type.map((t: string) => `'${t}'`).join(' | ') : prop.type;
-          // Make properties with default values optional
-          const isOptional = prop.optional || prop.defaultValue !== undefined;
-          // Match event property typing: value type OR function returning value type
-          return `'${prop.name}'${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
-        }).join('; ')} }`
-      : 'Record<string, never>';
+    const properties = group.properties?.map((prop: { name: string; type: string | string[] }) => {
+      const type = Array.isArray(prop.type)
+        ? prop.type.map(t => `'${t}'`).join(' | ')
+        : prop.type === 'string' || prop.type === 'number' || prop.type === 'boolean'
+          ? prop.type
+          : `'${prop.type}'`;
+      return `'${prop.name}': ${type} | (() => ${type}) | Promise<${type}> | (() => Promise<${type}>)`;
+    }) || [];
 
     // Add index signature for passthrough groups
     if (group.passthrough) {
-      properties = properties === 'Record<string, never>'
-        ? '{ [key: string]: any }'
-        : properties.replace(/}$/, '; [key: string]: any }');
+      properties.push('[key: string]: any');
     }
 
-    return `    ${group.name}: {
+    return `    '${group.name}': {
       name: '${group.name}';
-      properties: ${properties};${group.identifiedBy ? `\n      identifiedBy: '${group.identifiedBy}';` : ''}
+      properties: { ${properties.join('; ')} };${group.identifiedBy ? `\n      identifiedBy: '${group.identifiedBy}';` : ''}
     };`;
   }).join('\n\n');
 
