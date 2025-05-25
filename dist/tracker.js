@@ -22,8 +22,9 @@ exports.ValidationError = ValidationError;
  */
 function resolveProperties(properties) {
     return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const resolvedEntries = yield Promise.all(Object.entries(properties).map(([key, value]) => __awaiter(this, void 0, void 0, function* () {
+        const entries = Object.entries(properties);
+        const promises = entries.map(([key, value]) => __awaiter(this, void 0, void 0, function* () {
+            try {
                 // If value is a function, call it
                 if (typeof value === 'function') {
                     value = yield value();
@@ -33,10 +34,18 @@ function resolveProperties(properties) {
                     value = yield value;
                 }
                 return [key, value];
-            })));
+            }
+            catch (error) {
+                // Re-throw with context about which property failed
+                throw new Error(`Failed to resolve property "${key}": ${error instanceof Error ? error.message : String(error)}`);
+            }
+        }));
+        try {
+            const resolvedEntries = yield Promise.all(promises);
             return Object.fromEntries(resolvedEntries);
         }
         catch (error) {
+            // Re-throw the error to be caught by the calling function
             throw error;
         }
     });

@@ -37,22 +37,29 @@ export class ValidationError extends Error {
  * Resolves all property values, handling both sync and async values
  */
 async function resolveProperties<T extends Record<string, any>>(properties: T): Promise<T> {
+  const entries = Object.entries(properties);
+  const promises = entries.map(async ([key, value]) => {
+    try {
+      // If value is a function, call it
+      if (typeof value === 'function') {
+        value = await value();
+      }
+      // If value is a promise, await it
+      if (value instanceof Promise) {
+        value = await value;
+      }
+      return [key, value];
+    } catch (error) {
+      // Re-throw with context about which property failed
+      throw new Error(`Failed to resolve property "${key}": ${error instanceof Error ? error.message : String(error)}`);
+    }
+  });
+
   try {
-    const resolvedEntries = await Promise.all(
-      Object.entries(properties).map(async ([key, value]) => {
-        // If value is a function, call it
-        if (typeof value === 'function') {
-          value = await value();
-        }
-        // If value is a promise, await it
-        if (value instanceof Promise) {
-          value = await value;
-        }
-        return [key, value];
-      })
-    );
+    const resolvedEntries = await Promise.all(promises);
     return Object.fromEntries(resolvedEntries) as T;
   } catch (error) {
+    // Re-throw the error to be caught by the calling function
     throw error;
   }
 }
