@@ -165,6 +165,7 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
           };
         }
 
+        // Add default values for any missing properties
         if (group.properties) {
           for (const prop of group.properties) {
             if (prop.defaultValue !== undefined && !(prop.name in groupProps)) {
@@ -176,7 +177,10 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
           }
         }
 
-        // Resolve initial values for all properties
+        // Write to groupProperties immediately to avoid race conditions
+        groupProperties[groupName] = groupProps;
+
+        // Now resolve all properties
         const initialValues = await Promise.all(
           Object.entries(groupProps).map(async ([key, propValue]) => {
             let value;
@@ -195,7 +199,7 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
           groupProps[key].lastResolved = value;
         }
 
-        // Update the group properties state
+        // Update groupProperties again with resolved values
         groupProperties[groupName] = groupProps;
 
         // Call the group update callback with resolved values
