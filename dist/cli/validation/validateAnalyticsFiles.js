@@ -121,7 +121,8 @@ function validateAnalyticsFiles() {
             if (!hasValidGroups || !hasValidDimensions) {
                 return false;
             }
-            const eventsResult = (0, validateAnalyticsEvents_1.validateEvents)(eventsPath, Array.from(dimensionNames), true, metaRules);
+            // Always validate events with meta rules (empty array if no meta file)
+            const eventsResult = (0, validateAnalyticsEvents_1.validateEvents)(eventsPath, Array.from(dimensionNames), true, metaRules || []);
             if (!eventsResult.isValid) {
                 return false;
             }

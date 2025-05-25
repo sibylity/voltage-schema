@@ -25,7 +25,7 @@ export function getAnalyticsConfig(): AnalyticsConfig {
   return config;
 }
 
-export function readGenerationConfigFiles(genConfig: { events: string; groups?: string[]; dimensions?: string[] }) {
+export function readGenerationConfigFiles(genConfig: { events: string; groups?: string[]; dimensions?: string[]; meta?: string }) {
   const eventsPath = path.resolve(process.cwd(), genConfig.events);
   if (!fs.existsSync(eventsPath)) {
     console.error(`❌ Events file not found: ${eventsPath}`);
@@ -41,7 +41,8 @@ export function readGenerationConfigFiles(genConfig: { events: string; groups?: 
   // Combine groups and dimensions from all files
   const combinedGlobals: AnalyticsGlobals = {
     groups: [],
-    dimensions: []
+    dimensions: [],
+    meta: []
   };
 
   // Process groups if present
@@ -79,6 +80,23 @@ export function readGenerationConfigFiles(genConfig: { events: string; groups?: 
       } else {
         console.log(`ℹ️ Dimension file not found at ${dimensionPath}, skipping.`);
       }
+    }
+  }
+
+  // Process meta file if present
+  if (genConfig.meta) {
+    const metaPath = path.resolve(process.cwd(), genConfig.meta);
+    if (fs.existsSync(metaPath)) {
+      const metaResult = parseSchemaFile<{ meta: any[] }>(metaPath);
+      if (!metaResult.isValid || !metaResult.data) {
+        console.error(`❌ Failed to parse meta file at ${metaPath}:`, metaResult.errors);
+        process.exit(1);
+      }
+      if (metaResult.data.meta) {
+        combinedGlobals.meta = metaResult.data.meta;
+      }
+    } else {
+      console.log(`ℹ️ Meta file not found at ${metaPath}, skipping.`);
     }
   }
 

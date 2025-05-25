@@ -5,7 +5,7 @@ const analyticsConfigHelper_1 = require("./analyticsConfigHelper");
 function getDimensionDetails(dimensionName, dimensions) {
     return dimensions.find(dim => dim.name === dimensionName);
 }
-function processEvent(eventKey, event, includeGroups, includeDimensions, groups, dimensions) {
+function processEvent(eventKey, event, includeGroups, includeDimensions, groups, dimensions, metaRules) {
     const eventProperties = (event.properties || []).map(prop => (Object.assign(Object.assign({}, prop), { source: "event" })));
     let allProperties = [...eventProperties];
     if (includeGroups && groups) {
@@ -22,13 +22,27 @@ function processEvent(eventKey, event, includeGroups, includeDimensions, groups,
         });
         allProperties = Array.from(propertyMap.values());
     }
+    // Initialize meta with defaultValues from meta rules
+    const meta = {};
+    if (metaRules) {
+        // Always include all meta rules in the events command output
+        metaRules.forEach(rule => {
+            if (rule.defaultValue !== undefined) {
+                meta[rule.name] = rule.defaultValue;
+            }
+        });
+    }
+    // Merge with any explicit meta values from the event
+    if (event.meta) {
+        Object.assign(meta, event.meta);
+    }
     const output = {
         key: eventKey,
         name: event.name,
         description: event.description,
         properties: allProperties,
         passthrough: event.passthrough,
-        meta: event.meta
+        meta: Object.keys(meta).length > 0 ? meta : undefined
     };
     if (includeDimensions && dimensions) {
         // If event has no dimensions field, include it in all dimensions
@@ -91,7 +105,7 @@ function getAllEvents(options = {}) {
         const { events: eventsData, globals } = (0, analyticsConfigHelper_1.readGenerationConfigFiles)(genConfig);
         // Process each event
         Object.entries(eventsData.events).forEach(([eventKey, event]) => {
-            events.push(processEvent(eventKey, event, effectiveIncludeGroups, effectiveIncludeDimensions, globals.groups, globals.dimensions));
+            events.push(processEvent(eventKey, event, effectiveIncludeGroups, effectiveIncludeDimensions, globals.groups, globals.dimensions, globals.meta));
         });
     });
     // Sort events alphabetically by name
