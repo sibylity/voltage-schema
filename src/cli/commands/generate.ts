@@ -231,7 +231,8 @@ function generateTypes(eventsData: any, groupsData: any[], dimensionsData: any[]
           const type = Array.isArray(prop.type) ? prop.type.map((t: string) => `'${t}'`).join(' | ') : prop.type;
           // Make properties with default values optional
           const isOptional = prop.optional || prop.defaultValue !== undefined;
-          return `${prop.name}${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
+          // Match event property typing: value type OR function returning value type
+          return `'${prop.name}'${isOptional ? '?' : ''}: ${type} | (() => ${type})`;
         }).join('; ')} }`
       : 'Record<string, never>';
 
@@ -247,6 +248,8 @@ function generateTypes(eventsData: any, groupsData: any[], dimensionsData: any[]
       properties: ${properties};${group.identifiedBy ? `\n      identifiedBy: '${group.identifiedBy}';` : ''}
     };`;
   }).join('\n\n');
+
+  const groupNames = groupsData?.map(g => `'${g.name}'`).join(' | ') || 'never';
 
   return `export interface TrackerEventBase {
   name: string;
@@ -270,7 +273,7 @@ ${groupTypes}
 
 // Base types for type safety
 export type TrackerEvent = ${Object.keys(eventsData.events).map(k => `'${k}'`).join(' | ')};
-export type TrackerGroup = ${groupsData.map(g => `'${g.name}'`).join(' | ')};
+export type TrackerGroup = ${groupNames};
 
 export type EventProperties<T extends TrackerEvents, E extends TrackerEvent> = T['events'][E]['properties'];
 export type EventMeta<T extends TrackerEvents, E extends TrackerEvent> = T['events'][E]['meta'];
@@ -319,17 +322,23 @@ export function registerGenerateCommand(cli: CLI) {
           const eventsData = eventsResult.data;
 
           // Parse groups files if provided
-          const groupsData = groups?.map((group: string) => {
-            const result = parseSchemaFile(group);
-            if (!result.isValid || !result.data) {
-              console.error(`❌ Failed to parse group file: ${group}`);
-              if (result.errors) {
-                console.error(result.errors.join('\n'));
+          const groupsData: any[] = [];
+          if (groups) {
+            for (const groupFile of groups) {
+              const result = parseSchemaFile(groupFile);
+              if (!result.isValid || !result.data) {
+                console.error(`❌ Failed to parse group file: ${groupFile}`);
+                if (result.errors) {
+                  console.error(result.errors.join('\n'));
+                }
+                process.exit(1);
               }
-              process.exit(1);
+              const data = result.data as { groups?: any[] };
+              if (data.groups) {
+                groupsData.push(...data.groups);
+              }
             }
-            return result.data;
-          }) || [];
+          }
 
           // Parse dimensions files if provided
           const dimensionsData = dimensions?.map((dimension: string) => {
