@@ -189,7 +189,8 @@ function generateTrackingConfig(eventsData: any, groupsData: any[], dimensionsDa
       name: '${group.name}',
       properties: [
 ${propertyEntries}
-      ]${group.identifiedBy ? `,\n      identifiedBy: '${group.identifiedBy}'` : ''}${group.passthrough ? ',\n      passthrough: true' : ''}
+      ]${group.identifiedBy ? `,\n      identifiedBy: '${group.identifiedBy}'` : ''}${group.passthrough ? ',\n      passthrough: true' : ''},
+      meta: {}
     }`;
   }).join(',\n');
 
@@ -206,7 +207,7 @@ ${groupsConfig}
 /**
  * Generates TypeScript interface definitions
  */
-function generateTypes(eventsData: any, groupsData: any[], dimensionsData: any[], disableComments?: boolean, eventKeyPropertyName?: string): string {
+function generateTypes(eventsData: any, groupsData: any[], dimensionsData: any[], metaRules?: any[], disableComments?: boolean, eventKeyPropertyName?: string): string {
   if (!eventsData || !eventsData.events || typeof eventsData.events !== 'object') {
     throw new Error('Invalid events data structure. Expected an object with an "events" property.');
   }
@@ -230,8 +231,30 @@ function generateTypes(eventsData: any, groupsData: any[], dimensionsData: any[]
       properties.push('[key: string]: any');
     }
 
-    // Always add meta as optional Record type
-    const metaType = '\n      meta?: Record<string, string | number | boolean>;';
+        // Generate meta type based on meta rules
+    let metaType = '';
+    if (metaRules && metaRules.length > 0) {
+      const metaProperties = metaRules
+        .filter((rule: any) => !rule.private) // Exclude private meta rules
+        .map((rule: any) => {
+          const type = Array.isArray(rule.type)
+            ? rule.type.map((t: string) => `'${t}'`).join(' | ')
+            : rule.type === 'string' || rule.type === 'number' || rule.type === 'boolean'
+              ? rule.type
+              : `'${rule.type}'`;
+
+          const isOptional = rule.optional && rule.defaultValue === undefined;
+          return `'${rule.name}'${isOptional ? '?' : ''}: ${type}`;
+        });
+
+      if (metaProperties.length > 0) {
+        metaType = `\n      meta: { ${metaProperties.join('; ')} };`;
+      } else {
+        metaType = `\n      meta: {};`;
+      }
+    } else {
+      metaType = `\n      meta: {};`;
+    }
 
     return `    ${key}: {
       name: '${event.name}';
@@ -266,6 +289,29 @@ function generateTypes(eventsData: any, groupsData: any[], dimensionsData: any[]
 
   const groupNames = groupsData?.map(g => `'${g.name}'`).join(' | ') || 'never';
 
+    // Generate meta interface for TrackerEventBase
+  let trackerEventBaseMeta = 'meta: {};';
+  if (metaRules && metaRules.length > 0) {
+    const metaProperties = metaRules
+      .filter((rule: any) => !rule.private) // Exclude private meta rules
+      .map((rule: any) => {
+        const type = Array.isArray(rule.type)
+          ? rule.type.map((t: string) => `'${t}'`).join(' | ')
+          : rule.type === 'string' || rule.type === 'number' || rule.type === 'boolean'
+            ? rule.type
+            : `'${rule.type}'`;
+
+        const isOptional = rule.optional && rule.defaultValue === undefined;
+        return `'${rule.name}'${isOptional ? '?' : ''}: ${type}`;
+      });
+
+    if (metaProperties.length > 0) {
+      trackerEventBaseMeta = `meta: { ${metaProperties.join('; ')} };`;
+    } else {
+      trackerEventBaseMeta = `meta: {};`;
+    }
+  }
+
   return `export interface TrackerEventBase {
   name: string;
   properties?: Array<{
@@ -273,7 +319,7 @@ function generateTypes(eventsData: any, groupsData: any[], dimensionsData: any[]
     type: string | string[];
     optional?: boolean;
   }>;
-  meta?: Record<string, string | number | boolean>;
+  ${trackerEventBaseMeta}
   passthrough?: boolean;
 }
 
@@ -383,7 +429,7 @@ export function registerGenerateCommand(cli: CLI) {
           }
 
           // Generate types and tracking config
-          const types = generateTypes(eventsData, groupsData, dimensionsData, disableComments, eventKeyPropertyName);
+          const types = generateTypes(eventsData, groupsData, dimensionsData, metaRules, disableComments, eventKeyPropertyName);
           const trackingConfig = generateTrackingConfig(eventsData, groupsData, dimensionsData, metaRules, disableComments, eventKeyPropertyName);
 
           // Write output file

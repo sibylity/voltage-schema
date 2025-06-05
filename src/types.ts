@@ -123,7 +123,7 @@ export interface TrackerEvents {
     [K: string]: {
       name: string;
       properties: Record<string, any>;
-      meta?: Record<string, any>;
+      meta: Record<string, any>;
       passthrough?: boolean;
     };
   };
@@ -164,7 +164,7 @@ export interface TrackerOptions<T extends TrackerEvents> {
     eventName: T["events"][E]["name"],
     eventData: {
       properties: { [K in keyof T["events"][E]["properties"]]: T["events"][E]["properties"][K] };
-      meta?: T["events"][E]["meta"];
+      meta: T["events"][E]["meta"];
       groups: { [K in TrackerGroup<T>]: T["groups"][K]["properties"] };
     }
   ) => void | Promise<void>;
