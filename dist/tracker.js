@@ -97,7 +97,7 @@ function createAnalyticsTracker(config, options) {
                 })));
                 onEventTracked(event.name, {
                     properties: resolvedProperties,
-                    meta: event.meta,
+                    meta: (event.meta || {}),
                     groups: Object.fromEntries(resolvedGroups)
                 });
             }

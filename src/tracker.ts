@@ -17,7 +17,7 @@ export interface RuntimeEvent {
     optional?: boolean;
     defaultValue?: any;
   }>;
-  meta?: Record<string, string | number | boolean>;
+  meta: Record<string, string | number | boolean>;
   passthrough?: boolean;
 }
 
@@ -133,7 +133,7 @@ export function createAnalyticsTracker<T extends TrackerEvents>(
 
         onEventTracked(event.name as T["events"][E]["name"], {
           properties: resolvedProperties as T["events"][E]["properties"],
-          meta: event.meta as T["events"][E]["meta"],
+          meta: (event.meta || {}) as T["events"][E]["meta"],
           groups: Object.fromEntries(resolvedGroups) as { [K in TrackerGroup<T>]: T["groups"][K]["properties"] }
         });
       } catch (error) {

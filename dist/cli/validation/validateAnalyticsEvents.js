@@ -63,7 +63,7 @@ function validateEventMeta(event, eventKey, metaRules) {
     else {
         // Check if any required meta fields are missing
         for (const rule of metaRules) {
-            if (!rule.optional) {
+            if (!rule.optional && !rule.defaultValue) {
                 errors.push(`Missing required meta field "${rule.name}" in event "${eventKey}"`);
             }
         }
