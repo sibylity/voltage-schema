@@ -11,7 +11,10 @@
     "events": "node dist/cli/index.js events",
     "generate": "node dist/cli/index.js generate",
     "validate": "node dist/cli/index.js validate",
-    "autodoc": "node dist/cli/index.js autodoc"
+    "autodoc": "node dist/cli/index.js autodoc",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage"
   },
   "exports": {
     "./tracker": "./dist/tracker.js"
@@ -22,10 +25,22 @@
   "keywords": [],
   "author": "Matthew Rheault",
   "license": "ISC",
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "testMatch": ["**/tests/**/*.test.ts"],
+    "collectCoverageFrom": [
+      "src/**/*.ts",
+      "!src/**/*.d.ts"
+    ]
+  },
   "devDependencies": {
+    "@types/jest": "^30.0.0",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^16.18.0",
     "ajv": "^8.17.1",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.4.0",
     "typescript": "^4.9.5"
   },
   "dependencies": {
