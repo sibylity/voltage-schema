@@ -15,7 +15,7 @@
   "author": "Matthew Rheault",
   "license": "ISC",
   "dependencies": {
-    "voltage-schema": "^1.9.1"
+    "voltage-schema": "^1.9.2"
   },
   "devDependencies": {
     "@types/node": "^16.18.0",
