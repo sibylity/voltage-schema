@@ -5,7 +5,6 @@ import { registerDimensionsCommand } from "./commands/dimensions";
 import { registerPropertiesCommand } from "./commands/properties";
 import { registerEventsCommand } from "./commands/events";
 import { registerGenerateCommand } from "./commands/generate";
-import { registerAutodocCommand } from "./commands/autodoc";
 
 const cli = new CLI();
 
@@ -16,7 +15,6 @@ registerDimensionsCommand(cli);
 registerPropertiesCommand(cli);
 registerEventsCommand(cli);
 registerGenerateCommand(cli);
-registerAutodocCommand(cli);
 
 // Parse command line arguments
 cli.parse(process.argv);

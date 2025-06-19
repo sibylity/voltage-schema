@@ -308,16 +308,10 @@ npm voltage properties -- --verbose
 npm voltage dimensions
 npm voltage dimensions -- --include-event-details
 npm voltage dimensions -- --verbose
-```
 
-### Auto-doc Package
-
-For keeping the dependencies of ```voltage-schema``` at a minimum, a separate ```devDependency``` package is provided for ```voltage-autodoc```.
-
-```bash
 # Open the autodoc in your browser, or output it's HTML for CI
-npm voltage-autodoc
-npm voltage-autodoc -- --output-html  # Output HTML instead of starting server
+npm voltage autodoc
+npm voltage autodoc -- --output-html  # Output HTML instead of starting server
 ```
 
 ## License

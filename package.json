@@ -1,34 +1,23 @@
 {
-  "name": "voltage-schema",
-  "version": "1.9.1",
-  "description": "The analytics schema that evolves with your software.",
-  "main": "./dist/cli/index.js",
+  "name": "voltage-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Voltage analytics schema and autodoc tools",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "build": "rm -rf dist/ && tsc && mkdir -p dist/schemas/defaults && cp src/schemas/*.schema.json dist/schemas/ && cp src/schemas/defaults/*.default.json dist/schemas/defaults/ && cp src/tracker.ts dist/tracker.ts && cp src/types.ts dist/types.ts",
-    "init": "node dist/cli/index.js init",
-    "dimensions": "node dist/cli/index.js dimensions",
-    "properties": "node dist/cli/index.js properties",
-    "events": "node dist/cli/index.js events",
-    "generate": "node dist/cli/index.js generate",
-    "validate": "node dist/cli/index.js validate",
-    "autodoc": "node dist/cli/index.js autodoc"
+    "build": "npm run clean --workspaces --if-present && npm run build --workspaces",
+    "test": "npm test --workspaces",
+    "clean": "npm run clean --workspaces",
+    "voltage-schema": "node packages/voltage-schema/dist/cli/index.js",
+    "voltage-autodoc": "node packages/voltage-autodoc/dist/index.js"
   },
-  "exports": {
-    "./tracker": "./dist/tracker.js"
-  },
-  "bin": {
-    "voltage": "./dist/cli/index.js"
-  },
-  "keywords": [],
-  "author": "Matthew Rheault",
-  "license": "ISC",
   "devDependencies": {
-    "@types/js-yaml": "^4.0.9",
-    "@types/node": "^16.18.0",
-    "ajv": "^8.17.1",
-    "typescript": "^4.9.5"
+    "typescript": "^5.0.0",
+    "rimraf": "^5.0.0"
   },
-  "dependencies": {
-    "js-yaml": "^4.1.0"
+  "engines": {
+    "node": ">=16.0.0"
   }
 }
