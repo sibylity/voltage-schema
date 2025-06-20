@@ -308,10 +308,6 @@ npm voltage properties -- --verbose
 npm voltage dimensions
 npm voltage dimensions -- --include-event-details
 npm voltage dimensions -- --verbose
-
-# Open the autodoc in your browser, or output it's HTML for CI
-npm voltage autodoc
-npm voltage autodoc -- --output-html  # Output HTML instead of starting server
 ```
 
 ## License
