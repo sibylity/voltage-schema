@@ -1,4 +1,6 @@
 node_modules/
+packages/voltage-autodoc/node_modules/
+packages/voltage-schema/node_modules/
 .cursor/
 .DS_Store
 .vscode/

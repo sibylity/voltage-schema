@@ -1,17 +1,73 @@
-import { AnalyticsEvent, Property } from '../types/analytics';
-import { getAnalyticsConfig } from './analyticsConfigHelper';
-import { getAllDimensions } from './analyticsDimensionUtils';
-import { getAllEvents } from './analyticsEventUtils';
-import { getAllProperties } from './analyticsPropertyUtils';
-
-export function generateAutodocHtml(): string {
-  const analyticsEvents = getAllEvents({ verbose: true }) as AnalyticsEvent[];
-  const properties = getAllProperties({ verbose: true });
-  const dimensions = getAllDimensions({ verbose: true });
-  const config = getAnalyticsConfig();
-
-  // Generate schema config sections from analytics.config.json
-  const schemaConfigSections = config.generates.map((genConfig, index) => `
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.generateAutodocHtml = void 0;
+const child_process_1 = require("child_process");
+function extractJsonFromOutput(output) {
+    // Find the first '[' or '{' character which should be the start of JSON
+    const lines = output.split('\n');
+    let jsonStartIndex = -1;
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (line.startsWith('[') || line.startsWith('{')) {
+            jsonStartIndex = i;
+            break;
+        }
+    }
+    if (jsonStartIndex === -1) {
+        throw new Error('No JSON found in output');
+    }
+    return lines.slice(jsonStartIndex).join('\n');
+}
+function executeVoltageCommand(command) {
+    const cwd = process.cwd();
+    try {
+        // First try npx voltage
+        return (0, child_process_1.execSync)(`npx voltage ${command}`, { encoding: 'utf8', cwd });
+    }
+    catch (error) {
+        try {
+            // Fallback to direct node_modules access
+            return (0, child_process_1.execSync)(`node node_modules/voltage-schema/dist/cli/index.js ${command}`, { encoding: 'utf8', cwd });
+        }
+        catch (fallbackError) {
+            throw new Error(`Failed to execute voltage command "${command}". Make sure voltage-schema is installed as a dependency.\nOriginal error: ${error}\nFallback error: ${fallbackError}`);
+        }
+    }
+}
+function getDataFromCLI() {
+    try {
+        // Get events data
+        const eventsOutput = executeVoltageCommand("events --verbose");
+        const events = JSON.parse(extractJsonFromOutput(eventsOutput));
+        // Get properties data
+        const propertiesOutput = executeVoltageCommand("properties --verbose");
+        const properties = JSON.parse(extractJsonFromOutput(propertiesOutput));
+        // Get dimensions data
+        const dimensionsOutput = executeVoltageCommand("dimensions --verbose");
+        const dimensions = JSON.parse(extractJsonFromOutput(dimensionsOutput));
+        // Read config file directly (simpler than adding a CLI command for this)
+        const fs = require('fs');
+        const path = require('path');
+        const configPath = path.resolve(process.cwd(), 'voltage.config.js');
+        let config;
+        if (fs.existsSync(configPath)) {
+            delete require.cache[require.resolve(configPath)];
+            config = require(configPath).default || require(configPath);
+        }
+        else {
+            const jsonConfigPath = path.resolve(process.cwd(), 'voltage.config.json');
+            config = JSON.parse(fs.readFileSync(jsonConfigPath, 'utf8'));
+        }
+        return { events, properties, dimensions, config };
+    }
+    catch (error) {
+        throw new Error(`Failed to get data from voltage-schema CLI: ${error}`);
+    }
+}
+function generateAutodocHtml() {
+    const { events, properties, dimensions, config } = getDataFromCLI();
+    // Generate schema config sections from analytics.config.json
+    const schemaConfigSections = config.generates.map((genConfig, index) => `
     <div class="schema-config" id="config-${index}">
       <div class="schema-config-header" onclick="toggleConfig(${index})">
         <div class="schema-config-title">Schema Config ${index + 1}</div>
@@ -73,8 +129,7 @@ export function generateAutodocHtml(): string {
       </div>
     </div>
   `).join('');
-
-  return `
+    return `
      <!DOCTYPE html>
      <html>
        <head>
@@ -1011,7 +1066,7 @@ export function generateAutodocHtml(): string {
          <script>
            // Initialize state with all data
            window.state = {
-             events: ${JSON.stringify(analyticsEvents)},
+             events: ${JSON.stringify(events)},
              properties: ${JSON.stringify(properties)},
              dimensions: ${JSON.stringify(dimensions)},
              filters: {
@@ -1721,3 +1776,5 @@ export function generateAutodocHtml(): string {
      </html>
    `;
 }
+exports.generateAutodocHtml = generateAutodocHtml;
+//# sourceMappingURL=autodoc.js.map

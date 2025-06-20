@@ -1,0 +1,27 @@
+{
+  "name": "voltage-autodoc",
+  "version": "1.0.0",
+  "description": "Auto-documentation generator for Voltage analytics schemas",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "rm -rf dist/ && tsc",
+    "clean": "rm -rf dist/",
+    "cli": "node dist/index.js"
+  },
+  "bin": {
+    "voltage-autodoc": "./dist/index.js"
+  },
+  "keywords": ["analytics", "documentation", "voltage", "autodoc"],
+  "author": "Matthew Rheault",
+  "license": "ISC",
+  "dependencies": {
+    "voltage-schema": "^1.9.2"
+  },
+  "devDependencies": {
+    "@types/node": "^16.18.0",
+    "typescript": "^4.9.5"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}
