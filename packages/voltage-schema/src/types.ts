@@ -118,7 +118,7 @@ export interface Event {
 }
 
 // Runtime Types
-export interface TrackerEvents {
+export interface AnalyticsSchema {
   events: {
     [K: string]: {
       name: string;
@@ -137,17 +137,17 @@ export interface TrackerEvents {
   };
 }
 
-export type TrackerEvent<T extends TrackerEvents> = keyof T["events"];
-export type TrackerGroup<T extends TrackerEvents> = keyof T["groups"];
+export type TrackerEvent<T extends AnalyticsSchema> = keyof T["events"];
+export type TrackerGroup<T extends AnalyticsSchema> = keyof T["groups"];
 
-export type EventProperties<T extends TrackerEvents, E extends TrackerEvent<T>> = T["events"][E]["properties"];
-export type EventMeta<T extends TrackerEvents, E extends TrackerEvent<T>> = T["events"][E]["meta"];
-export type GroupProperties<T extends TrackerEvents, G extends TrackerGroup<T>> = T["groups"][G]["properties"];
+export type EventProperties<T extends AnalyticsSchema, E extends TrackerEvent<T>> = T["events"][E]["properties"];
+export type EventMeta<T extends AnalyticsSchema, E extends TrackerEvent<T>> = T["events"][E]["meta"];
+export type GroupProperties<T extends AnalyticsSchema, G extends TrackerGroup<T>> = T["groups"][G]["properties"];
 
 // Helper type to determine if an event has properties
-export type HasProperties<T extends TrackerEvents, E extends TrackerEvent<T>> = EventProperties<T, E> extends Record<string, never> ? false : true;
+export type HasProperties<T extends AnalyticsSchema, E extends TrackerEvent<T>> = EventProperties<T, E> extends Record<string, never> ? false : true;
 
-export interface AnalyticsTracker<T extends TrackerEvents> {
+export interface AnalyticsTracker<T extends AnalyticsSchema> {
   track: <E extends TrackerEvent<T>>(
     eventKey: E,
     ...args: HasProperties<T, E> extends true ? [eventProperties: EventProperties<T, E>] : []
@@ -159,7 +159,7 @@ export interface AnalyticsTracker<T extends TrackerEvents> {
   getProperties: () => { [K in TrackerGroup<T>]: T["groups"][K]["properties"] };
 }
 
-export interface TrackerOptions<T extends TrackerEvents> {
+export interface TrackerOptions<T extends AnalyticsSchema> {
   onEventTracked: <E extends TrackerEvent<T>>(
     eventName: T["events"][E]["name"],
     eventData: {
