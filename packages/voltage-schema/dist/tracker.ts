@@ -1,6 +1,6 @@
 import type {
   AnalyticsTracker,
-  TrackerEvents,
+  AnalyticsSchema,
   TrackerEvent,
   EventProperties,
   TrackerOptions,
@@ -21,7 +21,7 @@ export interface RuntimeEvent {
   passthrough?: boolean;
 }
 
-export interface TrackerContext<T extends TrackerEvents> {
+export interface TrackerContext<T extends AnalyticsSchema> {
   events: Record<string, RuntimeEvent>;
   groups: Record<string, RuntimeEvent>;
 }
@@ -71,7 +71,7 @@ async function resolveProperties<T extends Record<string, any>>(properties: T): 
   }
 }
 
-export function createAnalyticsTracker<T extends TrackerEvents>(
+export function createAnalyticsTracker<T extends AnalyticsSchema>(
   config: TrackerContext<T>,
   options: TrackerOptions<T>
 ): AnalyticsTracker<T> {

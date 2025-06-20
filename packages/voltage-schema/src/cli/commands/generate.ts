@@ -323,7 +323,7 @@ function generateTypes(eventsData: any, groupsData: any[], dimensionsData: any[]
   passthrough?: boolean;
 }
 
-export interface TrackerEvents {
+export interface AnalyticsSchema {
   events: {
 ${eventTypes}
   };
@@ -336,14 +336,14 @@ ${groupTypes}
 export type TrackerEvent = ${Object.keys(eventsData.events).map(k => `'${k}'`).join(' | ')};
 export type TrackerGroup = ${groupNames};
 
-export type EventProperties<T extends TrackerEvents, E extends TrackerEvent> = T['events'][E]['properties'];
-export type EventMeta<T extends TrackerEvents, E extends TrackerEvent> = T['events'][E]['meta'];
-export type GroupProperties<T extends TrackerEvents, G extends TrackerGroup> = T['groups'][G]['properties'];
+export type EventProperties<T extends AnalyticsSchema, E extends TrackerEvent> = T['events'][E]['properties'];
+export type EventMeta<T extends AnalyticsSchema, E extends TrackerEvent> = T['events'][E]['meta'];
+export type GroupProperties<T extends AnalyticsSchema, G extends TrackerGroup> = T['groups'][G]['properties'];
 
 // Helper type to determine if an event has properties
-type HasProperties<T extends TrackerEvents, E extends TrackerEvent> = EventProperties<T, E> extends Record<string, never> ? false : true;
+type HasProperties<T extends AnalyticsSchema, E extends TrackerEvent> = EventProperties<T, E> extends Record<string, never> ? false : true;
 
-export interface AnalyticsTracker<T extends TrackerEvents> {
+export interface AnalyticsTracker<T extends AnalyticsSchema> {
   track: <E extends TrackerEvent>(
     eventKey: E,
     ...args: HasProperties<T, E> extends true ? [eventProperties: EventProperties<T, E>] : []
