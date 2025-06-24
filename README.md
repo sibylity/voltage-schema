@@ -255,11 +255,11 @@ dimensions:
 ## Using the tracker
 
 ```typescript
-import { AnalyticsTracker, TrackerEvents, TrackerOptions, trackingConfig } from './__analytics_generated__/analytics';
+import { AnalyticsSchema, trackingConfig } from './__analytics_generated__/analytics';
 import { createAnalyticsTracker } from 'voltage-schema';
 
 // Create a tracker instance
-const tracker: AnalyticsTracker<TrackerEvents> = createAnalyticsTracker<TrackerEvents>(trackingConfig, {
+const tracker = createAnalyticsTracker<AnalyticsSchema>(trackingConfig, {
   // Required callback to send events
   onEventTracked: (eventName, eventProperties, groupProperties) => {
     // Send the event to your analytics service
@@ -267,7 +267,7 @@ const tracker: AnalyticsTracker<TrackerEvents> = createAnalyticsTracker<TrackerE
   onGroupUpdated: (groupName, properties) => {
     // Send the group traits to your analytics service
   },
-} as TrackerOptions<GeneratedTrackerEvents>);
+});
 
 // Set group properties
 tracker.setProperties('User', {
