@@ -255,7 +255,7 @@ dimensions:
 ## Using the tracker
 
 ```typescript
-import { AnalyticsTracker, AnalyticsSchema, TrackerOptions, trackingConfig } from './__analytics_generated__/analytics';
+import { AnalyticsSchema, trackingConfig } from './__analytics_generated__/analytics';
 import { createAnalyticsTracker } from 'voltage-schema';
 
 // Create a tracker instance
