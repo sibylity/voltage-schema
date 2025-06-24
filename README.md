@@ -259,7 +259,7 @@ import { AnalyticsSchema, trackingConfig } from './__analytics_generated__/analy
 import { createAnalyticsTracker } from 'voltage-schema';
 
 // Create a tracker instance
-const tracker: AnalyticsTracker<AnalyticsSchema> = createAnalyticsTracker<AnalyticsSchema>(trackingConfig, {
+const tracker = createAnalyticsTracker<AnalyticsSchema>(trackingConfig, {
   // Required callback to send events
   onEventTracked: (eventName, eventProperties, groupProperties) => {
     // Send the event to your analytics service
