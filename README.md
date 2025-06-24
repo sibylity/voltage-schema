@@ -267,7 +267,7 @@ const tracker: AnalyticsTracker<AnalyticsSchema> = createAnalyticsTracker<Analyt
   onGroupUpdated: (groupName, properties) => {
     // Send the group traits to your analytics service
   },
-} as TrackerOptions<GeneratedAnalyticsSchema>);
+});
 
 // Set group properties
 tracker.setProperties('User', {
