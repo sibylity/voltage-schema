@@ -10,7 +10,7 @@ const fileValidation_1 = require("../validation/fileValidation");
 function getAnalyticsConfig() {
     const cwd = process.cwd();
     const jsConfigPath = path_1.default.resolve(cwd, "voltage.config.js");
-    const jsonConfigPath = path_1.default.resolve(cwd, "voltage.config.json");
+    const jsonConfigPath = path_1.default.resolve(cwd, "voltage.config.js");
     let config;
     if (fs_1.default.existsSync(jsConfigPath)) {
         // eslint-disable-next-line @typescript-eslint/no-var-requires
@@ -20,7 +20,7 @@ function getAnalyticsConfig() {
         config = JSON.parse(fs_1.default.readFileSync(jsonConfigPath, "utf8"));
     }
     else {
-        throw new Error("No voltage.config.js or voltage.config.json found. Run 'npm voltage init' to create it.");
+        throw new Error("No voltage.config.js or voltage.config.js found. Run 'npm voltage init' to create it.");
     }
     if (!config) {
         throw new Error("Failed to load voltage config. No valid config found or config is empty.");

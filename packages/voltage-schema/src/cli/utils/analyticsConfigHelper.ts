@@ -6,7 +6,7 @@ import { parseSchemaFile } from "../validation/fileValidation";
 export function getAnalyticsConfig(): AnalyticsConfig {
   const cwd = process.cwd();
   const jsConfigPath = path.resolve(cwd, "voltage.config.js");
-  const jsonConfigPath = path.resolve(cwd, "voltage.config.json");
+  const jsonConfigPath = path.resolve(cwd, "voltage.config.js");
 
   let config: AnalyticsConfig | undefined;
 
@@ -16,7 +16,7 @@ export function getAnalyticsConfig(): AnalyticsConfig {
   } else if (fs.existsSync(jsonConfigPath)) {
     config = JSON.parse(fs.readFileSync(jsonConfigPath, "utf8"));
   } else {
-    throw new Error("No voltage.config.js or voltage.config.json found. Run 'npm voltage init' to create it.");
+    throw new Error("No voltage.config.js or voltage.config.js found. Run 'npm voltage init' to create it.");
   }
 
   if (!config) {
