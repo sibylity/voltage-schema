@@ -133,7 +133,7 @@ export function generateAutodocHtml(): string {
 
   // Generate schema config sections from analytics.config.json
   const schemaConfigSections = config.generates.map((genConfig, index) => `
-    <div class="schema-config" id="config-${index}">
+    <div class="schema-config collapsed" id="config-${index}">
       <div class="schema-config-header" onclick="toggleConfig(${index})">
         <div class="schema-config-title">Schema Config ${index + 1}</div>
         <div class="schema-config-toggle">
@@ -260,10 +260,9 @@ export function generateAutodocHtml(): string {
              color: #ffffff;
            }
 
-           .logo svg {
-             width: 1.5rem;
-             height: 1.5rem;
-             color: var(--primary-color);
+           .logo img {
+             height: 40px;
+             width: auto;
            }
 
            .external-link {
@@ -536,6 +535,7 @@ export function generateAutodocHtml(): string {
              box-shadow: var(--shadow-sm);
              transition: all 0.15s ease;
              height: 40px;
+             position: relative;
            }
 
            .search-bar:focus-within {
@@ -549,6 +549,31 @@ export function generateAutodocHtml(): string {
              width: 100%;
              font-size: 0.875rem;
              background: transparent;
+             padding-right: 2.5rem;
+           }
+
+           .search-clear {
+             position: absolute;
+             right: 0.5rem;
+             top: 50%;
+             transform: translateY(-50%);
+             width: 2rem;
+             height: 2rem;
+             border: none;
+             background: white;
+             border-radius: 50%;
+             cursor: pointer;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             color: var(--text-secondary);
+             transition: all 0.15s ease;
+             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+           }
+
+           .search-clear:hover {
+             background: var(--bg-secondary);
+             color: var(--text-primary);
            }
 
            .container {
@@ -1044,18 +1069,8 @@ export function generateAutodocHtml(): string {
        </head>
        <body>
          <aside class="sidebar">
-           <div class="logo">
-             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-               <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" fill="currentColor"/>
-             </svg>
-             <span>Voltage</span>
-           </div>
-
-           <a href="https://github.com/sibylity/voltage-schema" target="_blank" rel="noopener" class="external-link">
-             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-               <path d="M8.5 2h5v5m0-5l-7 7m3-6h-6a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-             </svg>
-             API Documentation
+           <a class="logo" href="https://voltage-schema.com" target="_blank" rel="noopener">
+             <img src="https://img.voltage-schema.com/voltage-logo-dark.png" alt="Voltage" />
            </a>
 
            <div class="info-callout">
@@ -1101,6 +1116,11 @@ export function generateAutodocHtml(): string {
                    </div>
                    <div class="search-bar">
                      <input type="text" placeholder="Search..." id="searchInput">
+                     <button class="search-clear" id="searchClear" onclick="clearSearch()" style="display: none;">
+                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                         <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                       </svg>
+                     </button>
                    </div>
                  </div>
                </div>
@@ -1130,13 +1150,14 @@ export function generateAutodocHtml(): string {
          </main>
 
          <script>
-           // Initialize state with all data
+           // Initialize state with all data and URL parameters
+           const urlParams = getUrlSearchParams();
            window.state = {
              events: ${JSON.stringify(events)},
              properties: ${JSON.stringify(properties)},
              dimensions: ${JSON.stringify(dimensions)},
              filters: {
-               search: '',
+               search: urlParams.search,
                dimension: '',
                activeFilters: new Set()
              },
@@ -1157,6 +1178,56 @@ export function generateAutodocHtml(): string {
              option.textContent = String(dim);
              dimensionFilter?.appendChild(option);
            });
+
+           // URL parameter management
+           function getUrlSearchParams() {
+             const params = new URLSearchParams(window.location.search);
+             return {
+               search: params.get('search') || ''
+             };
+           }
+
+           function updateUrlSearchParams(params) {
+             const url = new URL(window.location);
+             if (params.search) {
+               url.searchParams.set('search', params.search);
+             } else {
+               url.searchParams.delete('search');
+             }
+             window.history.replaceState({}, '', url);
+           }
+
+           // Search clear functionality
+           function updateSearchClearVisibility() {
+             const searchClear = document.getElementById('searchClear');
+             if (searchClear) {
+               if (window.state.filters.search) {
+                 searchClear.style.display = 'flex';
+               } else {
+                 searchClear.style.display = 'none';
+               }
+             }
+           }
+
+           window.clearSearch = function() {
+             const searchInput = document.getElementById('searchInput');
+             if (searchInput instanceof HTMLInputElement) {
+               searchInput.value = '';
+               window.state.filters.search = '';
+               updateUrlSearchParams({ search: '' });
+               updateSearchClearVisibility();
+
+               const activeContent = document.querySelector('.content.active');
+               if (activeContent?.id === 'eventsContent') {
+                 window.filterAndRenderEvents();
+               } else if (activeContent?.id === 'propertiesContent') {
+                 renderProperties();
+               } else if (activeContent?.id === 'dimensionsContent') {
+                 renderDimensions();
+               }
+               updateCounts();
+             }
+           };
 
            // Toggle config sections
            window.toggleConfig = function(index) {
@@ -1618,6 +1689,8 @@ export function generateAutodocHtml(): string {
              if (searchInput instanceof HTMLInputElement) {
                searchInput.value = '';
                window.state.filters.search = '';
+               updateUrlSearchParams({ search: '' });
+               updateSearchClearVisibility();
              }
 
              // Render appropriate content
@@ -1752,11 +1825,21 @@ export function generateAutodocHtml(): string {
              }
            };
 
+           // Set initial search input value from URL parameters
+           const searchInput = document.getElementById('searchInput');
+           if (searchInput instanceof HTMLInputElement && window.state.filters.search) {
+             searchInput.value = window.state.filters.search;
+           }
+           // Update clear button visibility on initial load
+           updateSearchClearVisibility();
+
            // Event listeners
            document.getElementById('searchInput')?.addEventListener('input', (e) => {
              const target = e.currentTarget;
              if (target instanceof HTMLInputElement) {
                window.state.filters.search = target.value;
+               updateUrlSearchParams({ search: target.value });
+               updateSearchClearVisibility();
                const activeContent = document.querySelector('.content.active');
                if (activeContent?.id === 'eventsContent') {
                  window.filterAndRenderEvents();
