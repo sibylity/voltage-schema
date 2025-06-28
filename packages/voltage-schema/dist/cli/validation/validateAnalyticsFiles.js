@@ -22,7 +22,7 @@ function validateAnalyticsFiles() {
         configPath = jsConfigPath;
     }
     else {
-        console.error("❌ No voltage.config.js or voltage.config.json found. Run 'npm voltage init' to create it.");
+        console.error("❌ No voltage.config.js found. Run 'npm voltage init' to create it.");
         return false;
     }
     console.log(`🔍 Validating ${configPath}...`);
