@@ -55,8 +55,8 @@ function getDataFromCLI() {
             config = require(configPath).default || require(configPath);
         }
         else {
-            const jsonConfigPath = path.resolve(process.cwd(), 'voltage.config.json');
-            config = JSON.parse(fs.readFileSync(jsonConfigPath, 'utf8'));
+            const jsConfigPath = path.resolve(process.cwd(), 'voltage.config.js');
+            config = JSON.parse(fs.readFileSync(jsConfigPath, 'utf8'));
         }
         return { events, properties, dimensions, config };
     }

@@ -27,7 +27,7 @@ export function registerInitCommand(cli: CLI) {
         console.log(`✅ Created ${dest}`);
       });
 
-      // Generate voltage.config.js instead of voltage.config.json
+      // Generate voltage.config.js instead of voltage.config.js
       const configPath = path.resolve(process.cwd(), "voltage.config.js");
       if (fs.existsSync(configPath) && !options.reset) {
         console.log("ℹ️ voltage.config.js already exists. Use --reset to overwrite.");

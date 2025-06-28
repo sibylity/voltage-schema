@@ -17,13 +17,9 @@ function validateAnalyticsFiles() {
     var _a, _b, _c, _d, _e;
     const cwd = process.cwd();
     const jsConfigPath = path_1.default.resolve(cwd, "voltage.config.js");
-    const jsonConfigPath = path_1.default.resolve(cwd, "voltage.config.json");
     let configPath;
     if (fs_1.default.existsSync(jsConfigPath)) {
         configPath = jsConfigPath;
-    }
-    else if (fs_1.default.existsSync(jsonConfigPath)) {
-        configPath = jsonConfigPath;
     }
     else {
         console.error("❌ No voltage.config.js or voltage.config.json found. Run 'npm voltage init' to create it.");

@@ -28,7 +28,7 @@ function registerInitCommand(cli) {
             fs_1.default.copyFileSync(src, destPath);
             console.log(`✅ Created ${dest}`);
         });
-        // Generate voltage.config.js instead of voltage.config.json
+        // Generate voltage.config.js instead of voltage.config.js
         const configPath = path_1.default.resolve(process.cwd(), "voltage.config.js");
         if (fs_1.default.existsSync(configPath) && !options.reset) {
             console.log("ℹ️ voltage.config.js already exists. Use --reset to overwrite.");

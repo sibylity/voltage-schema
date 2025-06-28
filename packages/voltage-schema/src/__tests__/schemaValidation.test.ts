@@ -60,9 +60,9 @@ describe('Schema Validation Integration Tests', () => {
     test('should validate valid events schema', () => {
       const dimensionNames = ['Free', 'Paid', 'Trial'];
       const metaRules = validMetaSchema.meta;
-      
+
       const result = validateEvents(eventsPath, dimensionNames, true, metaRules);
-      
+
       expect(result.isValid).toBe(true);
       expect(result.data).toBeDefined();
       expect(result.data?.events).toBeDefined();
@@ -73,7 +73,7 @@ describe('Schema Validation Integration Tests', () => {
 
     test('should validate valid groups schema', () => {
       const result = validateGroups(groupsPath, eventsPath);
-      
+
       expect(result.isValid).toBe(true);
       expect(result.data).toBeDefined();
       expect(result.data?.groups).toBeDefined();
@@ -84,7 +84,7 @@ describe('Schema Validation Integration Tests', () => {
 
     test('should validate valid dimensions schema', () => {
       const result = validateDimensions(dimensionsPath, eventsPath);
-      
+
       expect(result.isValid).toBe(true);
       expect(result.data).toBeDefined();
       expect(result.data?.dimensions).toBeDefined();
@@ -94,7 +94,7 @@ describe('Schema Validation Integration Tests', () => {
 
     test('should validate valid meta schema', () => {
       const result = validateMeta(metaPath);
-      
+
       expect(result.isValid).toBe(true);
       expect(result.data).toBeDefined();
       expect(result.data?.meta).toBeDefined();
@@ -104,7 +104,7 @@ describe('Schema Validation Integration Tests', () => {
 
     test('should validate valid config schema', () => {
       const result = validateAnalyticsConfig(configPath, { filePath: configPath });
-      
+
       expect(result.isValid).toBe(true);
       expect(result.errors).toBeUndefined();
     });
@@ -113,9 +113,9 @@ describe('Schema Validation Integration Tests', () => {
   describe('Invalid Schema Validation', () => {
     test('should reject events schema missing required name field', () => {
       fs.writeFileSync(eventsPath, JSON.stringify(invalidEventsSchema, null, 2));
-      
+
       const result = validateEvents(eventsPath, ['Free', 'Paid'], true, []);
-      
+
       expect(result.isValid).toBe(false);
       expect(result.errors).toBeDefined();
       expect(result.errors?.length).toBeGreaterThan(0);
@@ -134,11 +134,11 @@ describe('Schema Validation Integration Tests', () => {
           }
         }
       };
-      
+
       fs.writeFileSync(eventsPath, JSON.stringify(schemaWithDuplicateProps, null, 2));
-      
+
       const result = validateEvents(eventsPath, [], true, []);
-      
+
       expect(result.isValid).toBe(false);
       expect(result.errors).toBeDefined();
       expect(result.errors?.some(error => error.includes('Duplicate property name'))).toBe(true);
@@ -157,11 +157,11 @@ describe('Schema Validation Integration Tests', () => {
           }
         }
       };
-      
+
       fs.writeFileSync(eventsPath, JSON.stringify(schemaWithBadDimensions, null, 2));
-      
+
       const result = validateEvents(eventsPath, ['Free', 'Paid'], true, []);
-      
+
       expect(result.isValid).toBe(false);
       expect(result.errors).toBeDefined();
       expect(result.errors?.some(error => error.includes('does not exist'))).toBe(true);
@@ -180,7 +180,7 @@ describe('Schema Validation Integration Tests', () => {
           }
         }
       };
-      
+
       const metaRules = [
         {
           name: "Source",
@@ -189,11 +189,11 @@ describe('Schema Validation Integration Tests', () => {
           optional: false
         }
       ];
-      
+
       fs.writeFileSync(eventsPath, JSON.stringify(schemaWithBadMeta, null, 2));
-      
+
       const result = validateEvents(eventsPath, [], true, metaRules);
-      
+
       expect(result.isValid).toBe(false);
       expect(result.errors).toBeDefined();
       expect(result.errors?.some(error => error.includes('Unknown meta field'))).toBe(true);
@@ -201,9 +201,9 @@ describe('Schema Validation Integration Tests', () => {
 
     test('should reject invalid config schema', () => {
       fs.writeFileSync(configPath, JSON.stringify(invalidConfigSchema, null, 2));
-      
+
       const result = validateAnalyticsConfig(configPath, { filePath: configPath });
-      
+
       expect(result.isValid).toBe(false);
       expect(result.errors).toBeDefined();
       expect(result.errors?.length).toBeGreaterThan(0);
@@ -214,14 +214,14 @@ describe('Schema Validation Integration Tests', () => {
     test('should create validator from schema file', () => {
       const schemaPath = path.resolve(__dirname, '../schemas/analytics.events.schema.json');
       const validator = createValidator(schemaPath);
-      
+
       expect(validator).toBeDefined();
       expect(typeof validator).toBe('function');
-      
+
       // Test with valid data
       const isValid = validator(validEventsSchema);
       expect(isValid).toBe(true);
-      
+
       // Test with invalid data
       const isInvalid = validator({ invalid: "data" });
       expect(isInvalid).toBe(false);
@@ -248,13 +248,13 @@ describe('Schema Validation Integration Tests', () => {
           }
         }
       };
-      
+
       fs.writeFileSync(eventsPath, JSON.stringify(eventsWithoutMeta, null, 2));
       fs.writeFileSync(dimensionsPath, JSON.stringify(validDimensionsSchema, null, 2));
-      
+
       const dimensionNames = validDimensionsSchema.dimensions.map(d => d.name);
       const result = validateEvents(eventsPath, dimensionNames, true, []);
-      
+
       expect(result.isValid).toBe(true);
     });
 
@@ -270,14 +270,14 @@ describe('Schema Validation Integration Tests', () => {
           }
         }
       };
-      
+
       fs.writeFileSync(eventsPath, JSON.stringify(eventsWithBadDimensions, null, 2));
-      
+
       const dimensionNames = ['Free', 'Paid'];
       const result = validateEvents(eventsPath, dimensionNames, true, []);
-      
+
       expect(result.isValid).toBe(false);
       expect(result.errors?.some(error => error.includes('does not exist'))).toBe(true);
     });
   });
-}); 
+});

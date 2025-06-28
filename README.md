@@ -32,7 +32,7 @@ Voltage supports multiple file extensions for schema files:
 - `.yaml` or `.yml` - Standard YAML format
 - `.json` - JSON format
 
-The `voltage.config.json` file must use the `.json` extension.
+The `voltage.config.js` file must use the `.js` extension.
 
 ### 1. Configure Your Analytics Codegen
 

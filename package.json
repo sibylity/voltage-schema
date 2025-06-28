@@ -1,6 +1,6 @@
 {
   "name": "voltage-workspace",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "private": true,
   "description": "Voltage analytics schema and autodoc tools",
   "workspaces": [

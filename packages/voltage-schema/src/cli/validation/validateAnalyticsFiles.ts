@@ -12,13 +12,10 @@ import { type AnalyticsConfig } from "../../types";
 export function validateAnalyticsFiles(): boolean {
   const cwd = process.cwd();
   const jsConfigPath = path.resolve(cwd, "voltage.config.js");
-  const jsonConfigPath = path.resolve(cwd, "voltage.config.json");
 
   let configPath: string;
   if (fs.existsSync(jsConfigPath)) {
     configPath = jsConfigPath;
-  } else if (fs.existsSync(jsonConfigPath)) {
-    configPath = jsonConfigPath;
   } else {
     console.error("❌ No voltage.config.js or voltage.config.json found. Run 'npm voltage init' to create it.");
     return false;
