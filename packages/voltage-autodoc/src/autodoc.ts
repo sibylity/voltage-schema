@@ -736,6 +736,7 @@ export function generateAutodocHtml(): string {
              color: var(--text-secondary);
              font-size: 0.8125rem;
              margin-bottom: 0.5rem;
+             margin-right: 0.25rem;
              padding: 0.25rem 0.75rem;
              background: var(--bg-secondary);
              border-radius: 1rem;
@@ -1183,18 +1184,37 @@ export function generateAutodocHtml(): string {
            function getUrlSearchParams() {
              const params = new URLSearchParams(window.location.search);
              return {
-               search: params.get('search') || ''
+               search: params.get('search') || '',
+               tab: params.get('tab') || 'events'
              };
            }
 
            function updateUrlSearchParams(params) {
              const url = new URL(window.location);
-             if (params.search) {
-               url.searchParams.set('search', params.search);
-             } else {
-               url.searchParams.delete('search');
+             if (params.search !== undefined) {
+               if (params.search) {
+                 url.searchParams.set('search', params.search);
+               } else {
+                 url.searchParams.delete('search');
+               }
+             }
+             if (params.tab !== undefined) {
+               if (params.tab && params.tab !== 'events') {
+                 url.searchParams.set('tab', params.tab);
+               } else {
+                 url.searchParams.delete('tab');
+               }
              }
              window.history.replaceState({}, '', url);
+           }
+
+           // Format property types to add spaces after commas for readability
+           function formatPropertyType(type) {
+             if (Array.isArray(type)) {
+               // Handle arrays by joining with ", " (e.g., ["admin","member"] -> "admin, member")
+               return type.join(', ');
+             }
+             return String(type);
            }
 
            // Search clear functionality
@@ -1332,7 +1352,7 @@ export function generateAutodocHtml(): string {
 
                    return '<div class="property">' +
                      '<div class="property-name">' + source.name + '</div>' +
-                     '<div class="property-type">' + source.type + '</div>' +
+                     '<div class="property-type">' + formatPropertyType(source.type) + '</div>' +
                      (prop.description ? '<div class="property-description">' + prop.description + '</div>' : '') +
                      (source.defaultValue ? '<div class="property-default">Default: ' + source.defaultValue + '</div>' : '') +
                      '</div>';
@@ -1343,7 +1363,7 @@ export function generateAutodocHtml(): string {
                      '<div class="event-summary-left">' +
                        '<div class="event-basic-info">' +
                          '<div class="event-name">' + prop.property + '</div>' +
-                         '<div class="event-key">' + prop.types.join(' | ') + '</div>' +
+                         '<div class="event-key">' + prop.types.map(formatPropertyType).join(' | ') + '</div>' +
                        '</div>' +
                      '</div>' +
                      '<div class="event-stat">' +
@@ -1398,7 +1418,7 @@ export function generateAutodocHtml(): string {
                    '<div class="section-title">Events</div>' +
                    '<div class="property-list">' +
                      Object.entries(groupEventsByName(dim.eventDetails))
-                       .map(([eventName, events]) => renderEventGroup(eventName, events, dim.dimension, true))
+                       .map(([eventName, events]) => renderEventGroup(eventName, events, dim.dimension, false))
                        .join('') +
                    '</div>' : '';
 
@@ -1454,7 +1474,7 @@ export function generateAutodocHtml(): string {
                      : '';
                    return '<div class="property">' +
                      '<div class="property-name">' + prop.name + '</div>' +
-                     '<div class="property-type">' + prop.type + '</div>' +
+                     '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                      descriptionHtml +
                      (prop.defaultValue ? '<div class="property-default">Default: ' + prop.defaultValue + '</div>' : '') +
                      '</div>';
@@ -1470,7 +1490,7 @@ export function generateAutodocHtml(): string {
                      : '';
                    return '<div class="property">' +
                      '<div class="property-name">' + prop.name + '</div>' +
-                     '<div class="property-type">' + prop.type + '</div>' +
+                     '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                      '<div class="property-source">From ' + prop.groupName + '</div>' +
                      descriptionHtml +
                      '</div>';
@@ -1572,7 +1592,7 @@ export function generateAutodocHtml(): string {
                              : '';
                            return '<div class="property">' +
                              '<div class="property-name">' + prop.name + '</div>' +
-                             '<div class="property-type">' + prop.type + '</div>' +
+                             '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                              descriptionHtml +
                              (prop.defaultValue ? '<div class="property-default">Default: ' + prop.defaultValue + '</div>' : '') +
                              '</div>';
@@ -1598,7 +1618,7 @@ export function generateAutodocHtml(): string {
                              : '';
                            return '<div class="property">' +
                              '<div class="property-name">' + prop.name + '</div>' +
-                             '<div class="property-type">' + prop.type + '</div>' +
+                             '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                              '<div class="property-source">From ' + prop.groupName + '</div>' +
                              descriptionHtml +
                              '</div>';
@@ -1666,6 +1686,9 @@ export function generateAutodocHtml(): string {
                  item.classList.add('active');
                }
              });
+
+             // Update tab URL parameter
+             updateUrlSearchParams({ tab: section });
 
              // Scroll to top before switching content
              window.scrollTo(0, 0);
@@ -1832,6 +1855,40 @@ export function generateAutodocHtml(): string {
            }
            // Update clear button visibility on initial load
            updateSearchClearVisibility();
+
+           // Set initial tab from URL parameters
+           const initialTab = urlParams.tab;
+           if (initialTab && ['events', 'properties', 'dimensions'].includes(initialTab)) {
+             // Don't trigger showContent as it would clear search - just update the UI
+             document.querySelectorAll('.nav-item').forEach(item => {
+               item.classList.remove('active');
+               if (item.textContent.toLowerCase() === initialTab) {
+                 item.classList.add('active');
+               }
+             });
+
+             document.querySelectorAll('.content').forEach(content => {
+               content.classList.remove('active');
+             });
+             document.getElementById(initialTab + 'Content').classList.add('active');
+
+             // Update controls visibility
+             const eventControls = document.getElementById('eventControls');
+             if (initialTab === 'events') {
+               eventControls.style.display = 'flex';
+             } else {
+               eventControls.style.display = 'none';
+             }
+
+             // Render appropriate content
+             if (initialTab === 'events') {
+               window.filterAndRenderEvents();
+             } else if (initialTab === 'properties') {
+               renderProperties();
+             } else if (initialTab === 'dimensions') {
+               renderDimensions();
+             }
+           }
 
            // Event listeners
            document.getElementById('searchInput')?.addEventListener('input', (e) => {
