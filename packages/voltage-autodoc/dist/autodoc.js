@@ -68,7 +68,7 @@ function generateAutodocHtml() {
     const { events, properties, dimensions, config } = getDataFromCLI();
     // Generate schema config sections from analytics.config.json
     const schemaConfigSections = config.generates.map((genConfig, index) => `
-    <div class="schema-config" id="config-${index}">
+    <div class="schema-config collapsed" id="config-${index}">
       <div class="schema-config-header" onclick="toggleConfig(${index})">
         <div class="schema-config-title">Schema Config ${index + 1}</div>
         <div class="schema-config-toggle">
@@ -194,10 +194,9 @@ function generateAutodocHtml() {
              color: #ffffff;
            }
 
-           .logo svg {
-             width: 1.5rem;
-             height: 1.5rem;
-             color: var(--primary-color);
+           .logo img {
+             height: 40px;
+             width: auto;
            }
 
            .external-link {
@@ -470,6 +469,7 @@ function generateAutodocHtml() {
              box-shadow: var(--shadow-sm);
              transition: all 0.15s ease;
              height: 40px;
+             position: relative;
            }
 
            .search-bar:focus-within {
@@ -483,6 +483,31 @@ function generateAutodocHtml() {
              width: 100%;
              font-size: 0.875rem;
              background: transparent;
+             padding-right: 2.5rem;
+           }
+
+           .search-clear {
+             position: absolute;
+             right: 0.5rem;
+             top: 50%;
+             transform: translateY(-50%);
+             width: 2rem;
+             height: 2rem;
+             border: none;
+             background: white;
+             border-radius: 50%;
+             cursor: pointer;
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             color: var(--text-secondary);
+             transition: all 0.15s ease;
+             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+           }
+
+           .search-clear:hover {
+             background: var(--bg-secondary);
+             color: var(--text-primary);
            }
 
            .container {
@@ -645,6 +670,7 @@ function generateAutodocHtml() {
              color: var(--text-secondary);
              font-size: 0.8125rem;
              margin-bottom: 0.5rem;
+             margin-right: 0.25rem;
              padding: 0.25rem 0.75rem;
              background: var(--bg-secondary);
              border-radius: 1rem;
@@ -978,18 +1004,8 @@ function generateAutodocHtml() {
        </head>
        <body>
          <aside class="sidebar">
-           <div class="logo">
-             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-               <path d="M13 3L4 14h7l-2 7 9-11h-7l2-7z" fill="currentColor"/>
-             </svg>
-             <span>Voltage</span>
-           </div>
-
-           <a href="https://github.com/sibylity/voltage-schema" target="_blank" rel="noopener" class="external-link">
-             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-               <path d="M8.5 2h5v5m0-5l-7 7m3-6h-6a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-             </svg>
-             API Documentation
+           <a class="logo" href="https://voltage-schema.com" target="_blank" rel="noopener">
+             <img src="https://img.voltage-schema.com/voltage-logo-dark.png" alt="Voltage" />
            </a>
 
            <div class="info-callout">
@@ -1035,6 +1051,11 @@ function generateAutodocHtml() {
                    </div>
                    <div class="search-bar">
                      <input type="text" placeholder="Search..." id="searchInput">
+                     <button class="search-clear" id="searchClear" onclick="clearSearch()" style="display: none;">
+                       <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                         <path d="M12 4L4 12M4 4l8 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                       </svg>
+                     </button>
                    </div>
                  </div>
                </div>
@@ -1064,13 +1085,14 @@ function generateAutodocHtml() {
          </main>
 
          <script>
-           // Initialize state with all data
+           // Initialize state with all data and URL parameters
+           const urlParams = getUrlSearchParams();
            window.state = {
              events: ${JSON.stringify(events)},
              properties: ${JSON.stringify(properties)},
              dimensions: ${JSON.stringify(dimensions)},
              filters: {
-               search: '',
+               search: urlParams.search,
                dimension: '',
                activeFilters: new Set()
              },
@@ -1091,6 +1113,75 @@ function generateAutodocHtml() {
              option.textContent = String(dim);
              dimensionFilter?.appendChild(option);
            });
+
+           // URL parameter management
+           function getUrlSearchParams() {
+             const params = new URLSearchParams(window.location.search);
+             return {
+               search: params.get('search') || '',
+               tab: params.get('tab') || 'events'
+             };
+           }
+
+           function updateUrlSearchParams(params) {
+             const url = new URL(window.location);
+             if (params.search !== undefined) {
+               if (params.search) {
+                 url.searchParams.set('search', params.search);
+               } else {
+                 url.searchParams.delete('search');
+               }
+             }
+             if (params.tab !== undefined) {
+               if (params.tab && params.tab !== 'events') {
+                 url.searchParams.set('tab', params.tab);
+               } else {
+                 url.searchParams.delete('tab');
+               }
+             }
+             window.history.replaceState({}, '', url);
+           }
+
+           // Format property types to add spaces after commas for readability
+           function formatPropertyType(type) {
+             if (Array.isArray(type)) {
+               // Handle arrays by joining with ", " (e.g., ["admin","member"] -> "admin, member")
+               return type.join(', ');
+             }
+             return String(type);
+           }
+
+           // Search clear functionality
+           function updateSearchClearVisibility() {
+             const searchClear = document.getElementById('searchClear');
+             if (searchClear) {
+               if (window.state.filters.search) {
+                 searchClear.style.display = 'flex';
+               } else {
+                 searchClear.style.display = 'none';
+               }
+             }
+           }
+
+           window.clearSearch = function() {
+             const searchInput = document.getElementById('searchInput');
+             if (searchInput instanceof HTMLInputElement) {
+               searchInput.value = '';
+               window.state.filters.search = '';
+               updateUrlSearchParams({ search: '' });
+               updateSearchClearVisibility();
+
+               const activeContent = document.querySelector('.content.active');
+               if (activeContent?.id === 'eventsContent') {
+                 window.filterAndRenderEvents();
+               } else if (activeContent?.id === 'propertiesContent') {
+                 renderProperties();
+               } else if (activeContent?.id === 'dimensionsContent') {
+                 renderDimensions();
+               }
+               updateCounts();
+             }
+           };
 
            // Toggle config sections
            window.toggleConfig = function(index) {
@@ -1195,7 +1286,7 @@ function generateAutodocHtml() {
 
                    return '<div class="property">' +
                      '<div class="property-name">' + source.name + '</div>' +
-                     '<div class="property-type">' + source.type + '</div>' +
+                     '<div class="property-type">' + formatPropertyType(source.type) + '</div>' +
                      (prop.description ? '<div class="property-description">' + prop.description + '</div>' : '') +
                      (source.defaultValue ? '<div class="property-default">Default: ' + source.defaultValue + '</div>' : '') +
                      '</div>';
@@ -1206,7 +1297,7 @@ function generateAutodocHtml() {
                      '<div class="event-summary-left">' +
                        '<div class="event-basic-info">' +
                          '<div class="event-name">' + prop.property + '</div>' +
-                         '<div class="event-key">' + prop.types.join(' | ') + '</div>' +
+                         '<div class="event-key">' + prop.types.map(formatPropertyType).join(' | ') + '</div>' +
                        '</div>' +
                      '</div>' +
                      '<div class="event-stat">' +
@@ -1261,7 +1352,7 @@ function generateAutodocHtml() {
                    '<div class="section-title">Events</div>' +
                    '<div class="property-list">' +
                      Object.entries(groupEventsByName(dim.eventDetails))
-                       .map(([eventName, events]) => renderEventGroup(eventName, events, dim.dimension, true))
+                       .map(([eventName, events]) => renderEventGroup(eventName, events, dim.dimension, false))
                        .join('') +
                    '</div>' : '';
 
@@ -1317,7 +1408,7 @@ function generateAutodocHtml() {
                      : '';
                    return '<div class="property">' +
                      '<div class="property-name">' + prop.name + '</div>' +
-                     '<div class="property-type">' + prop.type + '</div>' +
+                     '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                      descriptionHtml +
                      (prop.defaultValue ? '<div class="property-default">Default: ' + prop.defaultValue + '</div>' : '') +
                      '</div>';
@@ -1333,7 +1424,7 @@ function generateAutodocHtml() {
                      : '';
                    return '<div class="property">' +
                      '<div class="property-name">' + prop.name + '</div>' +
-                     '<div class="property-type">' + prop.type + '</div>' +
+                     '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                      '<div class="property-source">From ' + prop.groupName + '</div>' +
                      descriptionHtml +
                      '</div>';
@@ -1435,7 +1526,7 @@ function generateAutodocHtml() {
                              : '';
                            return '<div class="property">' +
                              '<div class="property-name">' + prop.name + '</div>' +
-                             '<div class="property-type">' + prop.type + '</div>' +
+                             '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                              descriptionHtml +
                              (prop.defaultValue ? '<div class="property-default">Default: ' + prop.defaultValue + '</div>' : '') +
                              '</div>';
@@ -1461,7 +1552,7 @@ function generateAutodocHtml() {
                              : '';
                            return '<div class="property">' +
                              '<div class="property-name">' + prop.name + '</div>' +
-                             '<div class="property-type">' + prop.type + '</div>' +
+                             '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                              '<div class="property-source">From ' + prop.groupName + '</div>' +
                              descriptionHtml +
                              '</div>';
@@ -1530,6 +1621,9 @@ function generateAutodocHtml() {
                }
              });
 
+             // Update tab URL parameter
+             updateUrlSearchParams({ tab: section });
+
              // Scroll to top before switching content
              window.scrollTo(0, 0);
 
@@ -1552,6 +1646,8 @@ function generateAutodocHtml() {
              if (searchInput instanceof HTMLInputElement) {
                searchInput.value = '';
                window.state.filters.search = '';
+               updateUrlSearchParams({ search: '' });
+               updateSearchClearVisibility();
              }
 
              // Render appropriate content
@@ -1686,11 +1782,55 @@ function generateAutodocHtml() {
              }
            };
 
+           // Set initial search input value from URL parameters
+           const searchInput = document.getElementById('searchInput');
+           if (searchInput instanceof HTMLInputElement && window.state.filters.search) {
+             searchInput.value = window.state.filters.search;
+           }
+           // Update clear button visibility on initial load
+           updateSearchClearVisibility();
+
+           // Set initial tab from URL parameters
+           const initialTab = urlParams.tab;
+           if (initialTab && ['events', 'properties', 'dimensions'].includes(initialTab)) {
+             // Don't trigger showContent as it would clear search - just update the UI
+             document.querySelectorAll('.nav-item').forEach(item => {
+               item.classList.remove('active');
+               if (item.textContent.toLowerCase() === initialTab) {
+                 item.classList.add('active');
+               }
+             });
+
+             document.querySelectorAll('.content').forEach(content => {
+               content.classList.remove('active');
+             });
+             document.getElementById(initialTab + 'Content').classList.add('active');
+
+             // Update controls visibility
+             const eventControls = document.getElementById('eventControls');
+             if (initialTab === 'events') {
+               eventControls.style.display = 'flex';
+             } else {
+               eventControls.style.display = 'none';
+             }
+
+             // Render appropriate content
+             if (initialTab === 'events') {
+               window.filterAndRenderEvents();
+             } else if (initialTab === 'properties') {
+               renderProperties();
+             } else if (initialTab === 'dimensions') {
+               renderDimensions();
+             }
+           }
+
            // Event listeners
            document.getElementById('searchInput')?.addEventListener('input', (e) => {
              const target = e.currentTarget;
              if (target instanceof HTMLInputElement) {
                window.state.filters.search = target.value;
+               updateUrlSearchParams({ search: target.value });
+               updateSearchClearVisibility();
                const activeContent = document.querySelector('.content.active');
                if (activeContent?.id === 'eventsContent') {
                  window.filterAndRenderEvents();

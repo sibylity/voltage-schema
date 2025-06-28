@@ -1,6 +1,6 @@
 {
   "name": "voltage-autodoc",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Auto-documentation generator for Voltage analytics schemas",
   "main": "./dist/index.js",
   "scripts": {

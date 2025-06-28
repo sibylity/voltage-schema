@@ -1,15 +1,12 @@
 import { getAnalyticsConfig, readGenerationConfigFiles } from "./analyticsConfigHelper";
 import { type AnalyticsEvents, type AnalyticsGlobals } from "../../types";
+import { type EventOutput, type EventProperty, type EventDimension } from "./analyticsEventUtils";
 import fs from 'fs';
 
 interface DimensionEventMap {
   [dimension: string]: {
     events: string[];
-    eventDetails: Array<{
-      key: string;
-      name: string;
-      description: string;
-    }>;
+    eventDetails: EventOutput[];
   };
 }
 
@@ -53,11 +50,7 @@ export interface DimensionData {
     }>;
   };
   events: string[];
-  eventDetails?: Array<{
-    key: string;
-    name: string;
-    description: string;
-  }>;
+  eventDetails?: EventOutput[];
 }
 
 function initializeDimensionMaps(globals: AnalyticsGlobals): {
@@ -78,11 +71,76 @@ function initializeDimensionMaps(globals: AnalyticsGlobals): {
   return { dimensionMap, dimensionEventCounts };
 }
 
+function createEventOutput(
+  eventKey: string,
+  event: AnalyticsEvents["events"][string],
+  groups?: AnalyticsGlobals["groups"],
+  dimensions?: AnalyticsGlobals["dimensions"],
+  metaRules?: AnalyticsGlobals["meta"]
+): EventOutput {
+  const eventProperties = (event.properties || []).map(prop => ({
+    ...prop,
+    source: "event" as const
+  })) as EventProperty[];
+
+  let allProperties = [...eventProperties];
+
+  if (groups) {
+    const groupProperties = groups.flatMap(group =>
+      (group.properties || []).map(prop => ({
+        ...prop,
+        source: "group" as const,
+        groupName: group.name
+      }))
+    ) as EventProperty[];
+
+    // Merge properties, keeping event properties if there's a name conflict
+    const propertyMap = new Map<string, EventProperty>();
+    groupProperties.forEach(prop => {
+      if (!propertyMap.has(prop.name)) {
+        propertyMap.set(prop.name, prop);
+      }
+    });
+    eventProperties.forEach(prop => {
+      propertyMap.set(prop.name, prop);
+    });
+
+    allProperties = Array.from(propertyMap.values());
+  }
+
+  // Initialize meta with defaultValues from meta rules
+  const meta: Record<string, string | number | boolean> = {};
+  if (metaRules) {
+    metaRules.forEach(rule => {
+      if (rule.defaultValue !== undefined) {
+        meta[rule.name] = rule.defaultValue;
+      }
+    });
+  }
+
+  // Merge with any explicit meta values from the event
+  if (event.meta) {
+    Object.assign(meta, event.meta);
+  }
+
+  const output: EventOutput = {
+    key: eventKey,
+    name: event.name,
+    description: event.description,
+    properties: allProperties,
+    passthrough: event.passthrough,
+    meta: Object.keys(meta).length > 0 ? meta : undefined
+  };
+
+  return output;
+}
+
 function processEvent(
   eventKey: string,
   event: AnalyticsEvents["events"][string],
   dimensionMap: DimensionEventMap,
-  dimensionEventCounts: DimensionEventCounts
+  dimensionEventCounts: DimensionEventCounts,
+  globals: AnalyticsGlobals
 ): void {
   // If event has no dimensions field, auto-apply to all dimensions
   if (!event.dimensions) {
@@ -94,11 +152,13 @@ function processEvent(
       // Add event to dimension map with count if needed
       const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
       dimensionMap[dim].events.push(displayName);
-      dimensionMap[dim].eventDetails.push({
-        key: eventKey,
-        name: event.name,
-        description: event.description
-      });
+      dimensionMap[dim].eventDetails.push(createEventOutput(
+        eventKey,
+        event,
+        globals.groups,
+        globals.dimensions,
+        globals.meta
+      ));
     });
     return;
   }
@@ -128,11 +188,13 @@ function processEvent(
         // Add event to Ungrouped dimension with count if needed
         const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
         dimensionMap["Ungrouped"].events.push(displayName);
-        dimensionMap["Ungrouped"].eventDetails.push({
-          key: eventKey,
-          name: event.name,
-          description: event.description
-        });
+        dimensionMap["Ungrouped"].eventDetails.push(createEventOutput(
+          eventKey,
+          event,
+          globals.groups,
+          globals.dimensions,
+          globals.meta
+        ));
         return;
       }
 
@@ -150,11 +212,13 @@ function processEvent(
         // Add event to dimension map with count if needed
         const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
         dimensionMap[dim].events.push(displayName);
-        dimensionMap[dim].eventDetails.push({
-          key: eventKey,
-          name: event.name,
-          description: event.description
-        });
+        dimensionMap[dim].eventDetails.push(createEventOutput(
+          eventKey,
+          event,
+          globals.groups,
+          globals.dimensions,
+          globals.meta
+        ));
       });
     }
     // Handle excluded dimensions
@@ -172,11 +236,13 @@ function processEvent(
         // Add event to dimension map with count if needed
         const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
         dimensionMap[dim].events.push(displayName);
-        dimensionMap[dim].eventDetails.push({
-          key: eventKey,
-          name: event.name,
-          description: event.description
-        });
+        dimensionMap[dim].eventDetails.push(createEventOutput(
+          eventKey,
+          event,
+          globals.groups,
+          globals.dimensions,
+          globals.meta
+        ));
       });
     }
     return;
@@ -197,11 +263,13 @@ function processEvent(
       // Add event to dimension map with count if needed
       const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
       dimensionMap[dim].events.push(displayName);
-      dimensionMap[dim].eventDetails.push({
-        key: eventKey,
-        name: event.name,
-        description: event.description
-      });
+      dimensionMap[dim].eventDetails.push(createEventOutput(
+        eventKey,
+        event,
+        globals.groups,
+        globals.dimensions,
+        globals.meta
+      ));
     });
   }
 }
@@ -291,7 +359,7 @@ export function getAllDimensions(options: GetAllDimensionsOptions = {}): Dimensi
 
     // Process each event in the current config
     Object.entries(events.events).forEach(([eventKey, event]) => {
-      processEvent(eventKey, event, dimensionMap, dimensionEventCounts);
+      processEvent(eventKey, event, dimensionMap, dimensionEventCounts, currentGlobals);
     });
 
     // Format the output for the current config

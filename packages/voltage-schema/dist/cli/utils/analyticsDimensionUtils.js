@@ -14,7 +14,47 @@ function initializeDimensionMaps(globals) {
     });
     return { dimensionMap, dimensionEventCounts };
 }
-function processEvent(eventKey, event, dimensionMap, dimensionEventCounts) {
+function createEventOutput(eventKey, event, groups, dimensions, metaRules) {
+    const eventProperties = (event.properties || []).map(prop => (Object.assign(Object.assign({}, prop), { source: "event" })));
+    let allProperties = [...eventProperties];
+    if (groups) {
+        const groupProperties = groups.flatMap(group => (group.properties || []).map(prop => (Object.assign(Object.assign({}, prop), { source: "group", groupName: group.name }))));
+        // Merge properties, keeping event properties if there's a name conflict
+        const propertyMap = new Map();
+        groupProperties.forEach(prop => {
+            if (!propertyMap.has(prop.name)) {
+                propertyMap.set(prop.name, prop);
+            }
+        });
+        eventProperties.forEach(prop => {
+            propertyMap.set(prop.name, prop);
+        });
+        allProperties = Array.from(propertyMap.values());
+    }
+    // Initialize meta with defaultValues from meta rules
+    const meta = {};
+    if (metaRules) {
+        metaRules.forEach(rule => {
+            if (rule.defaultValue !== undefined) {
+                meta[rule.name] = rule.defaultValue;
+            }
+        });
+    }
+    // Merge with any explicit meta values from the event
+    if (event.meta) {
+        Object.assign(meta, event.meta);
+    }
+    const output = {
+        key: eventKey,
+        name: event.name,
+        description: event.description,
+        properties: allProperties,
+        passthrough: event.passthrough,
+        meta: Object.keys(meta).length > 0 ? meta : undefined
+    };
+    return output;
+}
+function processEvent(eventKey, event, dimensionMap, dimensionEventCounts, globals) {
     // If event has no dimensions field, auto-apply to all dimensions
     if (!event.dimensions) {
         Object.keys(dimensionMap).forEach((dim) => {
@@ -24,11 +64,7 @@ function processEvent(eventKey, event, dimensionMap, dimensionEventCounts) {
             // Add event to dimension map with count if needed
             const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
             dimensionMap[dim].events.push(displayName);
-            dimensionMap[dim].eventDetails.push({
-                key: eventKey,
-                name: event.name,
-                description: event.description
-            });
+            dimensionMap[dim].eventDetails.push(createEventOutput(eventKey, event, globals.groups, globals.dimensions, globals.meta));
         });
         return;
     }
@@ -54,11 +90,7 @@ function processEvent(eventKey, event, dimensionMap, dimensionEventCounts) {
                 // Add event to Ungrouped dimension with count if needed
                 const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
                 dimensionMap["Ungrouped"].events.push(displayName);
-                dimensionMap["Ungrouped"].eventDetails.push({
-                    key: eventKey,
-                    name: event.name,
-                    description: event.description
-                });
+                dimensionMap["Ungrouped"].eventDetails.push(createEventOutput(eventKey, event, globals.groups, globals.dimensions, globals.meta));
                 return;
             }
             // Only include the specified dimensions
@@ -73,11 +105,7 @@ function processEvent(eventKey, event, dimensionMap, dimensionEventCounts) {
                 // Add event to dimension map with count if needed
                 const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
                 dimensionMap[dim].events.push(displayName);
-                dimensionMap[dim].eventDetails.push({
-                    key: eventKey,
-                    name: event.name,
-                    description: event.description
-                });
+                dimensionMap[dim].eventDetails.push(createEventOutput(eventKey, event, globals.groups, globals.dimensions, globals.meta));
             });
         }
         // Handle excluded dimensions
@@ -93,11 +121,7 @@ function processEvent(eventKey, event, dimensionMap, dimensionEventCounts) {
                 // Add event to dimension map with count if needed
                 const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
                 dimensionMap[dim].events.push(displayName);
-                dimensionMap[dim].eventDetails.push({
-                    key: eventKey,
-                    name: event.name,
-                    description: event.description
-                });
+                dimensionMap[dim].eventDetails.push(createEventOutput(eventKey, event, globals.groups, globals.dimensions, globals.meta));
             });
         }
         return;
@@ -115,11 +139,7 @@ function processEvent(eventKey, event, dimensionMap, dimensionEventCounts) {
             // Add event to dimension map with count if needed
             const displayName = count > 1 ? `${eventKey} (${count})` : eventKey;
             dimensionMap[dim].events.push(displayName);
-            dimensionMap[dim].eventDetails.push({
-                key: eventKey,
-                name: event.name,
-                description: event.description
-            });
+            dimensionMap[dim].eventDetails.push(createEventOutput(eventKey, event, globals.groups, globals.dimensions, globals.meta));
         });
     }
 }
@@ -166,7 +186,7 @@ function getAllDimensions(options = {}) {
         const { dimensionMap, dimensionEventCounts } = initializeDimensionMaps(currentGlobals);
         // Process each event in the current config
         Object.entries(events.events).forEach(([eventKey, event]) => {
-            processEvent(eventKey, event, dimensionMap, dimensionEventCounts);
+            processEvent(eventKey, event, dimensionMap, dimensionEventCounts, currentGlobals);
         });
         // Format the output for the current config
         const formattedOutput = formatDimensionOutput(dimensionMap, currentGlobals, options.includeEventDetails || options.verbose || false);
