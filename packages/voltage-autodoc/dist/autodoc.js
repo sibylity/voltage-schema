@@ -223,7 +223,7 @@ function generateAutodocHtml() {
              background: rgba(255, 255, 255, 0.1);
              border-radius: 0.5rem;
              border: 1px solid rgba(255, 255, 255, 0.1);
-             overflow-y: auto;
+             overflow: visible;
            }
 
            .info-callout-title {
@@ -247,7 +247,7 @@ function generateAutodocHtml() {
              background: rgba(0, 0, 0, 0.2);
              border-radius: 0.5rem;
              border: 1px solid rgba(255, 255, 255, 0.05);
-             overflow: hidden;
+             overflow: visible;
            }
 
            .schema-config:last-child {
@@ -355,6 +355,14 @@ function generateAutodocHtml() {
              font-size: 0.75rem;
              white-space: nowrap;
              z-index: 10;
+           }
+
+           /* Special tooltip positioning for schema file inputs */
+           .file-path[data-tooltip]:hover::after {
+             bottom: 50%;
+             left: calc(100% + 10px);
+             transform: translateY(50%);
+             z-index: 1000;
            }
 
            .header {
