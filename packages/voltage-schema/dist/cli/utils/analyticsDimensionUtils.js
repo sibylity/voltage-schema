@@ -177,22 +177,44 @@ function getAllDimensions(options = {}) {
     if (options.dimensions) {
         return options.dimensions;
     }
-    // Otherwise, use the original implementation
+    // Otherwise, use the updated implementation that deduplicates across configs
     const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
-    const allFormattedOutputs = [];
-    // Process each generation config separately
+    // Collect all dimensions and events from all generation configs
+    const allDimensions = new Map();
+    const allGroups = [];
+    const allEvents = {};
+    const allMeta = [];
+    // First pass: collect all unique dimensions, groups, events, and meta
     config.generates.forEach(genConfig => {
         const { globals: currentGlobals, events } = (0, analyticsConfigHelper_1.readGenerationConfigFiles)(genConfig);
-        const { dimensionMap, dimensionEventCounts } = initializeDimensionMaps(currentGlobals);
-        // Process each event in the current config
-        Object.entries(events.events).forEach(([eventKey, event]) => {
-            processEvent(eventKey, event, dimensionMap, dimensionEventCounts, currentGlobals);
+        // Deduplicate dimensions by name
+        currentGlobals.dimensions.forEach(dim => {
+            if (!allDimensions.has(dim.name)) {
+                allDimensions.set(dim.name, dim);
+            }
         });
-        // Format the output for the current config
-        const formattedOutput = formatDimensionOutput(dimensionMap, currentGlobals, options.includeEventDetails || options.verbose || false);
-        allFormattedOutputs.push(...formattedOutput);
+        // Collect all groups (may have duplicates, but that's OK for processing)
+        allGroups.push(...(currentGlobals.groups || []));
+        // Collect all events
+        Object.assign(allEvents, events.events);
+        // Collect meta rules
+        if (currentGlobals.meta) {
+            allMeta.push(...currentGlobals.meta);
+        }
     });
-    // Combine the formatted outputs from all configs
-    return allFormattedOutputs;
+    // Create combined globals with deduplicated dimensions
+    const combinedGlobals = {
+        dimensions: Array.from(allDimensions.values()),
+        groups: allGroups,
+        meta: allMeta
+    };
+    // Initialize dimension maps with the combined, deduplicated dimensions
+    const { dimensionMap, dimensionEventCounts } = initializeDimensionMaps(combinedGlobals);
+    // Process all events against the combined dimensions
+    Object.entries(allEvents).forEach(([eventKey, event]) => {
+        processEvent(eventKey, event, dimensionMap, dimensionEventCounts, combinedGlobals);
+    });
+    // Format and return the final output
+    return formatDimensionOutput(dimensionMap, combinedGlobals, options.includeEventDetails || options.verbose || false);
 }
 exports.getAllDimensions = getAllDimensions;

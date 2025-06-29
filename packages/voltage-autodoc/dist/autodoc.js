@@ -176,6 +176,7 @@ function generateAutodocHtml() {
              display: flex;
              flex-direction: column;
              gap: 2rem;
+             overflow-y: auto;
            }
 
            .main-content {
@@ -223,7 +224,7 @@ function generateAutodocHtml() {
              background: rgba(255, 255, 255, 0.1);
              border-radius: 0.5rem;
              border: 1px solid rgba(255, 255, 255, 0.1);
-             overflow-y: auto;
+             overflow: visible;
            }
 
            .info-callout-title {
@@ -247,7 +248,7 @@ function generateAutodocHtml() {
              background: rgba(0, 0, 0, 0.2);
              border-radius: 0.5rem;
              border: 1px solid rgba(255, 255, 255, 0.05);
-             overflow: hidden;
+             overflow: visible;
            }
 
            .schema-config:last-child {
@@ -357,6 +358,19 @@ function generateAutodocHtml() {
              z-index: 10;
            }
 
+           /* Special tooltip positioning for schema file inputs */
+           .file-path[data-tooltip]:hover::after {
+             bottom: calc(100% + 8px);
+             left: 0;
+             right: 0;
+             transform: none;
+             z-index: 1000;
+             white-space: normal;
+             word-wrap: break-word;
+             max-width: none;
+             width: auto;
+           }
+
            .header {
              border-bottom: 1px solid var(--border-color);
              padding: 1.25rem 2rem;
@@ -379,6 +393,42 @@ function generateAutodocHtml() {
              grid-template-columns: auto auto 1fr;
              align-items: center;
              gap: 2rem;
+           }
+
+           .mobile-menu-button {
+             display: none;
+             background: none;
+             border: none;
+             color: var(--text-primary);
+             cursor: pointer;
+             padding: 0.5rem;
+             border-radius: 0.5rem;
+             transition: background-color 0.15s ease;
+           }
+
+           .mobile-menu-button:hover {
+             background: var(--bg-hover);
+           }
+
+           .header-top-row {
+             display: none;
+           }
+
+           .mobile-overlay {
+             display: none;
+             position: fixed;
+             top: 0;
+             left: 0;
+             width: 100%;
+             height: 100%;
+             background: rgba(0, 0, 0, 0.5);
+             z-index: 999;
+           }
+
+           @media (max-width: 768px) {
+             .mobile-overlay.active {
+               display: block;
+             }
            }
 
            .header-title {
@@ -774,7 +824,164 @@ function generateAutodocHtml() {
              border-radius: 1rem;
            }
 
-           @media (max-width: 640px) {
+           @media (min-width: 769px) and (max-width: 1300px) {
+             .header-content {
+               display: flex;
+               flex-direction: column;
+               gap: 1rem;
+               align-items: stretch;
+             }
+
+             .header-content > .header-title {
+               display: none;
+             }
+
+             .header-top-row {
+               display: flex !important;
+               justify-content: flex-start;
+               align-items: center;
+               width: 100%;
+               gap: 2rem;
+             }
+
+             .header-top-row .header-title {
+               text-align: left;
+               margin: 0;
+               flex: none;
+             }
+
+             .nav {
+               order: 0;
+               width: auto;
+               justify-content: center;
+               flex: none;
+             }
+
+             .controls {
+               order: 2;
+               width: 100%;
+               justify-content: flex-start;
+             }
+
+             .filter-bar {
+               flex-direction: column;
+               gap: 1rem;
+               width: 100%;
+               align-items: flex-start;
+             }
+
+             #eventControls {
+               flex-direction: row !important;
+               gap: 1rem !important;
+               width: auto;
+               justify-content: flex-start;
+             }
+
+             .toggle-group {
+               width: auto;
+               justify-content: center;
+             }
+
+             .filter-select {
+               width: auto;
+               min-width: 200px;
+             }
+
+             .search-bar {
+               width: 100%;
+               max-width: 400px;
+               margin: 0;
+             }
+
+             .mobile-menu-button {
+               display: none;
+             }
+           }
+
+           @media (max-width: 768px) {
+             .mobile-menu-button {
+               display: block;
+             }
+
+             .sidebar {
+               transform: translateX(-100%);
+               transition: transform 0.3s ease;
+               z-index: 1000;
+             }
+
+             .sidebar.mobile-open {
+               transform: translateX(0);
+             }
+
+             .main-content {
+               margin-left: 0;
+             }
+
+             .header-content {
+               display: flex;
+               flex-direction: column;
+               gap: 1rem;
+               align-items: stretch;
+             }
+
+             .header-content > .header-title {
+               display: none;
+             }
+
+             .header-top-row {
+               display: flex !important;
+               justify-content: space-between;
+               align-items: center;
+               width: 100%;
+             }
+
+             .header-top-row .header-title {
+               text-align: left;
+               margin: 0;
+             }
+
+             .mobile-menu-button {
+               position: static;
+               transform: none;
+             }
+
+             .nav {
+               order: 1;
+               width: 100%;
+               justify-content: center;
+             }
+
+             .controls {
+               order: 2;
+               width: 100%;
+               justify-content: center;
+             }
+
+             .filter-bar {
+               flex-direction: column;
+               gap: 1rem;
+               width: 100%;
+             }
+
+             #eventControls {
+               flex-direction: column !important;
+               gap: 1rem !important;
+               width: 100%;
+             }
+
+             .toggle-group {
+               width: 100%;
+               justify-content: center;
+             }
+
+             .filter-select {
+               width: 100%;
+             }
+
+             .search-bar {
+               width: 100%;
+             }
+
              .header {
                padding: 1rem;
              }
@@ -782,24 +989,9 @@ function generateAutodocHtml() {
              .container {
                padding: 1rem;
              }
-
-             .header-content {
-               grid-template-columns: 1fr;
-               gap: 1rem;
-             }
-
-             .nav {
-               width: 100%;
-             }
-
-             .controls {
-               width: 100%;
-             }
-
-             .search-bar {
-               width: 100%;
-             }
            }
+
+
 
            .logo {
              display: flex;
@@ -1003,6 +1195,7 @@ function generateAutodocHtml() {
          </style>
        </head>
        <body>
+         <div class="mobile-overlay" onclick="closeMobileSidebar()"></div>
          <aside class="sidebar">
            <a class="logo" href="https://voltage-schema.com" target="_blank" rel="noopener">
              <img src="https://img.voltage-schema.com/voltage-logo-dark.png" alt="Voltage" />
@@ -1024,6 +1217,14 @@ function generateAutodocHtml() {
          <main class="main-content">
            <header class="header">
              <div class="header-content">
+               <div class="header-top-row">
+                 <div class="header-title">Taxonomy</div>
+                 <button class="mobile-menu-button" onclick="toggleMobileSidebar()" aria-label="Toggle menu">
+                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                     <path d="M3 12h18M3 6h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                   </svg>
+                 </button>
+               </div>
                <div class="header-title">Taxonomy</div>
                <nav class="nav">
                  <button class="nav-item active" onclick="showContent('events')">Events</button>
@@ -1182,6 +1383,43 @@ function generateAutodocHtml() {
                updateCounts();
              }
            };
+
+                      // Mobile sidebar toggle functionality
+           window.toggleMobileSidebar = function() {
+             const sidebar = document.querySelector('.sidebar');
+             const overlay = document.querySelector('.mobile-overlay');
+             if (sidebar && overlay) {
+               const isOpen = sidebar.classList.contains('mobile-open');
+               if (isOpen) {
+                 sidebar.classList.remove('mobile-open');
+                 overlay.classList.remove('active');
+               } else {
+                 sidebar.classList.add('mobile-open');
+                 overlay.classList.add('active');
+               }
+             }
+           };
+
+           window.closeMobileSidebar = function() {
+             const sidebar = document.querySelector('.sidebar');
+             const overlay = document.querySelector('.mobile-overlay');
+             if (sidebar && overlay) {
+               sidebar.classList.remove('mobile-open');
+               overlay.classList.remove('active');
+             }
+           };
+
+           // Close mobile sidebar when clicking outside (for non-overlay clicks)
+           document.addEventListener('click', function(e) {
+             const sidebar = document.querySelector('.sidebar');
+             const menuButton = document.querySelector('.mobile-menu-button');
+             const overlay = document.querySelector('.mobile-overlay');
+
+             if (sidebar && sidebar.classList.contains('mobile-open') &&
+                 !sidebar.contains(e.target) && !menuButton.contains(e.target) && !overlay.contains(e.target)) {
+               window.closeMobileSidebar();
+             }
+           });
 
            // Toggle config sections
            window.toggleConfig = function(index) {
@@ -1731,7 +1969,7 @@ function generateAutodocHtml() {
                      '<div class="group-header-content">' +
                        '<div class="group-name">' + groupName + '</div>' +
                        '<div class="group-stats">' +
-                         Object.keys(eventsByName).length + ' unique events • ' +
+                         Object.keys(eventsByName).length + ' unique events &bull; ' +
                          Object.values(eventsByName).flat().length + ' implementations' +
                        '</div>' +
                        '<div class="group-toggle">' +
