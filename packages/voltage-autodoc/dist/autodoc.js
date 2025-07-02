@@ -133,7 +133,8 @@ function generateAutodocHtml() {
      <!DOCTYPE html>
      <html>
        <head>
-         <title>Analytics Documentation</title>
+         <title>Voltage | Analytics Taxonomy</title>
+         <meta name="viewport" content="width=device-width; initial-scale=1.0">
          <style>
            :root {
              --primary-color: #6366f1;
@@ -425,7 +426,7 @@ function generateAutodocHtml() {
              z-index: 999;
            }
 
-           @media (max-width: 768px) {
+           @media (max-width: 960px) {
              .mobile-overlay.active {
                display: block;
              }
@@ -589,7 +590,7 @@ function generateAutodocHtml() {
              cursor: pointer;
              display: flex;
              align-items: center;
-             gap: 1.5rem;
+             gap: 1rem;
              justify-content: space-between;
              transition: background-color 0.15s ease;
            }
@@ -620,6 +621,8 @@ function generateAutodocHtml() {
              font-size: 0.875rem;
              color: var(--text-secondary);
              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+             word-break: break-word;
+             overflow-wrap: break-word;
            }
 
            .event-dimensions {
@@ -628,9 +631,9 @@ function generateAutodocHtml() {
              flex-wrap: wrap;
            }
 
-           .event-tag {
-             font-size: 0.75rem;
-             padding: 0.25rem 0.75rem;
+           .event-tag, .event-stat {
+             font-size: 0.8rem;
+             padding: 0.3rem 0.75rem;
              border-radius: 1rem;
              background: var(--bg-secondary);
              color: var(--text-secondary);
@@ -639,20 +642,9 @@ function generateAutodocHtml() {
              user-select: none;
            }
 
-           .event-tag:hover {
+           .event-tag:hover, .event-stat:hover {
              background: var(--primary-color);
              color: white;
-           }
-
-           .event-stat {
-             display: flex;
-             align-items: center;
-             gap: 0.25rem;
-             font-size: 0.875rem;
-             color: var(--text-secondary);
-             background: var(--bg-secondary);
-             padding: 0.375rem 0.75rem;
-             border-radius: 1rem;
            }
 
            .event-details {
@@ -755,6 +747,20 @@ function generateAutodocHtml() {
              background: var(--bg-secondary);
              border-radius: 1rem;
              display: inline-block;
+           }
+
+          .property-name > .name-link {
+            color: var(--text-primary);
+           }
+
+           .name-link {
+            color: var(--primary-color);
+            cursor: pointer;
+            text-decoration: none;
+           }
+
+           .name-link:hover {
+            text-decoration: underline;
            }
 
            .group {
@@ -898,7 +904,7 @@ function generateAutodocHtml() {
              }
            }
 
-           @media (max-width: 768px) {
+           @media (max-width: 960px) {
              .mobile-menu-button {
                display: block;
              }
@@ -1131,6 +1137,10 @@ function generateAutodocHtml() {
              background: var(--bg-hover);
            }
 
+           .collapsible-header > .section-title {
+             margin-bottom: 0;
+           }
+
            .collapsible-toggle {
              display: flex;
              align-items: center;
@@ -1165,11 +1175,21 @@ function generateAutodocHtml() {
            }
 
            .event-description {
-             margin: 1.5rem 0;
+             margin: 0 0 1.5rem 0;
              padding: 1.25rem;
              background: white;
              border: 1px solid var(--border-color);
              border-radius: 0.5rem;
+           }
+
+           .event-details-content {
+             list-style-type: none;
+             padding: 0;
+             margin: 0;
+           }
+
+           .event-details-content li {
+             margin: 0.5rem 0;
            }
 
            .section-title {
@@ -1178,6 +1198,115 @@ function generateAutodocHtml() {
              text-transform: uppercase;
              color: var(--text-secondary);
              letter-spacing: 0.05em;
+           }
+
+           .dimensions-card {
+             padding: 1rem;
+             background: white;
+             border: 1px solid var(--border-color);
+             border-radius: 0.5rem;
+             margin-bottom: 1.5rem;
+             display: flex;
+             flex-wrap: wrap;
+             gap: 0.5rem;
+           }
+
+           .dimension-tag {
+             font-size: 0.7rem;
+             padding: 0.25rem 0.6rem;
+             border-radius: 0.75rem;
+             cursor: pointer;
+             transition: all 0.15s ease;
+             user-select: none;
+             font-weight: 500;
+           }
+
+           .dimension-tag-0 {
+             background: #6366f1;
+             color: white;
+           }
+
+           .dimension-tag-0:hover {
+             background: #4f46e5;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
+           }
+
+           .dimension-tag-1 {
+             background: #10b981;
+             color: white;
+           }
+
+           .dimension-tag-1:hover {
+             background: #059669;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
+           }
+
+           .dimension-tag-2 {
+             background: #f59e0b;
+             color: white;
+           }
+
+           .dimension-tag-2:hover {
+             background: #d97706;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
+           }
+
+           .dimension-tag-3 {
+             background: #ef4444;
+             color: white;
+           }
+
+           .dimension-tag-3:hover {
+             background: #dc2626;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
+           }
+
+           .dimension-tag-4 {
+             background: #8b5cf6;
+             color: white;
+           }
+
+           .dimension-tag-4:hover {
+             background: #7c3aed;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
+           }
+
+           .dimension-tag-5 {
+             background: #06b6d4;
+             color: white;
+           }
+
+           .dimension-tag-5:hover {
+             background: #0891b2;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
+           }
+
+           .dimension-tag-6 {
+             background: #ec4899;
+             color: white;
+           }
+
+           .dimension-tag-6:hover {
+             background: #db2777;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
+           }
+
+           .dimension-tag-7 {
+             background: #84cc16;
+             color: white;
+           }
+
+           .dimension-tag-7:hover {
+             background: #65a30d;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
            }
 
            .property {
@@ -1286,6 +1415,21 @@ function generateAutodocHtml() {
          </main>
 
          <script>
+           // Create consistent dimension color mapping
+           function createDimensionColorMap(events) {
+             const allDimensions = new Set();
+             events.forEach(event => {
+               event.dimensions?.forEach(d => allDimensions.add(d.name));
+             });
+
+             const dimensionColorMap = {};
+             Array.from(allDimensions).sort().forEach((dimName, index) => {
+               dimensionColorMap[dimName] = index % 8; // 8 different colors (0-7)
+             });
+
+             return dimensionColorMap;
+           }
+
            // Initialize state with all data and URL parameters
            const urlParams = getUrlSearchParams();
            window.state = {
@@ -1298,7 +1442,8 @@ function generateAutodocHtml() {
                activeFilters: new Set()
              },
              grouping: 'none',
-             schemaFileCount: ${config.generates.length}
+             schemaFileCount: ${config.generates.length},
+             dimensionColorMap: createDimensionColorMap(${JSON.stringify(events)})
            };
 
            // Initialize filters
@@ -1350,6 +1495,21 @@ function generateAutodocHtml() {
                return type.join(', ');
              }
              return String(type);
+           }
+
+           // Deduplicate and format property types from multiple sources
+           function formatCombinedPropertyTypes(types) {
+             const allValues = new Set();
+
+             types.forEach(type => {
+               if (Array.isArray(type)) {
+                 type.forEach(val => allValues.add(String(val)));
+               } else {
+                 allValues.add(String(type));
+               }
+             });
+
+             return Array.from(allValues).sort().join(', ');
            }
 
            // Search clear functionality
@@ -1490,64 +1650,113 @@ function generateAutodocHtml() {
              return eventsByName;
            }
 
-           function renderEventGroupInList(groupName, events) {
-             return '<div class="event-group">' +
-               '<div class="event-group-header">' +
-                 '<div class="event-group-name">' + groupName + '</div>' +
-                 '<div class="event-group-count">' + events.length + ' implementation' + (events.length > 1 ? 's' : '') + '</div>' +
-               '</div>' +
-               '<div class="event-group-keys">' +
-                 events.map(event =>
-                   '<div class="event-group-key">' + event.key + '</div>'
-                 ).join('') +
-               '</div>' +
-             '</div>';
-           }
+
 
            function renderProperties() {
              const container = document.getElementById('propertyList');
              if (!container) return;
 
              const filteredProperties = filterProperties();
-             container.innerHTML = filteredProperties
+                          container.innerHTML = filteredProperties
                .map(prop => {
-                 const sourcesHtml = prop.sources.map(source => {
-                   const descriptionHtml = source.description
-                     ? '<div class="property-description">' + source.description + '</div>'
-                     : '';
+                 // Separate sources by type
+                 const eventSources = prop.sources.filter(source => source.type !== 'group');
+                 const groupSources = prop.sources.filter(source => source.type === 'group');
 
-                   // Group events by name for each source
-                   const eventsByName = groupEventsByName(source.events || []);
-                   const eventsHtml = Object.entries(eventsByName)
-                     .map(([eventName, events]) => renderEventGroupInList(eventName, events))
-                     .join('');
+                 // Render event sources section
+                 const eventSourcesHtml = eventSources.length > 0 ?
+                   '<div class="collapsible-section">' +
+                     '<div class="collapsible-header" onclick="toggleCollapsible(&quot;event-sources-' + prop.property + '&quot;)">' +
+                       '<div class="section-title">Sources from Events (' + eventSources.length + ')</div>' +
+                       '<div class="collapsible-toggle">' +
+                         '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
+                           '<path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                         '</svg>' +
+                       '</div>' +
+                     '</div>' +
+                     '<div class="collapsible-content" id="event-sources-' + prop.property + '">' +
+                       '<div class="property-list">' +
+                         eventSources.map((source, sourceIndex) => {
+                           const descriptionHtml = source.description
+                             ? '<div class="property-description">' + source.description + '</div>'
+                             : '';
 
-                   return '<div class="property">' +
-                     '<div class="property-name">' + source.name + '</div>' +
-                     '<div class="property-type">' + formatPropertyType(source.type) + '</div>' +
-                     (prop.description ? '<div class="property-description">' + prop.description + '</div>' : '') +
-                     (source.defaultValue ? '<div class="property-default">Default: ' + source.defaultValue + '</div>' : '') +
-                     '</div>';
-                 }).join('');
+                           // Create safe ID for this source
+                           const sourceId = prop.property + '-event-source-' + sourceIndex;
+                           const safeSourceId = sourceId.replace(/[^a-zA-Z0-9-]/g, '-');
+
+                           // Find full event objects for this source
+                           let sourceEventObjects = [];
+                           if (source.type === 'event') {
+                             // Use provided event keys if available
+                             sourceEventObjects = window.state.events.filter(event => event.key === source.name);
+                           }
+
+                           const eventsHtml = sourceEventObjects.length > 0 ?
+                             '<div style="margin-top: 1.5rem;">' +
+                              '<div class="implementations-list">' +
+                                sourceEventObjects.map(event => renderEventCard(event, 'property-' + prop.property, false)).join('') +
+                              '</div>' +
+                             '</div>' : '';
+
+                           return '<div class="property">' +
+                             '<div class="property-name">' + source.name + '</div>' +
+                             '<div class="property-type">' + formatPropertyType(source.type) + '</div>' +
+                             descriptionHtml +
+                             (source.defaultValue ? '<div class="property-default">Default: ' + source.defaultValue + '</div>' : '') +
+                             eventsHtml +
+                             '</div>';
+                         }).join('') +
+                       '</div>' +
+                     '</div>' +
+                   '</div>' : '';
+
+                 // Render group sources section
+                 const groupSourcesHtml = groupSources.length > 0 ?
+                   '<div class="collapsible-section">' +
+                     '<div class="collapsible-header" onclick="toggleCollapsible(&quot;group-sources-' + prop.property + '&quot;)">' +
+                       '<div class="section-title">Sources from Groups (' + groupSources.length + ')</div>' +
+                       '<div class="collapsible-toggle">' +
+                         '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
+                           '<path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                         '</svg>' +
+                       '</div>' +
+                     '</div>' +
+                     '<div class="collapsible-content" id="group-sources-' + prop.property + '">' +
+                       '<div class="property-list">' +
+                         groupSources.map((source, sourceIndex) => {
+                           const descriptionHtml = source.description
+                             ? '<div class="property-description">' + source.description + '</div>'
+                             : '';
+
+                           return '<div class="property">' +
+                             '<div class="property-name">' + source.name + '</div>' +
+                             '<div class="property-type">' + formatPropertyType(source.type) + '</div>' +
+                             descriptionHtml +
+                             (source.defaultValue ? '<div class="property-default">Default: ' + source.defaultValue + '</div>' : '') +
+                             '</div>';
+                         }).join('') +
+                       '</div>' +
+                     '</div>' +
+                   '</div>' : '';
 
                  return '<div class="event-row">' +
                    '<div class="event-summary" onclick="toggleDetails(&quot;' + prop.property + '&quot;)">' +
                      '<div class="event-summary-left">' +
                        '<div class="event-basic-info">' +
                          '<div class="event-name">' + prop.property + '</div>' +
-                         '<div class="event-key">' + prop.types.map(formatPropertyType).join(' | ') + '</div>' +
+                         '<div class="event-key">' + formatCombinedPropertyTypes(prop.types) + '</div>' +
                        '</div>' +
                      '</div>' +
                      '<div class="event-stat">' +
                        '<span>' + prop.sources.length + '</span>' +
-                       '<span>sources</span>' +
+                       '<span> sources</span>' +
                      '</div>' +
                    '</div>' +
                    '<div class="event-details" id="details-' + prop.property + '">' +
-                     '<div class="section-title">Sources</div>' +
-                     '<div class="property-list">' +
-                       sourcesHtml +
-                     '</div>' +
+                     '<div class="section-title">Sources (' + (prop.sources.length || 0) + ')</div>' +
+                     eventSourcesHtml +
+                     groupSourcesHtml +
                    '</div>' +
                  '</div>';
                })
@@ -1580,7 +1789,7 @@ function generateAutodocHtml() {
                        '<div class="property-type">' + key + ': ' + JSON.stringify(value) + '</div>'
                      ).join('');
                    return '<div class="property">' +
-                     '<div class="property-name">' + identifier.property + '</div>' +
+                     '<div class="property-name"><a href="#" class="name-link" onclick="navigateToPropertiesWithSearch(event, &quot;' + identifier.property + '&quot;); return false;">' + identifier.property + '</a></div>' +
                      entriesHtml +
                      '</div>';
                  }).join('');
@@ -1613,9 +1822,9 @@ function generateAutodocHtml() {
                          '<div class="event-key">' + dim.description + '</div>' +
                        '</div>' +
                      '</div>' +
-                     '<div class="event-stat">' +
+                     '<div class="event-stat" onclick="navigateToEventsWithDimension(event, &quot;' + dim.dimension + '&quot;)" title="View events with this dimension">' +
                        '<span>' + dim.events.length + '</span>' +
-                       '<span>events</span>' +
+                       '<span> events</span>' +
                      '</div>' +
                    '</div>' +
                    '<div class="event-details" id="details-' + safeId + '">' +
@@ -1638,14 +1847,14 @@ function generateAutodocHtml() {
 
              // Only render properties if not suppressed
              const eventPropertiesHtml = (!suppressProperties && eventProperties.length > 0) ?
-               '<div class="section-title">Event Properties</div>' +
+               '<div class="section-title">Event Properties (' + (eventProperties.length || 0) + ')</div>' +
                '<div class="property-list">' +
                  eventProperties.map(prop => {
                    const descriptionHtml = prop.description
                      ? '<div class="property-description">' + prop.description + '</div>'
                      : '';
                    return '<div class="property">' +
-                     '<div class="property-name">' + prop.name + '</div>' +
+                     '<div class="property-name"><a href="#" class="name-link" onclick="navigateToPropertiesWithSearch(event, &quot;' + prop.name + '&quot;); return false;">' + prop.name + '</a></div>' +
                      '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                      descriptionHtml +
                      (prop.defaultValue ? '<div class="property-default">Default: ' + prop.defaultValue + '</div>' : '') +
@@ -1654,14 +1863,14 @@ function generateAutodocHtml() {
                '</div>' : '';
 
              const groupPropertiesHtml = (!suppressProperties && groupProperties.length > 0) ?
-               '<div class="section-title">Group Properties</div>' +
+               '<div class="section-title">Group Properties (' + (groupProperties.length || 0) + ')</div>' +
                '<div class="property-list">' +
                  groupProperties.map(prop => {
                    const descriptionHtml = prop.description
                      ? '<div class="property-description">' + prop.description + '</div>'
                      : '';
                    return '<div class="property">' +
-                     '<div class="property-name">' + prop.name + '</div>' +
+                     '<div class="property-name"><a href="#" class="name-link" onclick="navigateToPropertiesWithSearch(event, &quot;' + prop.name + '&quot;); return false;">' + prop.name + '</a></div>' +
                      '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                      '<div class="property-source">From ' + prop.groupName + '</div>' +
                      descriptionHtml +
@@ -1673,7 +1882,7 @@ function generateAutodocHtml() {
              let metaFieldsHtml = '';
              if (event.meta && typeof event.meta === 'object' && Object.keys(event.meta).length > 0) {
                metaFieldsHtml =
-                 '<div class="section-title">Meta Fields</div>' +
+                 '<div class="section-title">Meta Fields (' + (Object.keys(event.meta).length || 0) + ')</div>' +
                  '<div class="property-list">' +
                    Object.entries(event.meta).map(([key, value]) => {
                      return '<div class="property">' +
@@ -1685,31 +1894,55 @@ function generateAutodocHtml() {
              }
              // --- End Meta Fields Section ---
 
-             const descriptionHtml = event.description
-               ? '<p class="event-description">' + event.description + '</p>'
+             const descriptionHtml = '<div>' +
+              '<div class="section-title">Event Details</div>' +
+              '<div class="event-description">' +
+                '<ul class="event-details-content">' +
+                  '<li><strong>Event Name:</strong> <a href="#" class="name-link" onclick="navigateToEventsWithSearch(event, &quot;' + event.name + '&quot;); return false;">' + event.name + '</a></li>' +
+                  '<li><strong>Implementation Key:</strong> ' + event.key + '</li>' +
+                  '<li><strong>Description:</strong> ' + (event.description || 'No description.') + '</li>' +
+                '</ul>' +
+              '</div>' +
+             '</div>';
+
+             // Show dimensions count instead of individual dimension tags
+             const dimensionsCountHtml = event.dimensions && event.dimensions.length > 0
+               ? '<span class="event-tag">' + event.dimensions.length + ' dimension' + (event.dimensions.length > 1 ? 's' : '') + '</span>'
                : '';
 
-             const dimensionsHtml = event.dimensions?.map(d =>
-               '<span class="event-tag" onclick="filterByDimension(&quot;' + d.name + '&quot;)">' + d.name + '</span>'
-             ).join('') || '';
+                          // Create dimensions card with individual clickable tags
+             const dimensionsSectionHtml = event.dimensions && event.dimensions.length > 0 ?
+               '<div>' +
+                 '<div class="section-title">Dimensions (' + event.dimensions.length + ')</div>' +
+                 '<div class="dimensions-card">' +
+                   event.dimensions.map((dim) => {
+                     const colorIndex = window.state.dimensionColorMap[dim.name] || 0;
+                     return '<span class="dimension-tag dimension-tag-' + colorIndex + '" onclick="filterByDimension(&quot;' + dim.name + '&quot;)" title="' + (dim.description || 'Click to filter by this dimension') + '">' +
+                       dim.name +
+                       '</span>';
+                   }).join('') +
+                 '</div>' +
+               '</div>' : '';
 
              return '<div class="event-implementation" data-event-key="' + event.key + '">' +
                '<div class="event-implementation-header" onclick="toggleImplementationDetails(&quot;' + safeId + '&quot;)">' +
                  '<div class="event-implementation-left">' +
                    '<div class="event-basic-info">' +
+                     '<div class="event-name">' + event.name + '</div>' +
                      '<div class="event-key">' + event.key + '</div>' +
                    '</div>' +
                    '<div class="event-dimensions">' +
-                     dimensionsHtml +
+                     dimensionsCountHtml +
                    '</div>' +
                  '</div>' +
                  '<div class="event-stat">' +
                    '<span>' + (suppressProperties ? 0 : allProperties.length) + '</span>' +
-                   '<span>properties</span>' +
+                   '<span> properties</span>' +
                  '</div>' +
                '</div>' +
                '<div class="event-details" id="implementation-details-' + safeId + '">' +
                  descriptionHtml +
+                 dimensionsSectionHtml +
                  eventPropertiesHtml +
                  groupPropertiesHtml +
                  metaFieldsHtml +
@@ -1763,7 +1996,7 @@ function generateAutodocHtml() {
                              ? '<div class="property-description">' + prop.description + '</div>'
                              : '';
                            return '<div class="property">' +
-                             '<div class="property-name">' + prop.name + '</div>' +
+                             '<div class="property-name"><a href="#" class="name-link" onclick="navigateToPropertiesWithSearch(event, &quot;' + prop.name + '&quot;); return false;">' + prop.name + '</a></div>' +
                              '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                              descriptionHtml +
                              (prop.defaultValue ? '<div class="property-default">Default: ' + prop.defaultValue + '</div>' : '') +
@@ -1789,7 +2022,7 @@ function generateAutodocHtml() {
                              ? '<div class="property-description">' + prop.description + '</div>'
                              : '';
                            return '<div class="property">' +
-                             '<div class="property-name">' + prop.name + '</div>' +
+                             '<div class="property-name"><a href="#" class="name-link" onclick="navigateToPropertiesWithSearch(event, &quot;' + prop.name + '&quot;); return false;">' + prop.name + '</a></div>' +
                              '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                              '<div class="property-source">From ' + prop.groupName + '</div>' +
                              descriptionHtml +
@@ -1805,6 +2038,25 @@ function generateAutodocHtml() {
                events.flatMap(e => e.properties?.map(p => p.name) || [])
              ).size;
 
+             // Show dimensions count for event groups instead of individual dimension tags
+             const dimensionsCountForGroupHtml = allDimensions.size > 0
+               ? '<span class="event-tag">' + allDimensions.size + ' dimension' + (allDimensions.size > 1 ? 's' : '') + '</span>'
+               : '';
+
+                                       // Create dimensions card with individual clickable tags for event groups
+             const dimensionsSectionForGroupHtml = allDimensions.size > 0 ?
+               '<div>' +
+                 '<div class="section-title">Dimensions (' + allDimensions.size + ')</div>' +
+                 '<div class="dimensions-card">' +
+                   Array.from(allDimensions).map((dimName) => {
+                     const colorIndex = window.state.dimensionColorMap[dimName] || 0;
+                     return '<span class="dimension-tag dimension-tag-' + colorIndex + '" onclick="filterByDimension(&quot;' + dimName + '&quot;)" title="Click to filter by this dimension">' +
+                       dimName +
+                       '</span>';
+                   }).join('') +
+                 '</div>' +
+               '</div>' : '';
+
              return '<div class="event-row" data-event-name="' + groupName + '">' +
                '<div class="event-summary" onclick="toggleEventDetails(&quot;' + safeId + '&quot;)">' +
                  '<div class="event-summary-left">' +
@@ -1813,19 +2065,18 @@ function generateAutodocHtml() {
                      '<div class="event-key">' + events.length + ' implementation' + (events.length > 1 ? 's' : '') + '</div>' +
                    '</div>' +
                    '<div class="event-dimensions">' +
-                     Array.from(allDimensions).map(d =>
-                       '<span class="event-tag" onclick="filterByDimension(&quot;' + d + '&quot;)">' + d + '</span>'
-                     ).join('') +
+                     dimensionsCountForGroupHtml +
                    '</div>' +
                  '</div>' +
                  '<div class="event-stat">' +
                    '<span>' + totalProperties + '</span>' +
-                   '<span>properties</span>' +
+                   '<span> properties</span>' +
                  '</div>' +
                '</div>' +
                '<div class="event-details" id="event-details-' + safeId + '">' +
-                 (suppressProperties ? '' : '<div class="section-title implementations-title">Properties</div>' + combinedPropertiesHtml) +
-                 '<div class="section-title implementations-title">Implementations</div>' +
+                 dimensionsSectionForGroupHtml +
+                 (suppressProperties ? '' : '<div class="section-title implementations-title">Properties (' + totalProperties + ')</div>' + combinedPropertiesHtml) +
+                 '<div class="section-title implementations-title">Implementations (' + (events.length || 0) + ')</div>' +
                  '<div class="implementations-list">' +
                    implementations +
                  '</div>' +
@@ -1833,7 +2084,26 @@ function generateAutodocHtml() {
              '</div>';
            }
 
-           function filterByDimension(dimension) {
+                      function filterByDimension(dimension) {
+             // Check if we're currently on a non-events page
+             const activeContent = document.querySelector('.content.active');
+             const isOnEventsPage = activeContent?.id === 'eventsContent';
+
+             if (!isOnEventsPage) {
+               // Navigate to events page first
+               window.showContent('events');
+             }
+
+             // Clear search query when filtering by dimension
+             const searchInput = document.getElementById('searchInput');
+             if (searchInput instanceof HTMLInputElement) {
+               searchInput.value = '';
+               window.state.filters.search = '';
+               updateUrlSearchParams({ search: '' });
+               updateSearchClearVisibility();
+             }
+
+             // Then apply the dimension filter
              const dimensionFilter = document.getElementById('dimensionFilter');
              if (dimensionFilter instanceof HTMLSelectElement) {
                dimensionFilter.value = dimension;
@@ -1841,6 +2111,80 @@ function generateAutodocHtml() {
                window.filterAndRenderEvents();
              }
            }
+
+           // Navigate to events page with specific dimension selected
+           window.navigateToEventsWithDimension = function(event, dimension) {
+             if (event) {
+               event.stopPropagation(); // Prevent the parent row click
+             }
+
+             // Switch to events tab
+             window.showContent('events');
+
+             // Clear search query when filtering by dimension
+             const searchInput = document.getElementById('searchInput');
+             if (searchInput instanceof HTMLInputElement) {
+               searchInput.value = '';
+               window.state.filters.search = '';
+               updateUrlSearchParams({ search: '' });
+               updateSearchClearVisibility();
+             }
+
+             // Set the dimension filter
+             const dimensionFilter = document.getElementById('dimensionFilter');
+             if (dimensionFilter instanceof HTMLSelectElement) {
+               dimensionFilter.value = dimension;
+               window.state.filters.dimension = dimension;
+               window.filterAndRenderEvents();
+             }
+           };
+
+           // Navigate to events page with search query
+           window.navigateToEventsWithSearch = function(event, searchTerm) {
+             if (event) {
+               event.stopPropagation(); // Prevent the parent row click
+             }
+
+             // Switch to events tab
+             window.showContent('events');
+
+             // Clear dimension filter when searching by event name
+             const dimensionFilter = document.getElementById('dimensionFilter');
+             if (dimensionFilter instanceof HTMLSelectElement) {
+               dimensionFilter.value = '';
+               window.state.filters.dimension = '';
+             }
+
+             // Set the search query
+             const searchInput = document.getElementById('searchInput');
+             if (searchInput instanceof HTMLInputElement) {
+               searchInput.value = searchTerm;
+               window.state.filters.search = searchTerm;
+               updateUrlSearchParams({ search: searchTerm });
+               updateSearchClearVisibility();
+               window.filterAndRenderEvents();
+             }
+           };
+
+           // Navigate to properties page with search query
+           window.navigateToPropertiesWithSearch = function(event, searchTerm) {
+             if (event) {
+               event.stopPropagation(); // Prevent the parent row click
+             }
+
+             // Switch to properties tab
+             window.showContent('properties');
+
+             // Set the search query
+             const searchInput = document.getElementById('searchInput');
+             if (searchInput instanceof HTMLInputElement) {
+               searchInput.value = searchTerm;
+               window.state.filters.search = searchTerm;
+               updateUrlSearchParams({ search: searchTerm });
+               updateSearchClearVisibility();
+               renderProperties();
+             }
+           };
 
            // Make functions available globally
            window.toggleDetails = function(key) {
@@ -1871,12 +2215,19 @@ function generateAutodocHtml() {
              });
              document.getElementById(section + 'Content').classList.add('active');
 
-             // Update controls visibility
+                          // Update controls visibility - hide on non-events pages
              const eventControls = document.getElementById('eventControls');
+
              if (section === 'events') {
-               eventControls.style.display = 'flex';
+               // Show event controls
+               if (eventControls) {
+                 eventControls.style.display = 'flex';
+               }
              } else {
-               eventControls.style.display = 'none';
+               // Hide event controls on properties and dimensions pages
+               if (eventControls) {
+                 eventControls.style.display = 'none';
+               }
              }
 
              // Clear search when switching sections
@@ -2044,12 +2395,19 @@ function generateAutodocHtml() {
              });
              document.getElementById(initialTab + 'Content').classList.add('active');
 
-             // Update controls visibility
+                          // Update controls visibility - hide on non-events pages
              const eventControls = document.getElementById('eventControls');
+
              if (initialTab === 'events') {
-               eventControls.style.display = 'flex';
+               // Show event controls
+               if (eventControls) {
+                 eventControls.style.display = 'flex';
+               }
              } else {
-               eventControls.style.display = 'none';
+               // Hide event controls on properties and dimensions pages
+               if (eventControls) {
+                 eventControls.style.display = 'none';
+               }
              }
 
              // Render appropriate content
