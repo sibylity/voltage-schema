@@ -656,7 +656,7 @@ export function generateAutodocHtml(): string {
              cursor: pointer;
              display: flex;
              align-items: center;
-             gap: 1.5rem;
+             gap: 1rem;
              justify-content: space-between;
              transition: background-color 0.15s ease;
            }
@@ -696,9 +696,9 @@ export function generateAutodocHtml(): string {
              flex-wrap: wrap;
            }
 
-           .event-tag {
-             font-size: 0.75rem;
-             padding: 0.25rem 0.75rem;
+           .event-tag, .event-stat {
+             font-size: 0.8rem;
+             padding: 0.3rem 0.75rem;
              border-radius: 1rem;
              background: var(--bg-secondary);
              color: var(--text-secondary);
@@ -707,20 +707,9 @@ export function generateAutodocHtml(): string {
              user-select: none;
            }
 
-           .event-tag:hover {
+           .event-tag:hover, .event-stat:hover {
              background: var(--primary-color);
              color: white;
-           }
-
-           .event-stat {
-             display: flex;
-             align-items: center;
-             gap: 0.25rem;
-             font-size: 0.875rem;
-             color: var(--text-secondary);
-             background: var(--bg-secondary);
-             padding: 0.375rem 0.75rem;
-             border-radius: 1rem;
            }
 
            .event-details {
@@ -1199,6 +1188,10 @@ export function generateAutodocHtml(): string {
              background: var(--bg-hover);
            }
 
+           .collapsible-header > .section-title {
+             margin-bottom: 0;
+           }
+
            .collapsible-toggle {
              display: flex;
              align-items: center;
@@ -1256,6 +1249,115 @@ export function generateAutodocHtml(): string {
              text-transform: uppercase;
              color: var(--text-secondary);
              letter-spacing: 0.05em;
+           }
+
+           .dimensions-card {
+             padding: 1rem;
+             background: white;
+             border: 1px solid var(--border-color);
+             border-radius: 0.5rem;
+             margin-bottom: 1.5rem;
+             display: flex;
+             flex-wrap: wrap;
+             gap: 0.5rem;
+           }
+
+           .dimension-tag {
+             font-size: 0.7rem;
+             padding: 0.25rem 0.6rem;
+             border-radius: 0.75rem;
+             cursor: pointer;
+             transition: all 0.15s ease;
+             user-select: none;
+             font-weight: 500;
+           }
+
+           .dimension-tag-0 {
+             background: #6366f1;
+             color: white;
+           }
+
+           .dimension-tag-0:hover {
+             background: #4f46e5;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
+           }
+
+           .dimension-tag-1 {
+             background: #10b981;
+             color: white;
+           }
+
+           .dimension-tag-1:hover {
+             background: #059669;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
+           }
+
+           .dimension-tag-2 {
+             background: #f59e0b;
+             color: white;
+           }
+
+           .dimension-tag-2:hover {
+             background: #d97706;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
+           }
+
+           .dimension-tag-3 {
+             background: #ef4444;
+             color: white;
+           }
+
+           .dimension-tag-3:hover {
+             background: #dc2626;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
+           }
+
+           .dimension-tag-4 {
+             background: #8b5cf6;
+             color: white;
+           }
+
+           .dimension-tag-4:hover {
+             background: #7c3aed;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
+           }
+
+           .dimension-tag-5 {
+             background: #06b6d4;
+             color: white;
+           }
+
+           .dimension-tag-5:hover {
+             background: #0891b2;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
+           }
+
+           .dimension-tag-6 {
+             background: #ec4899;
+             color: white;
+           }
+
+           .dimension-tag-6:hover {
+             background: #db2777;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
+           }
+
+           .dimension-tag-7 {
+             background: #84cc16;
+             color: white;
+           }
+
+           .dimension-tag-7:hover {
+             background: #65a30d;
+             transform: translateY(-1px);
+             box-shadow: var(--shadow);
            }
 
            .property {
@@ -1364,6 +1466,21 @@ export function generateAutodocHtml(): string {
          </main>
 
          <script>
+           // Create consistent dimension color mapping
+           function createDimensionColorMap(events) {
+             const allDimensions = new Set();
+             events.forEach(event => {
+               event.dimensions?.forEach(d => allDimensions.add(d.name));
+             });
+
+             const dimensionColorMap = {};
+             Array.from(allDimensions).sort().forEach((dimName, index) => {
+               dimensionColorMap[dimName] = index % 8; // 8 different colors (0-7)
+             });
+
+             return dimensionColorMap;
+           }
+
            // Initialize state with all data and URL parameters
            const urlParams = getUrlSearchParams();
            window.state = {
@@ -1376,7 +1493,8 @@ export function generateAutodocHtml(): string {
                activeFilters: new Set()
              },
              grouping: 'none',
-             schemaFileCount: ${config.generates.length}
+             schemaFileCount: ${config.generates.length},
+             dimensionColorMap: createDimensionColorMap(${JSON.stringify(events)})
            };
 
            // Initialize filters
@@ -1618,7 +1736,7 @@ export function generateAutodocHtml(): string {
                      '</div>' +
                      '<div class="event-stat">' +
                        '<span>' + prop.sources.length + '</span>' +
-                       '<span>sources</span>' +
+                       '<span> sources</span>' +
                      '</div>' +
                    '</div>' +
                    '<div class="event-details" id="details-' + prop.property + '">' +
@@ -1693,7 +1811,7 @@ export function generateAutodocHtml(): string {
                      '</div>' +
                      '<div class="event-stat">' +
                        '<span>' + dim.events.length + '</span>' +
-                       '<span>events</span>' +
+                       '<span> events</span>' +
                      '</div>' +
                    '</div>' +
                    '<div class="event-details" id="details-' + safeId + '">' +
@@ -1774,9 +1892,24 @@ export function generateAutodocHtml(): string {
               '</div>' +
              '</div>';
 
-             const dimensionsHtml = event.dimensions?.map(d =>
-               '<span class="event-tag" onclick="filterByDimension(&quot;' + d.name + '&quot;)">' + d.name + '</span>'
-             ).join('') || '';
+             // Show dimensions count instead of individual dimension tags
+             const dimensionsCountHtml = event.dimensions && event.dimensions.length > 0
+               ? '<span class="event-tag">' + event.dimensions.length + ' dimension' + (event.dimensions.length > 1 ? 's' : '') + '</span>'
+               : '';
+
+                          // Create dimensions card with individual clickable tags
+             const dimensionsSectionHtml = event.dimensions && event.dimensions.length > 0 ?
+               '<div>' +
+                 '<div class="section-title">Dimensions (' + event.dimensions.length + ')</div>' +
+                 '<div class="dimensions-card">' +
+                   event.dimensions.map((dim) => {
+                     const colorIndex = window.state.dimensionColorMap[dim.name] || 0;
+                     return '<span class="dimension-tag dimension-tag-' + colorIndex + '" onclick="filterByDimension(&quot;' + dim.name + '&quot;)" title="' + (dim.description || 'Click to filter by this dimension') + '">' +
+                       dim.name +
+                       '</span>';
+                   }).join('') +
+                 '</div>' +
+               '</div>' : '';
 
              return '<div class="event-implementation" data-event-key="' + event.key + '">' +
                '<div class="event-implementation-header" onclick="toggleImplementationDetails(&quot;' + safeId + '&quot;)">' +
@@ -1785,16 +1918,17 @@ export function generateAutodocHtml(): string {
                      '<div class="event-key">' + event.key + '</div>' +
                    '</div>' +
                    '<div class="event-dimensions">' +
-                     dimensionsHtml +
+                     dimensionsCountHtml +
                    '</div>' +
                  '</div>' +
                  '<div class="event-stat">' +
                    '<span>' + (suppressProperties ? 0 : allProperties.length) + '</span>' +
-                   '<span>properties</span>' +
+                   '<span> properties</span>' +
                  '</div>' +
                '</div>' +
                '<div class="event-details" id="implementation-details-' + safeId + '">' +
                  descriptionHtml +
+                 dimensionsSectionHtml +
                  eventPropertiesHtml +
                  groupPropertiesHtml +
                  metaFieldsHtml +
@@ -1890,6 +2024,25 @@ export function generateAutodocHtml(): string {
                events.flatMap(e => e.properties?.map(p => p.name) || [])
              ).size;
 
+             // Show dimensions count for event groups instead of individual dimension tags
+             const dimensionsCountForGroupHtml = allDimensions.size > 0
+               ? '<span class="event-tag">' + allDimensions.size + ' dimension' + (allDimensions.size > 1 ? 's' : '') + '</span>'
+               : '';
+
+                                       // Create dimensions card with individual clickable tags for event groups
+             const dimensionsSectionForGroupHtml = allDimensions.size > 0 ?
+               '<div>' +
+                 '<div class="section-title">Dimensions (' + allDimensions.size + ')</div>' +
+                 '<div class="dimensions-card">' +
+                   Array.from(allDimensions).map((dimName) => {
+                     const colorIndex = window.state.dimensionColorMap[dimName] || 0;
+                     return '<span class="dimension-tag dimension-tag-' + colorIndex + '" onclick="filterByDimension(&quot;' + dimName + '&quot;)" title="Click to filter by this dimension">' +
+                       dimName +
+                       '</span>';
+                   }).join('') +
+                 '</div>' +
+               '</div>' : '';
+
              return '<div class="event-row" data-event-name="' + groupName + '">' +
                '<div class="event-summary" onclick="toggleEventDetails(&quot;' + safeId + '&quot;)">' +
                  '<div class="event-summary-left">' +
@@ -1898,17 +2051,16 @@ export function generateAutodocHtml(): string {
                      '<div class="event-key">' + events.length + ' implementation' + (events.length > 1 ? 's' : '') + '</div>' +
                    '</div>' +
                    '<div class="event-dimensions">' +
-                     Array.from(allDimensions).map(d =>
-                       '<span class="event-tag" onclick="filterByDimension(&quot;' + d + '&quot;)">' + d + '</span>'
-                     ).join('') +
+                     dimensionsCountForGroupHtml +
                    '</div>' +
                  '</div>' +
                  '<div class="event-stat">' +
                    '<span>' + totalProperties + '</span>' +
-                   '<span>properties</span>' +
+                   '<span> properties</span>' +
                  '</div>' +
                '</div>' +
                '<div class="event-details" id="event-details-' + safeId + '">' +
+                 dimensionsSectionForGroupHtml +
                  (suppressProperties ? '' : '<div class="section-title implementations-title">Properties (' + totalProperties + ')</div>' + combinedPropertiesHtml) +
                  '<div class="section-title implementations-title">Implementations (' + (events.length || 0) + ')</div>' +
                  '<div class="implementations-list">' +
@@ -1956,22 +2108,19 @@ export function generateAutodocHtml(): string {
              });
              document.getElementById(section + 'Content').classList.add('active');
 
-             // Update controls visibility
+             // Update controls visibility - keep consistent header layout
              const eventControls = document.getElementById('eventControls');
              if (section === 'events') {
                eventControls.style.display = 'flex';
+               eventControls.style.visibility = 'visible';
              } else {
-               eventControls.style.display = 'none';
+               // Keep the space but make controls invisible to maintain layout
+               eventControls.style.display = 'flex';
+               eventControls.style.visibility = 'hidden';
              }
 
-             // Clear search when switching sections
-             const searchInput = document.getElementById('searchInput');
-             if (searchInput instanceof HTMLInputElement) {
-               searchInput.value = '';
-               window.state.filters.search = '';
-               updateUrlSearchParams({ search: '' });
-               updateSearchClearVisibility();
-             }
+             // Don't clear search when switching sections - preserve user input
+             // This maintains consistent header layout across all pages
 
              // Render appropriate content
              if (section === 'events') {
@@ -2129,12 +2278,15 @@ export function generateAutodocHtml(): string {
              });
              document.getElementById(initialTab + 'Content').classList.add('active');
 
-             // Update controls visibility
+             // Update controls visibility - maintain consistent header layout
              const eventControls = document.getElementById('eventControls');
              if (initialTab === 'events') {
                eventControls.style.display = 'flex';
+               eventControls.style.visibility = 'visible';
              } else {
-               eventControls.style.display = 'none';
+               // Keep the space but make controls invisible to maintain layout
+               eventControls.style.display = 'flex';
+               eventControls.style.visibility = 'hidden';
              }
 
              // Render appropriate content
