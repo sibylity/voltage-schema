@@ -621,7 +621,8 @@ function generateAutodocHtml() {
              font-size: 0.875rem;
              color: var(--text-secondary);
              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-             white-space: nowrap;
+             word-break: break-word;
+             overflow-wrap: break-word;
            }
 
            .event-dimensions {
@@ -1482,6 +1483,21 @@ function generateAutodocHtml() {
              return String(type);
            }
 
+           // Deduplicate and format property types from multiple sources
+           function formatCombinedPropertyTypes(types) {
+             const allValues = new Set();
+
+             types.forEach(type => {
+               if (Array.isArray(type)) {
+                 type.forEach(val => allValues.add(String(val)));
+               } else {
+                 allValues.add(String(type));
+               }
+             });
+
+             return Array.from(allValues).sort().join(', ');
+           }
+
            // Search clear functionality
            function updateSearchClearVisibility() {
              const searchClear = document.getElementById('searchClear');
@@ -1620,19 +1636,7 @@ function generateAutodocHtml() {
              return eventsByName;
            }
 
-           function renderEventGroupInList(groupName, events) {
-             return '<div class="event-group">' +
-               '<div class="event-group-header">' +
-                 '<div class="event-group-name">' + groupName + '</div>' +
-                 '<div class="event-group-count">' + events.length + ' implementation' + (events.length > 1 ? 's' : '') + '</div>' +
-               '</div>' +
-               '<div class="event-group-keys">' +
-                 events.map(event =>
-                   '<div class="event-group-key">' + event.key + '</div>'
-                 ).join('') +
-               '</div>' +
-             '</div>';
-           }
+
 
            function renderProperties() {
              const container = document.getElementById('propertyList');
@@ -1641,22 +1645,43 @@ function generateAutodocHtml() {
              const filteredProperties = filterProperties();
              container.innerHTML = filteredProperties
                .map(prop => {
-                 const sourcesHtml = prop.sources.map(source => {
+                 const sourcesHtml = prop.sources.map((source, sourceIndex) => {
                    const descriptionHtml = source.description
                      ? '<div class="property-description">' + source.description + '</div>'
                      : '';
 
-                   // Group events by name for each source
-                   const eventsByName = groupEventsByName(source.events || []);
-                   const eventsHtml = Object.entries(eventsByName)
-                     .map(([eventName, events]) => renderEventGroupInList(eventName, events))
-                     .join('');
+                   // Create safe ID for this source
+                   const sourceId = prop.property + '-source-' + sourceIndex;
+                   const safeSourceId = sourceId.replace(/[^a-zA-Z0-9-]/g, '-');
+
+                                      // Find full event objects for this source
+                   const sourceEventObjects = (source.events || []).map(eventKey => {
+                     return window.state.events.find(event => event.key === eventKey);
+                   }).filter(event => event !== undefined);
+
+                   const eventsHtml = sourceEventObjects.length > 0 ?
+                     '<div class="collapsible-section">' +
+                       '<div class="collapsible-header" onclick="toggleCollapsible(&quot;implementations-' + safeSourceId + '&quot;)">' +
+                         '<div class="section-title">Implementations (' + sourceEventObjects.length + ')</div>' +
+                         '<div class="collapsible-toggle">' +
+                           '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
+                             '<path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                           '</svg>' +
+                         '</div>' +
+                       '</div>' +
+                       '<div class="collapsible-content" id="implementations-' + safeSourceId + '">' +
+                         '<div class="implementations-list">' +
+                           sourceEventObjects.map(event => renderEventCard(event, 'property-' + prop.property, true)).join('') +
+                         '</div>' +
+                       '</div>' +
+                     '</div>' : '';
 
                    return '<div class="property">' +
                      '<div class="property-name">' + source.name + '</div>' +
                      '<div class="property-type">' + formatPropertyType(source.type) + '</div>' +
-                     (prop.description ? '<div class="property-description">' + prop.description + '</div>' : '') +
+                     descriptionHtml +
                      (source.defaultValue ? '<div class="property-default">Default: ' + source.defaultValue + '</div>' : '') +
+                     eventsHtml +
                      '</div>';
                  }).join('');
 
@@ -1665,7 +1690,7 @@ function generateAutodocHtml() {
                      '<div class="event-summary-left">' +
                        '<div class="event-basic-info">' +
                          '<div class="event-name">' + prop.property + '</div>' +
-                         '<div class="event-key">' + prop.types.map(formatPropertyType).join(' | ') + '</div>' +
+                         '<div class="event-key">' + formatCombinedPropertyTypes(prop.types) + '</div>' +
                        '</div>' +
                      '</div>' +
                      '<div class="event-stat">' +
@@ -1743,7 +1768,7 @@ function generateAutodocHtml() {
                          '<div class="event-key">' + dim.description + '</div>' +
                        '</div>' +
                      '</div>' +
-                     '<div class="event-stat">' +
+                     '<div class="event-stat" onclick="navigateToEventsWithDimension(event, &quot;' + dim.dimension + '&quot;)" title="View events with this dimension">' +
                        '<span>' + dim.events.length + '</span>' +
                        '<span> events</span>' +
                      '</div>' +
@@ -2013,6 +2038,24 @@ function generateAutodocHtml() {
              }
            }
 
+           // Navigate to events page with specific dimension selected
+           window.navigateToEventsWithDimension = function(event, dimension) {
+             if (event) {
+               event.stopPropagation(); // Prevent the parent row click
+             }
+
+             // Switch to events tab
+             window.showContent('events');
+
+             // Set the dimension filter
+             const dimensionFilter = document.getElementById('dimensionFilter');
+             if (dimensionFilter instanceof HTMLSelectElement) {
+               dimensionFilter.value = dimension;
+               window.state.filters.dimension = dimension;
+               window.filterAndRenderEvents();
+             }
+           };
+
            // Make functions available globally
            window.toggleDetails = function(key) {
              const details = document.getElementById('details-' + key);
@@ -2042,19 +2085,29 @@ function generateAutodocHtml() {
              });
              document.getElementById(section + 'Content').classList.add('active');
 
-             // Update controls visibility - keep consistent header layout
+                          // Update controls visibility - hide on non-events pages
              const eventControls = document.getElementById('eventControls');
+
              if (section === 'events') {
-               eventControls.style.display = 'flex';
-               eventControls.style.visibility = 'visible';
+               // Show event controls
+               if (eventControls) {
+                 eventControls.style.display = 'flex';
+               }
              } else {
-               // Keep the space but make controls invisible to maintain layout
-               eventControls.style.display = 'flex';
-               eventControls.style.visibility = 'hidden';
+               // Hide event controls on properties and dimensions pages
+               if (eventControls) {
+                 eventControls.style.display = 'none';
+               }
              }
 
-             // Don't clear search when switching sections - preserve user input
-             // This maintains consistent header layout across all pages
+             // Clear search when switching sections
+             const searchInput = document.getElementById('searchInput');
+             if (searchInput instanceof HTMLInputElement) {
+               searchInput.value = '';
+               window.state.filters.search = '';
+               updateUrlSearchParams({ search: '' });
+               updateSearchClearVisibility();
+             }
 
              // Render appropriate content
              if (section === 'events') {
@@ -2212,15 +2265,19 @@ function generateAutodocHtml() {
              });
              document.getElementById(initialTab + 'Content').classList.add('active');
 
-             // Update controls visibility - maintain consistent header layout
+                          // Update controls visibility - hide on non-events pages
              const eventControls = document.getElementById('eventControls');
+
              if (initialTab === 'events') {
-               eventControls.style.display = 'flex';
-               eventControls.style.visibility = 'visible';
+               // Show event controls
+               if (eventControls) {
+                 eventControls.style.display = 'flex';
+               }
              } else {
-               // Keep the space but make controls invisible to maintain layout
-               eventControls.style.display = 'flex';
-               eventControls.style.visibility = 'hidden';
+               // Hide event controls on properties and dimensions pages
+               if (eventControls) {
+                 eventControls.style.display = 'none';
+               }
              }
 
              // Render appropriate content
