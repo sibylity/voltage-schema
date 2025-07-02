@@ -133,7 +133,8 @@ function generateAutodocHtml() {
      <!DOCTYPE html>
      <html>
        <head>
-         <title>Analytics Documentation</title>
+         <title>Voltage | Analytics Taxonomy</title>
+         <meta name="viewport" content="width=device-width; initial-scale=1.0">
          <style>
            :root {
              --primary-color: #6366f1;
@@ -425,7 +426,7 @@ function generateAutodocHtml() {
              z-index: 999;
            }
 
-           @media (max-width: 768px) {
+           @media (max-width: 960px) {
              .mobile-overlay.active {
                display: block;
              }
@@ -620,6 +621,7 @@ function generateAutodocHtml() {
              font-size: 0.875rem;
              color: var(--text-secondary);
              font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+             white-space: nowrap;
            }
 
            .event-dimensions {
@@ -898,7 +900,7 @@ function generateAutodocHtml() {
              }
            }
 
-           @media (max-width: 768px) {
+           @media (max-width: 960px) {
              .mobile-menu-button {
                display: block;
              }
@@ -1165,11 +1167,21 @@ function generateAutodocHtml() {
            }
 
            .event-description {
-             margin: 1.5rem 0;
+             margin: 0 0 1.5rem 0;
              padding: 1.25rem;
              background: white;
              border: 1px solid var(--border-color);
              border-radius: 0.5rem;
+           }
+
+           .event-details-content {
+             list-style-type: none;
+             padding: 0;
+             margin: 0;
+           }
+
+           .event-details-content li {
+             margin: 0.5rem 0;
            }
 
            .section-title {
@@ -1638,7 +1650,7 @@ function generateAutodocHtml() {
 
              // Only render properties if not suppressed
              const eventPropertiesHtml = (!suppressProperties && eventProperties.length > 0) ?
-               '<div class="section-title">Event Properties</div>' +
+               '<div class="section-title">Event Properties (' + (eventProperties.length || 0) + ')</div>' +
                '<div class="property-list">' +
                  eventProperties.map(prop => {
                    const descriptionHtml = prop.description
@@ -1654,7 +1666,7 @@ function generateAutodocHtml() {
                '</div>' : '';
 
              const groupPropertiesHtml = (!suppressProperties && groupProperties.length > 0) ?
-               '<div class="section-title">Group Properties</div>' +
+               '<div class="section-title">Group Properties (' + (groupProperties.length || 0) + ')</div>' +
                '<div class="property-list">' +
                  groupProperties.map(prop => {
                    const descriptionHtml = prop.description
@@ -1673,7 +1685,7 @@ function generateAutodocHtml() {
              let metaFieldsHtml = '';
              if (event.meta && typeof event.meta === 'object' && Object.keys(event.meta).length > 0) {
                metaFieldsHtml =
-                 '<div class="section-title">Meta Fields</div>' +
+                 '<div class="section-title">Meta Fields (' + (Object.keys(event.meta).length || 0) + ')</div>' +
                  '<div class="property-list">' +
                    Object.entries(event.meta).map(([key, value]) => {
                      return '<div class="property">' +
@@ -1685,9 +1697,16 @@ function generateAutodocHtml() {
              }
              // --- End Meta Fields Section ---
 
-             const descriptionHtml = event.description
-               ? '<p class="event-description">' + event.description + '</p>'
-               : '';
+             const descriptionHtml = '<div>' +
+              '<div class="section-title">Event Details</div>' +
+              '<div class="event-description">' +
+                '<ul class="event-details-content">' +
+                  '<li><strong>Event:</strong> ' + event.name + '</li>' +
+                  '<li><strong>Implementation Key:</strong> ' + event.key + '</li>' +
+                  '<li><strong>Description:</strong> ' + (event.description || 'No description.') + '</li>' +
+                '</ul>' +
+              '</div>' +
+             '</div>';
 
              const dimensionsHtml = event.dimensions?.map(d =>
                '<span class="event-tag" onclick="filterByDimension(&quot;' + d.name + '&quot;)">' + d.name + '</span>'
@@ -1824,8 +1843,8 @@ function generateAutodocHtml() {
                  '</div>' +
                '</div>' +
                '<div class="event-details" id="event-details-' + safeId + '">' +
-                 (suppressProperties ? '' : '<div class="section-title implementations-title">Properties</div>' + combinedPropertiesHtml) +
-                 '<div class="section-title implementations-title">Implementations</div>' +
+                 (suppressProperties ? '' : '<div class="section-title implementations-title">Properties (' + totalProperties + ')</div>' + combinedPropertiesHtml) +
+                 '<div class="section-title implementations-title">Implementations (' + (events.length || 0) + ')</div>' +
                  '<div class="implementations-list">' +
                    implementations +
                  '</div>' +
