@@ -28,6 +28,7 @@ interface AnalyticsProperty {
     type: string;
     name: string;
     description: string;
+    events?: string[]; // Optional field that may contain event keys
   }>;
 }
 
@@ -813,6 +814,20 @@ export function generateAutodocHtml(): string {
              background: var(--bg-secondary);
              border-radius: 1rem;
              display: inline-block;
+           }
+
+          .property-name > .name-link {
+            color: var(--text-primary);
+           }
+
+           .name-link {
+            color: var(--primary-color);
+            cursor: pointer;
+            text-decoration: none;
+           }
+
+           .name-link:hover {
+            text-decoration: underline;
            }
 
            .group {
@@ -1709,47 +1724,88 @@ export function generateAutodocHtml(): string {
              if (!container) return;
 
              const filteredProperties = filterProperties();
-             container.innerHTML = filteredProperties
+                          container.innerHTML = filteredProperties
                .map(prop => {
-                 const sourcesHtml = prop.sources.map((source, sourceIndex) => {
-                   const descriptionHtml = source.description
-                     ? '<div class="property-description">' + source.description + '</div>'
-                     : '';
+                 // Separate sources by type
+                 const eventSources = prop.sources.filter(source => source.type !== 'group');
+                 const groupSources = prop.sources.filter(source => source.type === 'group');
 
-                   // Create safe ID for this source
-                   const sourceId = prop.property + '-source-' + sourceIndex;
-                   const safeSourceId = sourceId.replace(/[^a-zA-Z0-9-]/g, '-');
-
-                                      // Find full event objects for this source
-                   const sourceEventObjects = (source.events || []).map(eventKey => {
-                     return window.state.events.find(event => event.key === eventKey);
-                   }).filter(event => event !== undefined);
-
-                   const eventsHtml = sourceEventObjects.length > 0 ?
-                     '<div class="collapsible-section">' +
-                       '<div class="collapsible-header" onclick="toggleCollapsible(&quot;implementations-' + safeSourceId + '&quot;)">' +
-                         '<div class="section-title">Implementations (' + sourceEventObjects.length + ')</div>' +
-                         '<div class="collapsible-toggle">' +
-                           '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
-                             '<path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
-                           '</svg>' +
-                         '</div>' +
+                 // Render event sources section
+                 const eventSourcesHtml = eventSources.length > 0 ?
+                   '<div class="collapsible-section">' +
+                     '<div class="collapsible-header" onclick="toggleCollapsible(&quot;event-sources-' + prop.property + '&quot;)">' +
+                       '<div class="section-title">Sources from Events (' + eventSources.length + ')</div>' +
+                       '<div class="collapsible-toggle">' +
+                         '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
+                           '<path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                         '</svg>' +
                        '</div>' +
-                       '<div class="collapsible-content" id="implementations-' + safeSourceId + '">' +
-                         '<div class="implementations-list">' +
-                           sourceEventObjects.map(event => renderEventCard(event, 'property-' + prop.property, true)).join('') +
-                         '</div>' +
-                       '</div>' +
-                     '</div>' : '';
+                     '</div>' +
+                     '<div class="collapsible-content" id="event-sources-' + prop.property + '">' +
+                       '<div class="property-list">' +
+                         eventSources.map((source, sourceIndex) => {
+                           const descriptionHtml = source.description
+                             ? '<div class="property-description">' + source.description + '</div>'
+                             : '';
 
-                   return '<div class="property">' +
-                     '<div class="property-name">' + source.name + '</div>' +
-                     '<div class="property-type">' + formatPropertyType(source.type) + '</div>' +
-                     descriptionHtml +
-                     (source.defaultValue ? '<div class="property-default">Default: ' + source.defaultValue + '</div>' : '') +
-                     eventsHtml +
-                     '</div>';
-                 }).join('');
+                           // Create safe ID for this source
+                           const sourceId = prop.property + '-event-source-' + sourceIndex;
+                           const safeSourceId = sourceId.replace(/[^a-zA-Z0-9-]/g, '-');
+
+                           // Find full event objects for this source
+                           let sourceEventObjects = [];
+                           if (source.type === 'event') {
+                             // Use provided event keys if available
+                             sourceEventObjects = window.state.events.filter(event => event.key === source.name);
+                           }
+
+                           const eventsHtml = sourceEventObjects.length > 0 ?
+                             '<div style="margin-top: 1.5rem;">' +
+                              '<div class="implementations-list">' +
+                                sourceEventObjects.map(event => renderEventCard(event, 'property-' + prop.property, false)).join('') +
+                              '</div>' +
+                             '</div>' : '';
+
+                           return '<div class="property">' +
+                             '<div class="property-name">' + source.name + '</div>' +
+                             '<div class="property-type">' + formatPropertyType(source.type) + '</div>' +
+                             descriptionHtml +
+                             (source.defaultValue ? '<div class="property-default">Default: ' + source.defaultValue + '</div>' : '') +
+                             eventsHtml +
+                             '</div>';
+                         }).join('') +
+                       '</div>' +
+                     '</div>' +
+                   '</div>' : '';
+
+                 // Render group sources section
+                 const groupSourcesHtml = groupSources.length > 0 ?
+                   '<div class="collapsible-section">' +
+                     '<div class="collapsible-header" onclick="toggleCollapsible(&quot;group-sources-' + prop.property + '&quot;)">' +
+                       '<div class="section-title">Sources from Groups (' + groupSources.length + ')</div>' +
+                       '<div class="collapsible-toggle">' +
+                         '<svg width="16" height="16" viewBox="0 0 16 16" fill="none">' +
+                           '<path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+                         '</svg>' +
+                       '</div>' +
+                     '</div>' +
+                     '<div class="collapsible-content" id="group-sources-' + prop.property + '">' +
+                       '<div class="property-list">' +
+                         groupSources.map((source, sourceIndex) => {
+                           const descriptionHtml = source.description
+                             ? '<div class="property-description">' + source.description + '</div>'
+                             : '';
+
+                           return '<div class="property">' +
+                             '<div class="property-name">' + source.name + '</div>' +
+                             '<div class="property-type">' + formatPropertyType(source.type) + '</div>' +
+                             descriptionHtml +
+                             (source.defaultValue ? '<div class="property-default">Default: ' + source.defaultValue + '</div>' : '') +
+                             '</div>';
+                         }).join('') +
+                       '</div>' +
+                     '</div>' +
+                   '</div>' : '';
 
                  return '<div class="event-row">' +
                    '<div class="event-summary" onclick="toggleDetails(&quot;' + prop.property + '&quot;)">' +
@@ -1765,10 +1821,9 @@ export function generateAutodocHtml(): string {
                      '</div>' +
                    '</div>' +
                    '<div class="event-details" id="details-' + prop.property + '">' +
-                     '<div class="section-title">Sources</div>' +
-                     '<div class="property-list">' +
-                       sourcesHtml +
-                     '</div>' +
+                     '<div class="section-title">Sources (' + (prop.sources.length || 0) + ')</div>' +
+                     eventSourcesHtml +
+                     groupSourcesHtml +
                    '</div>' +
                  '</div>';
                })
@@ -1801,7 +1856,7 @@ export function generateAutodocHtml(): string {
                        '<div class="property-type">' + key + ': ' + JSON.stringify(value) + '</div>'
                      ).join('');
                    return '<div class="property">' +
-                     '<div class="property-name">' + identifier.property + '</div>' +
+                     '<div class="property-name"><a href="#" class="name-link" onclick="navigateToPropertiesWithSearch(event, &quot;' + identifier.property + '&quot;); return false;">' + identifier.property + '</a></div>' +
                      entriesHtml +
                      '</div>';
                  }).join('');
@@ -1866,7 +1921,7 @@ export function generateAutodocHtml(): string {
                      ? '<div class="property-description">' + prop.description + '</div>'
                      : '';
                    return '<div class="property">' +
-                     '<div class="property-name">' + prop.name + '</div>' +
+                     '<div class="property-name"><a href="#" class="name-link" onclick="navigateToPropertiesWithSearch(event, &quot;' + prop.name + '&quot;); return false;">' + prop.name + '</a></div>' +
                      '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                      descriptionHtml +
                      (prop.defaultValue ? '<div class="property-default">Default: ' + prop.defaultValue + '</div>' : '') +
@@ -1882,7 +1937,7 @@ export function generateAutodocHtml(): string {
                      ? '<div class="property-description">' + prop.description + '</div>'
                      : '';
                    return '<div class="property">' +
-                     '<div class="property-name">' + prop.name + '</div>' +
+                     '<div class="property-name"><a href="#" class="name-link" onclick="navigateToPropertiesWithSearch(event, &quot;' + prop.name + '&quot;); return false;">' + prop.name + '</a></div>' +
                      '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                      '<div class="property-source">From ' + prop.groupName + '</div>' +
                      descriptionHtml +
@@ -1910,7 +1965,7 @@ export function generateAutodocHtml(): string {
               '<div class="section-title">Event Details</div>' +
               '<div class="event-description">' +
                 '<ul class="event-details-content">' +
-                  '<li><strong>Event:</strong> ' + event.name + '</li>' +
+                  '<li><strong>Event Name:</strong> <a href="#" class="name-link" onclick="navigateToEventsWithSearch(event, &quot;' + event.name + '&quot;); return false;">' + event.name + '</a></li>' +
                   '<li><strong>Implementation Key:</strong> ' + event.key + '</li>' +
                   '<li><strong>Description:</strong> ' + (event.description || 'No description.') + '</li>' +
                 '</ul>' +
@@ -1940,6 +1995,7 @@ export function generateAutodocHtml(): string {
                '<div class="event-implementation-header" onclick="toggleImplementationDetails(&quot;' + safeId + '&quot;)">' +
                  '<div class="event-implementation-left">' +
                    '<div class="event-basic-info">' +
+                     '<div class="event-name">' + event.name + '</div>' +
                      '<div class="event-key">' + event.key + '</div>' +
                    '</div>' +
                    '<div class="event-dimensions">' +
@@ -2007,7 +2063,7 @@ export function generateAutodocHtml(): string {
                              ? '<div class="property-description">' + prop.description + '</div>'
                              : '';
                            return '<div class="property">' +
-                             '<div class="property-name">' + prop.name + '</div>' +
+                             '<div class="property-name"><a href="#" class="name-link" onclick="navigateToPropertiesWithSearch(event, &quot;' + prop.name + '&quot;); return false;">' + prop.name + '</a></div>' +
                              '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                              descriptionHtml +
                              (prop.defaultValue ? '<div class="property-default">Default: ' + prop.defaultValue + '</div>' : '') +
@@ -2033,7 +2089,7 @@ export function generateAutodocHtml(): string {
                              ? '<div class="property-description">' + prop.description + '</div>'
                              : '';
                            return '<div class="property">' +
-                             '<div class="property-name">' + prop.name + '</div>' +
+                             '<div class="property-name"><a href="#" class="name-link" onclick="navigateToPropertiesWithSearch(event, &quot;' + prop.name + '&quot;); return false;">' + prop.name + '</a></div>' +
                              '<div class="property-type">' + formatPropertyType(prop.type) + '</div>' +
                              '<div class="property-source">From ' + prop.groupName + '</div>' +
                              descriptionHtml +
@@ -2095,7 +2151,26 @@ export function generateAutodocHtml(): string {
              '</div>';
            }
 
-           function filterByDimension(dimension) {
+                      function filterByDimension(dimension) {
+             // Check if we're currently on a non-events page
+             const activeContent = document.querySelector('.content.active');
+             const isOnEventsPage = activeContent?.id === 'eventsContent';
+
+             if (!isOnEventsPage) {
+               // Navigate to events page first
+               window.showContent('events');
+             }
+
+             // Clear search query when filtering by dimension
+             const searchInput = document.getElementById('searchInput');
+             if (searchInput instanceof HTMLInputElement) {
+               searchInput.value = '';
+               window.state.filters.search = '';
+               updateUrlSearchParams({ search: '' });
+               updateSearchClearVisibility();
+             }
+
+             // Then apply the dimension filter
              const dimensionFilter = document.getElementById('dimensionFilter');
              if (dimensionFilter instanceof HTMLSelectElement) {
                dimensionFilter.value = dimension;
@@ -2113,12 +2188,68 @@ export function generateAutodocHtml(): string {
              // Switch to events tab
              window.showContent('events');
 
+             // Clear search query when filtering by dimension
+             const searchInput = document.getElementById('searchInput');
+             if (searchInput instanceof HTMLInputElement) {
+               searchInput.value = '';
+               window.state.filters.search = '';
+               updateUrlSearchParams({ search: '' });
+               updateSearchClearVisibility();
+             }
+
              // Set the dimension filter
              const dimensionFilter = document.getElementById('dimensionFilter');
              if (dimensionFilter instanceof HTMLSelectElement) {
                dimensionFilter.value = dimension;
                window.state.filters.dimension = dimension;
                window.filterAndRenderEvents();
+             }
+           };
+
+           // Navigate to events page with search query
+           window.navigateToEventsWithSearch = function(event, searchTerm) {
+             if (event) {
+               event.stopPropagation(); // Prevent the parent row click
+             }
+
+             // Switch to events tab
+             window.showContent('events');
+
+             // Clear dimension filter when searching by event name
+             const dimensionFilter = document.getElementById('dimensionFilter');
+             if (dimensionFilter instanceof HTMLSelectElement) {
+               dimensionFilter.value = '';
+               window.state.filters.dimension = '';
+             }
+
+             // Set the search query
+             const searchInput = document.getElementById('searchInput');
+             if (searchInput instanceof HTMLInputElement) {
+               searchInput.value = searchTerm;
+               window.state.filters.search = searchTerm;
+               updateUrlSearchParams({ search: searchTerm });
+               updateSearchClearVisibility();
+               window.filterAndRenderEvents();
+             }
+           };
+
+           // Navigate to properties page with search query
+           window.navigateToPropertiesWithSearch = function(event, searchTerm) {
+             if (event) {
+               event.stopPropagation(); // Prevent the parent row click
+             }
+
+             // Switch to properties tab
+             window.showContent('properties');
+
+             // Set the search query
+             const searchInput = document.getElementById('searchInput');
+             if (searchInput instanceof HTMLInputElement) {
+               searchInput.value = searchTerm;
+               window.state.filters.search = searchTerm;
+               updateUrlSearchParams({ search: searchTerm });
+               updateSearchClearVisibility();
+               renderProperties();
              }
            };
 
