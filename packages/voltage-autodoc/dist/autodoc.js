@@ -1652,12 +1652,12 @@ function generateAutodocHtml() {
 
 
 
-           function renderProperties() {
+                      function renderProperties() {
              const container = document.getElementById('propertyList');
              if (!container) return;
 
-             const filteredProperties = filterProperties();
-                          container.innerHTML = filteredProperties
+             const filteredProperties = filterProperties().sort((a, b) => a.property.localeCompare(b.property));
+             container.innerHTML = filteredProperties
                .map(prop => {
                  // Separate sources by type
                  const eventSources = prop.sources.filter(source => source.type !== 'group');
@@ -1769,7 +1769,7 @@ function generateAutodocHtml() {
              const container = document.getElementById('dimensionList');
              if (!container) return;
 
-             const filteredDimensions = filterDimensions();
+             const filteredDimensions = filterDimensions().sort((a, b) => a.dimension.localeCompare(b.dimension));
              container.innerHTML = filteredDimensions
                .map(dim => {
                  // Only combine identifiers if they exist
