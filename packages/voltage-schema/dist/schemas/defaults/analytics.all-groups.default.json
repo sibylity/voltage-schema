@@ -20,6 +20,11 @@
           "name": "UserID",
           "description": "The ID of the user that triggered the event.",
           "type": "number"
+        },
+        {
+          "name": "Role",
+          "description": "The role of the user that triggered the event.",
+          "type": "string"
         }
       ]
     },
