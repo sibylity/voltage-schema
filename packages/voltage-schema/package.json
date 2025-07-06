@@ -1,7 +1,7 @@
 {
   "name": "voltage-schema",
-  "version": "1.9.6",
-  "description": "The analytics schema that evolves with your software.",
+  "version": "2.0.0",
+  "description": "Self-documenting & type-safe product analytics tracking.",
   "main": "./dist/cli/index.js",
   "scripts": {
     "build": "rm -rf dist/ && tsc && mkdir -p dist/schemas/defaults && cp src/schemas/*.schema.json dist/schemas/ && cp src/schemas/defaults/*.default.json dist/schemas/defaults/ && cp src/tracker.ts dist/tracker.ts && cp src/types.ts dist/types.ts",

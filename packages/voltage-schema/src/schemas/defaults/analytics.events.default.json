@@ -13,20 +13,6 @@
           "type": "string"
         }
       ]
-    },
-    "add_user": {
-      "name": "Add User",
-      "description": "Triggered when an admin adds a user to their team. This requires a paid plan.",
-      "dimensions": {
-        "included": ["Paid"]
-      },
-      "properties": [
-        {
-          "name": "Role",
-          "description": "The role of the user that was added.",
-          "type": "string"
-        }
-      ]
     }
   }
 }
