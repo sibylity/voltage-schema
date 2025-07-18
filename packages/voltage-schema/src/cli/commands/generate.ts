@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import * as chokidar from "chokidar";
 import { CLI } from "../cli";
 import { type AnalyticsGlobals, type AnalyticsEvents, type GenerationConfig, type AnalyticsSchemaProperty } from "../../types";
 import { validateAnalyticsFiles } from "../validation";
@@ -355,100 +356,248 @@ export interface AnalyticsTracker<T extends AnalyticsSchema> {
 }`;
 }
 
+/**
+ * Core generation logic extracted for reuse in both one-time and watch modes
+ */
+function runGeneration(): boolean {
+  try {
+    console.log("🔍 Running validation before generating types...");
+    if (!validateAnalyticsFiles()) {
+      return false;
+    }
+
+    const config = getAnalyticsConfig();
+    const generationConfigs = config.generates;
+
+    generationConfigs.forEach((generationConfig: GenerationConfig) => {
+      const { events, groups, dimensions, meta, output, disableComments, eventKeyPropertyName } = generationConfig;
+
+      // Parse events file
+      const eventsResult = parseSchemaFile(events);
+      if (!eventsResult.isValid || !eventsResult.data) {
+        console.error(`❌ Failed to parse events file: ${events}`);
+        if (eventsResult.errors) {
+          console.error(eventsResult.errors.join('\n'));
+        }
+        return false;
+      }
+      const eventsData = eventsResult.data;
+
+      // Parse groups files if provided
+      const groupsData: any[] = [];
+      if (groups) {
+        for (const groupFile of groups) {
+          const result = parseSchemaFile(groupFile);
+          if (!result.isValid || !result.data) {
+            console.error(`❌ Failed to parse group file: ${groupFile}`);
+            if (result.errors) {
+              console.error(result.errors.join('\n'));
+            }
+            return false;
+          }
+          const data = result.data as { groups?: any[] };
+          if (data.groups) {
+            groupsData.push(...data.groups);
+          }
+        }
+      }
+
+      // Parse dimensions files if provided
+      const dimensionsData = dimensions?.map((dimension: string) => {
+        const result = parseSchemaFile(dimension);
+        if (!result.isValid || !result.data) {
+          console.error(`❌ Failed to parse dimension file: ${dimension}`);
+          if (result.errors) {
+            console.error(result.errors.join('\n'));
+          }
+          return undefined;
+        }
+        return result.data;
+      }).filter(Boolean) || [];
+
+      // Parse meta file if provided
+      let metaRules;
+      if (meta) {
+        const metaResult = parseSchemaFile(meta);
+        if (!metaResult.isValid || !metaResult.data) {
+          console.error(`❌ Failed to parse meta file: ${meta}`);
+          if (metaResult.errors) {
+            console.error(metaResult.errors.join('\n'));
+          }
+          return false;
+        }
+        metaRules = (metaResult.data as { meta: any[] }).meta;
+      }
+
+      // Generate types and tracking config
+      const types = generateTypes(eventsData, groupsData, dimensionsData, metaRules, disableComments, eventKeyPropertyName);
+      const trackingConfig = generateTrackingConfig(eventsData, groupsData, dimensionsData, metaRules, disableComments, eventKeyPropertyName);
+
+      // Write output file
+      const outputPath = path.resolve(process.cwd(), output);
+      const outputDir = path.dirname(outputPath);
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
+
+      const outputContent = output.endsWith(".ts")
+        ? `// This file is auto-generated. Do not edit it manually.\n\n${types}\n\n${trackingConfig}`
+        : trackingConfig;
+
+      fs.writeFileSync(outputPath, outputContent);
+      console.log(`✅ Generated ${output}`);
+    });
+
+    return true;
+  } catch (error) {
+    console.error("❌ Error generating types:", error);
+    return false;
+  }
+}
+
+/**
+ * Get all file paths that should be watched for changes
+ */
+function getWatchPaths(): string[] {
+  const config = getAnalyticsConfig();
+  const watchPaths: string[] = [];
+
+  // Add config file itself
+  const configPath = path.resolve(process.cwd(), "voltage.config.js");
+  if (fs.existsSync(configPath)) {
+    watchPaths.push(configPath);
+  }
+
+  // Add all files from generation configs
+  config.generates.forEach((genConfig: GenerationConfig) => {
+    // Add events file
+    watchPaths.push(path.resolve(process.cwd(), genConfig.events));
+
+    // Add groups files
+    if (genConfig.groups) {
+      genConfig.groups.forEach(groupFile => {
+        watchPaths.push(path.resolve(process.cwd(), groupFile));
+      });
+    }
+
+    // Add dimensions files
+    if (genConfig.dimensions) {
+      genConfig.dimensions.forEach(dimensionFile => {
+        watchPaths.push(path.resolve(process.cwd(), dimensionFile));
+      });
+    }
+
+    // Add meta file
+    if (genConfig.meta) {
+      watchPaths.push(path.resolve(process.cwd(), genConfig.meta));
+    }
+  });
+
+  return watchPaths.filter(filePath => fs.existsSync(filePath));
+}
+
+/**
+ * Run the file watcher
+ */
+function runWatchMode(): void {
+  console.log("👀 Starting watch mode...");
+  
+  // Run initial generation
+  if (!runGeneration()) {
+    console.error("❌ Initial generation failed. Fix errors before starting watch mode.");
+    process.exit(1);
+  }
+
+  let watchPaths: string[] = [];
+  let watcher: chokidar.FSWatcher | null = null;
+  
+  const setupWatcher = () => {
+    // Clean up existing watcher
+    if (watcher) {
+      watcher.close();
+    }
+
+    try {
+      watchPaths = getWatchPaths();
+      console.log("📁 Watching files:");
+      watchPaths.forEach(filePath => {
+        console.log(`   ${path.relative(process.cwd(), filePath)}`);
+      });
+
+      watcher = chokidar.watch(watchPaths, {
+        ignoreInitial: true,
+        persistent: true,
+        usePolling: false,
+        interval: 100,
+        binaryInterval: 300,
+      });
+
+      let debounceTimer: NodeJS.Timeout | null = null;
+      const configPath = path.resolve(process.cwd(), "voltage.config.js");
+
+      watcher.on('change', (filePath: string) => {
+        const relativePath = path.relative(process.cwd(), filePath);
+        console.log(`📝 File changed: ${relativePath}`);
+
+        // Clear existing timer
+        if (debounceTimer) {
+          clearTimeout(debounceTimer);
+        }
+
+        // Debounce the regeneration
+        debounceTimer = setTimeout(() => {
+          // If config file changed, restart the watcher
+          if (filePath === configPath) {
+            console.log("🔄 Config file changed, restarting watcher...");
+            setupWatcher();
+            return;
+          }
+
+          // Otherwise, just regenerate
+          console.log("🔄 Regenerating...");
+          const success = runGeneration();
+          if (success) {
+            console.log("👀 Watching for changes... (press Ctrl+C to stop)");
+          }
+        }, 200);
+      });
+
+      watcher.on('error', (error: unknown) => {
+        console.error("❌ Watcher error:", error);
+      });
+
+      console.log("👀 Watching for changes... (press Ctrl+C to stop)");
+
+    } catch (error) {
+      console.error("❌ Failed to setup file watcher:", error);
+      process.exit(1);
+    }
+  };
+
+  setupWatcher();
+
+  // Handle graceful shutdown
+  process.on('SIGINT', () => {
+    console.log("\n🛑 Shutting down watcher...");
+    if (watcher) {
+      watcher.close();
+    }
+    process.exit(0);
+  });
+}
+
 export function registerGenerateCommand(cli: CLI) {
   cli
     .command("generate", "Generate TypeScript types & tracking config from your codegen config")
+    .option("--watch", "Watch for file changes and regenerate automatically")
     .action((options: Record<string, boolean>) => {
-      try {
-        console.log("🔍 Running validation before generating types...");
-        if (!validateAnalyticsFiles()) {
+      if (options.watch) {
+        runWatchMode();
+      } else {
+        const success = runGeneration();
+        if (!success) {
           process.exit(1);
         }
-
-        const config = getAnalyticsConfig();
-        const generationConfigs = config.generates;
-
-        generationConfigs.forEach((generationConfig: GenerationConfig) => {
-          const { events, groups, dimensions, meta, output, disableComments, eventKeyPropertyName } = generationConfig;
-
-          // Parse events file
-          const eventsResult = parseSchemaFile(events);
-          if (!eventsResult.isValid || !eventsResult.data) {
-            console.error(`❌ Failed to parse events file: ${events}`);
-            if (eventsResult.errors) {
-              console.error(eventsResult.errors.join('\n'));
-            }
-            process.exit(1);
-          }
-          const eventsData = eventsResult.data;
-
-          // Parse groups files if provided
-          const groupsData: any[] = [];
-          if (groups) {
-            for (const groupFile of groups) {
-              const result = parseSchemaFile(groupFile);
-              if (!result.isValid || !result.data) {
-                console.error(`❌ Failed to parse group file: ${groupFile}`);
-                if (result.errors) {
-                  console.error(result.errors.join('\n'));
-                }
-                process.exit(1);
-              }
-              const data = result.data as { groups?: any[] };
-              if (data.groups) {
-                groupsData.push(...data.groups);
-              }
-            }
-          }
-
-          // Parse dimensions files if provided
-          const dimensionsData = dimensions?.map((dimension: string) => {
-            const result = parseSchemaFile(dimension);
-            if (!result.isValid || !result.data) {
-              console.error(`❌ Failed to parse dimension file: ${dimension}`);
-              if (result.errors) {
-                console.error(result.errors.join('\n'));
-              }
-              process.exit(1);
-            }
-            return result.data;
-          }) || [];
-
-          // Parse meta file if provided
-          let metaRules;
-          if (meta) {
-            const metaResult = parseSchemaFile(meta);
-            if (!metaResult.isValid || !metaResult.data) {
-              console.error(`❌ Failed to parse meta file: ${meta}`);
-              if (metaResult.errors) {
-                console.error(metaResult.errors.join('\n'));
-              }
-              process.exit(1);
-            }
-            metaRules = (metaResult.data as { meta: any[] }).meta;
-          }
-
-          // Generate types and tracking config
-          const types = generateTypes(eventsData, groupsData, dimensionsData, metaRules, disableComments, eventKeyPropertyName);
-          const trackingConfig = generateTrackingConfig(eventsData, groupsData, dimensionsData, metaRules, disableComments, eventKeyPropertyName);
-
-          // Write output file
-          const outputPath = path.resolve(process.cwd(), output);
-          const outputDir = path.dirname(outputPath);
-          if (!fs.existsSync(outputDir)) {
-            fs.mkdirSync(outputDir, { recursive: true });
-          }
-
-          const outputContent = output.endsWith(".ts")
-            ? `// This file is auto-generated. Do not edit it manually.\n\n${types}\n\n${trackingConfig}`
-            : trackingConfig;
-
-          fs.writeFileSync(outputPath, outputContent);
-          console.log(`✅ Generated ${output}`);
-        });
-      } catch (error) {
-        console.error("❌ Error generating types:", error);
-        process.exit(1);
       }
     });
 }
