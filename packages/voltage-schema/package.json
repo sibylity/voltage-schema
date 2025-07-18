@@ -12,6 +12,7 @@
     "properties": "node dist/cli/index.js properties",
     "events": "node dist/cli/index.js events",
     "generate": "node dist/cli/index.js generate",
+    "watch": "node dist/cli/index.js generate --watch",
     "validate": "node dist/cli/index.js validate",
     "test": "jest",
     "test:watch": "jest --watch"
@@ -40,6 +41,7 @@
   },
   "dependencies": {
     "ajv": "^8.17.1",
+    "chokidar": "^4.0.3",
     "js-yaml": "^4.1.0"
   },
   "engines": {
@@ -48,8 +50,12 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "roots": ["<rootDir>/src"],
-    "testMatch": ["**/__tests__/**/*.test.ts"],
+    "roots": [
+      "<rootDir>/src"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.test.ts"
+    ],
     "collectCoverageFrom": [
       "src/**/*.ts",
       "!src/**/*.d.ts",
