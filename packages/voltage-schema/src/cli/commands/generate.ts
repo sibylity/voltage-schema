@@ -5,6 +5,7 @@ import { type AnalyticsGlobals, type AnalyticsEvents, type GenerationConfig, typ
 import { validateAnalyticsFiles } from "../validation";
 import { getAnalyticsConfig } from "../utils/analyticsConfigHelper";
 import { parseSchemaFile } from "../validation/fileValidation";
+import { generateLockFile, writeLockFile } from "../utils/lockFileGenerator";
 
 interface TrackingConfigProperty {
   name: string;
@@ -367,6 +368,12 @@ export function registerGenerateCommand(cli: CLI) {
 
         const config = getAnalyticsConfig();
         const generationConfigs = config.generates;
+
+        // Generate voltage.lock file first - this validates all schema files
+        console.log("🔐 Generating voltage.lock file...");
+        const lockFile = generateLockFile(generationConfigs);
+        writeLockFile(lockFile);
+        console.log("✅ Generated voltage.lock");
 
         generationConfigs.forEach((generationConfig: GenerationConfig) => {
           const { events, groups, dimensions, meta, output, disableComments, eventKeyPropertyName } = generationConfig;
