@@ -7,6 +7,7 @@ const dimensions_1 = require("./commands/dimensions");
 const properties_1 = require("./commands/properties");
 const events_1 = require("./commands/events");
 const generate_1 = require("./commands/generate");
+const concat_lock_1 = require("./commands/concat-lock");
 const cli = new cli_1.CLI();
 // Register all commands
 (0, init_1.registerInitCommand)(cli);
@@ -15,5 +16,6 @@ const cli = new cli_1.CLI();
 (0, properties_1.registerPropertiesCommand)(cli);
 (0, events_1.registerEventsCommand)(cli);
 (0, generate_1.registerGenerateCommand)(cli);
+(0, concat_lock_1.registerConcatLockCommand)(cli);
 // Parse command line arguments
 cli.parse(process.argv);

@@ -9,6 +9,7 @@ const path_1 = __importDefault(require("path"));
 const validation_1 = require("../validation");
 const analyticsConfigHelper_1 = require("../utils/analyticsConfigHelper");
 const fileValidation_1 = require("../validation/fileValidation");
+const lockFileGenerator_1 = require("../utils/lockFileGenerator");
 /**
  * Normalizes an event key to be safe for use as a variable name.
  * Converts to CamelCase and removes unsafe characters.
@@ -308,6 +309,11 @@ function registerGenerateCommand(cli) {
             }
             const config = (0, analyticsConfigHelper_1.getAnalyticsConfig)();
             const generationConfigs = config.generates;
+            // Generate voltage.lock file first - this validates all schema files
+            console.log("🔐 Generating voltage.lock file...");
+            const lockFile = (0, lockFileGenerator_1.generateLockFile)(generationConfigs);
+            (0, lockFileGenerator_1.writeLockFile)(lockFile);
+            console.log("✅ Generated voltage.lock");
             generationConfigs.forEach((generationConfig) => {
                 const { events, groups, dimensions, meta, output, disableComments, eventKeyPropertyName } = generationConfig;
                 // Parse events file

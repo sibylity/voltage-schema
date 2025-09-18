@@ -1,6 +1,6 @@
 {
   "name": "voltage-schema",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Self-documenting & type-safe product analytics tracking.",
   "main": "./dist/cli/index.js",
   "scripts": {

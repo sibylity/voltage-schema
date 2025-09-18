@@ -294,6 +294,9 @@ npm voltage validate
 # Generate TypeScript types & tracking config from your codegen config
 npm voltage generate
 
+# Concatenate voltage.lock files in a monorepo (run from monorepo root)
+npm voltage concat-lock
+
 # List all events and their properties
 npm voltage events
 npm voltage events -- --include-groups
@@ -309,6 +312,33 @@ npm voltage dimensions
 npm voltage dimensions -- --include-event-details
 npm voltage dimensions -- --verbose
 ```
+
+### Lock Files
+
+Voltage automatically generates a `voltage.lock` file when you run `npm voltage generate`. This file contains:
+
+- **Deterministic Versioning**: Uses semantic versioning (major.minor) that only increments when schema changes are detected
+- **Content Hashing**: Ensures reproducible builds by tracking exact schema file contents
+- **Source Tracking**: Records all schema files, their data, and their relationships
+- **Generation Metadata**: Stores configuration and output paths for each generation target
+
+The lock file ensures that your generated types and tracking configurations remain consistent across environments and team members.
+
+#### Monorepo Support
+
+For monorepos with multiple packages containing voltage.lock files, use the `concat-lock` command:
+
+```bash
+# Run from your monorepo root
+npm voltage concat-lock
+```
+
+This command:
+- Scans all packages for voltage.lock files
+- Validates each package has a corresponding package.json
+- Concatenates all lock files into a single monorepo voltage.lock
+- Uses deterministic versioning that only changes when underlying package lock files change
+- Outputs to the monorepo root for easy integration with CI/CD and external tools
 
 ### Auto-doc Package
 
