@@ -5,6 +5,7 @@ import { registerDimensionsCommand } from "./commands/dimensions";
 import { registerPropertiesCommand } from "./commands/properties";
 import { registerEventsCommand } from "./commands/events";
 import { registerGenerateCommand } from "./commands/generate";
+import { registerConcatLockCommand } from "./commands/concat-lock";
 
 const cli = new CLI();
 
@@ -15,6 +16,7 @@ registerDimensionsCommand(cli);
 registerPropertiesCommand(cli);
 registerEventsCommand(cli);
 registerGenerateCommand(cli);
+registerConcatLockCommand(cli);
 
 // Parse command line arguments
 cli.parse(process.argv);
