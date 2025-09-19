@@ -50,6 +50,9 @@ export interface GenerationConfig {
   output: string;
   disableComments?: boolean;
   eventKeyPropertyName?: string;
+  // Single-file options
+  mergedSchemaFile?: string;
+  mergedSchemaOutput?: string;
 }
 
 // Analytics Globals Types

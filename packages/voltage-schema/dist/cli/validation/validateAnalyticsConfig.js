@@ -28,8 +28,9 @@ function validateAnalyticsConfig(configPath, context) {
     }
     const errors = [];
     config.generates.forEach((genConfig, index) => {
-        if (!genConfig.events) {
-            errors.push(`Generation config at index ${index} is missing 'events' property.`);
+        // Either events or mergedSchemaFile must be provided
+        if (!genConfig.events && !genConfig.mergedSchemaFile) {
+            errors.push(`Generation config at index ${index} is missing either 'events' or 'mergedSchemaFile' property.`);
         }
         if (!genConfig.output) {
             errors.push(`Generation config at index ${index} is missing 'output' property.`);
