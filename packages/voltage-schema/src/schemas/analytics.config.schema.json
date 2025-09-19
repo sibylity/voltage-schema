@@ -22,9 +22,24 @@
           "eventKeyPropertyName": {
             "type": "string",
             "description": "The name of the property that will be auto-generated to store the event key. Defaults to 'Event Key' if not specified."
+          },
+          "mergedSchemaFile": {
+            "type": "string",
+            "description": "Path to a single merged schema file containing events, groups, and dimensions. When specified, this takes precedence over separate events/groups/dimensions files."
+          },
+          "mergedSchemaOutput": {
+            "type": "string",
+            "description": "Path where a merged schema file should be written when using separate schema files."
           }
         },
-        "required": ["events", "output"]
+        "anyOf": [
+          {
+            "required": ["events", "output"]
+          },
+          {
+            "required": ["mergedSchemaFile", "output"]
+          }
+        ]
       }
     }
   },
