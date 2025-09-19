@@ -144,23 +144,36 @@ export function processGenerationConfig(
   genConfig: GenerationConfig,
   existingEntry?: VoltageGenerationEntry
 ): VoltageGenerationEntry {
-  const sources: VoltageGenerationEntry['sources'] = {
-    events: readSchemaSource(genConfig.events)
-  };
+  let sources: VoltageGenerationEntry['sources'];
 
-  // Process groups if present
-  if (genConfig.groups && genConfig.groups.length > 0) {
-    sources.groups = genConfig.groups.map(groupFile => readSchemaSource(groupFile));
-  }
+  if (genConfig.mergedSchemaFile) {
+    // For merged schema files, read the single file as events source
+    sources = {
+      events: readSchemaSource(genConfig.mergedSchemaFile)
+    };
+  } else {
+    // For separate files, read events file
+    if (!genConfig.events) {
+      throw new Error('Generation config must have either events or mergedSchemaFile');
+    }
+    sources = {
+      events: readSchemaSource(genConfig.events)
+    };
 
-  // Process dimensions if present
-  if (genConfig.dimensions && genConfig.dimensions.length > 0) {
-    sources.dimensions = genConfig.dimensions.map(dimensionFile => readSchemaSource(dimensionFile));
-  }
+    // Process groups if present
+    if (genConfig.groups && genConfig.groups.length > 0) {
+      sources.groups = genConfig.groups.map(groupFile => readSchemaSource(groupFile));
+    }
 
-  // Process meta if present
-  if (genConfig.meta) {
-    sources.meta = readSchemaSource(genConfig.meta);
+    // Process dimensions if present
+    if (genConfig.dimensions && genConfig.dimensions.length > 0) {
+      sources.dimensions = genConfig.dimensions.map(dimensionFile => readSchemaSource(dimensionFile));
+    }
+
+    // Process meta if present
+    if (genConfig.meta) {
+      sources.meta = readSchemaSource(genConfig.meta);
+    }
   }
 
   // Create config without output for hashing

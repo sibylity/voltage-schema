@@ -1,7 +1,7 @@
 import fs from "fs";
 import path from "path";
 import type { ErrorObject } from "ajv";
-import { type AnalyticsConfig } from "../../types";
+import { type AnalyticsConfig, type GenerationConfig } from "../../types";
 import { type ValidationResult, type ValidationContext } from "./types";
 import { createValidator } from "./schemaValidation";
 import { parseSchemaFile } from "./fileValidation";
@@ -30,9 +30,10 @@ export function validateAnalyticsConfig(configPath: string, context: { filePath:
   }
 
   const errors: string[] = [];
-  config.generates.forEach((genConfig, index) => {
-    if (!genConfig.events) {
-      errors.push(`Generation config at index ${index} is missing 'events' property.`);
+  config.generates.forEach((genConfig: GenerationConfig, index) => {
+    // Either events or mergedSchemaFile must be provided
+    if (!genConfig.events && !genConfig.mergedSchemaFile) {
+      errors.push(`Generation config at index ${index} is missing either 'events' or 'mergedSchemaFile' property.`);
     }
     if (!genConfig.output) {
       errors.push(`Generation config at index ${index} is missing 'output' property.`);

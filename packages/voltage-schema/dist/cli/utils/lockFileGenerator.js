@@ -123,20 +123,33 @@ exports.readExistingLockFile = readExistingLockFile;
  * Processes a generation config and returns the generation entry
  */
 function processGenerationConfig(genConfig, existingEntry) {
-    const sources = {
-        events: readSchemaSource(genConfig.events)
-    };
-    // Process groups if present
-    if (genConfig.groups && genConfig.groups.length > 0) {
-        sources.groups = genConfig.groups.map(groupFile => readSchemaSource(groupFile));
+    let sources;
+    if (genConfig.mergedSchemaFile) {
+        // For merged schema files, read the single file as events source
+        sources = {
+            events: readSchemaSource(genConfig.mergedSchemaFile)
+        };
     }
-    // Process dimensions if present
-    if (genConfig.dimensions && genConfig.dimensions.length > 0) {
-        sources.dimensions = genConfig.dimensions.map(dimensionFile => readSchemaSource(dimensionFile));
-    }
-    // Process meta if present
-    if (genConfig.meta) {
-        sources.meta = readSchemaSource(genConfig.meta);
+    else {
+        // For separate files, read events file
+        if (!genConfig.events) {
+            throw new Error('Generation config must have either events or mergedSchemaFile');
+        }
+        sources = {
+            events: readSchemaSource(genConfig.events)
+        };
+        // Process groups if present
+        if (genConfig.groups && genConfig.groups.length > 0) {
+            sources.groups = genConfig.groups.map(groupFile => readSchemaSource(groupFile));
+        }
+        // Process dimensions if present
+        if (genConfig.dimensions && genConfig.dimensions.length > 0) {
+            sources.dimensions = genConfig.dimensions.map(dimensionFile => readSchemaSource(dimensionFile));
+        }
+        // Process meta if present
+        if (genConfig.meta) {
+            sources.meta = readSchemaSource(genConfig.meta);
+        }
     }
     // Create config without output for hashing
     const { output } = genConfig, configWithoutOutput = __rest(genConfig, ["output"]);

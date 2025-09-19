@@ -315,59 +315,98 @@ function registerGenerateCommand(cli) {
             (0, lockFileGenerator_1.writeLockFile)(lockFile);
             console.log("✅ Generated voltage.lock");
             generationConfigs.forEach((generationConfig) => {
-                const { events, groups, dimensions, meta, output, disableComments, eventKeyPropertyName } = generationConfig;
-                // Parse events file
-                const eventsResult = (0, fileValidation_1.parseSchemaFile)(events);
-                if (!eventsResult.isValid || !eventsResult.data) {
-                    console.error(`❌ Failed to parse events file: ${events}`);
-                    if (eventsResult.errors) {
-                        console.error(eventsResult.errors.join('\n'));
+                const { events, groups, dimensions, meta, output, disableComments, eventKeyPropertyName, mergedSchemaFile } = generationConfig;
+                let eventsData;
+                let groupsData = [];
+                let dimensionsData = [];
+                let metaRules;
+                if (mergedSchemaFile) {
+                    // Parse merged schema file
+                    console.log(`📄 Parsing merged schema file: ${mergedSchemaFile}`);
+                    const mergedResult = (0, fileValidation_1.parseSchemaFile)(mergedSchemaFile);
+                    if (!mergedResult.isValid || !mergedResult.data) {
+                        console.error(`❌ Failed to parse merged schema file: ${mergedSchemaFile}`);
+                        if (mergedResult.errors) {
+                            console.error(mergedResult.errors.join('\n'));
+                        }
+                        process.exit(1);
                     }
-                    process.exit(1);
+                    const mergedData = mergedResult.data;
+                    // Extract data from merged schema
+                    if (mergedData.events) {
+                        eventsData = { events: mergedData.events };
+                    }
+                    else {
+                        console.error(`❌ Merged schema file missing 'events' section: ${mergedSchemaFile}`);
+                        process.exit(1);
+                    }
+                    if (mergedData.groups) {
+                        groupsData = mergedData.groups;
+                    }
+                    if (mergedData.dimensions) {
+                        dimensionsData = mergedData.dimensions;
+                    }
+                    if (mergedData.meta) {
+                        metaRules = mergedData.meta;
+                    }
                 }
-                const eventsData = eventsResult.data;
-                // Parse groups files if provided
-                const groupsData = [];
-                if (groups) {
-                    for (const groupFile of groups) {
-                        const result = (0, fileValidation_1.parseSchemaFile)(groupFile);
+                else {
+                    // Parse separate files (existing behavior)
+                    if (!events) {
+                        console.error(`❌ Either 'events' or 'mergedSchemaFile' must be specified in generation config`);
+                        process.exit(1);
+                    }
+                    // Parse events file
+                    const eventsResult = (0, fileValidation_1.parseSchemaFile)(events);
+                    if (!eventsResult.isValid || !eventsResult.data) {
+                        console.error(`❌ Failed to parse events file: ${events}`);
+                        if (eventsResult.errors) {
+                            console.error(eventsResult.errors.join('\n'));
+                        }
+                        process.exit(1);
+                    }
+                    eventsData = eventsResult.data;
+                    // Parse groups files if provided
+                    if (groups) {
+                        for (const groupFile of groups) {
+                            const result = (0, fileValidation_1.parseSchemaFile)(groupFile);
+                            if (!result.isValid || !result.data) {
+                                console.error(`❌ Failed to parse group file: ${groupFile}`);
+                                if (result.errors) {
+                                    console.error(result.errors.join('\n'));
+                                }
+                                process.exit(1);
+                            }
+                            const data = result.data;
+                            if (data.groups) {
+                                groupsData.push(...data.groups);
+                            }
+                        }
+                    }
+                    // Parse dimensions files if provided
+                    dimensionsData = (dimensions === null || dimensions === void 0 ? void 0 : dimensions.map((dimension) => {
+                        const result = (0, fileValidation_1.parseSchemaFile)(dimension);
                         if (!result.isValid || !result.data) {
-                            console.error(`❌ Failed to parse group file: ${groupFile}`);
+                            console.error(`❌ Failed to parse dimension file: ${dimension}`);
                             if (result.errors) {
                                 console.error(result.errors.join('\n'));
                             }
                             process.exit(1);
                         }
-                        const data = result.data;
-                        if (data.groups) {
-                            groupsData.push(...data.groups);
+                        return result.data;
+                    }).filter(Boolean)) || [];
+                    // Parse meta file if provided
+                    if (meta) {
+                        const metaResult = (0, fileValidation_1.parseSchemaFile)(meta);
+                        if (!metaResult.isValid || !metaResult.data) {
+                            console.error(`❌ Failed to parse meta file: ${meta}`);
+                            if (metaResult.errors) {
+                                console.error(metaResult.errors.join('\n'));
+                            }
+                            process.exit(1);
                         }
+                        metaRules = metaResult.data.meta;
                     }
-                }
-                // Parse dimensions files if provided
-                const dimensionsData = (dimensions === null || dimensions === void 0 ? void 0 : dimensions.map((dimension) => {
-                    const result = (0, fileValidation_1.parseSchemaFile)(dimension);
-                    if (!result.isValid || !result.data) {
-                        console.error(`❌ Failed to parse dimension file: ${dimension}`);
-                        if (result.errors) {
-                            console.error(result.errors.join('\n'));
-                        }
-                        process.exit(1);
-                    }
-                    return result.data;
-                })) || [];
-                // Parse meta file if provided
-                let metaRules;
-                if (meta) {
-                    const metaResult = (0, fileValidation_1.parseSchemaFile)(meta);
-                    if (!metaResult.isValid || !metaResult.data) {
-                        console.error(`❌ Failed to parse meta file: ${meta}`);
-                        if (metaResult.errors) {
-                            console.error(metaResult.errors.join('\n'));
-                        }
-                        process.exit(1);
-                    }
-                    metaRules = metaResult.data.meta;
                 }
                 // Generate types and tracking config
                 const types = generateTypes(eventsData, groupsData, dimensionsData, metaRules, disableComments, eventKeyPropertyName);
@@ -383,6 +422,24 @@ function registerGenerateCommand(cli) {
                     : trackingConfig;
                 fs_1.default.writeFileSync(outputPath, outputContent);
                 console.log(`✅ Generated ${output}`);
+                // Write merged schema output if specified
+                if (generationConfig.mergedSchemaOutput && !mergedSchemaFile) {
+                    const mergedSchema = {
+                        events: eventsData.events,
+                        groups: groupsData,
+                        dimensions: dimensionsData
+                    };
+                    if (metaRules) {
+                        mergedSchema.meta = metaRules;
+                    }
+                    const mergedOutputPath = path_1.default.resolve(process.cwd(), generationConfig.mergedSchemaOutput);
+                    const mergedOutputDir = path_1.default.dirname(mergedOutputPath);
+                    if (!fs_1.default.existsSync(mergedOutputDir)) {
+                        fs_1.default.mkdirSync(mergedOutputDir, { recursive: true });
+                    }
+                    fs_1.default.writeFileSync(mergedOutputPath, JSON.stringify(mergedSchema, null, 2));
+                    console.log(`✅ Generated merged schema: ${generationConfig.mergedSchemaOutput}`);
+                }
             });
         }
         catch (error) {
