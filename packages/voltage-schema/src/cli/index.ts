@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { CLI } from "./cli";
 import { registerInitCommand } from "./commands/init";
 import { registerValidateCommand } from "./commands/validate";
