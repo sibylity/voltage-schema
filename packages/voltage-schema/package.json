@@ -1,6 +1,6 @@
 {
   "name": "voltage-schema",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Self-documenting & type-safe product analytics tracking.",
   "main": "./dist/cli/index.js",
   "scripts": {
@@ -48,8 +48,12 @@
   "jest": {
     "preset": "ts-jest",
     "testEnvironment": "node",
-    "roots": ["<rootDir>/src"],
-    "testMatch": ["**/__tests__/**/*.test.ts"],
+    "roots": [
+      "<rootDir>/src"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.test.ts"
+    ],
     "collectCoverageFrom": [
       "src/**/*.ts",
       "!src/**/*.d.ts",
